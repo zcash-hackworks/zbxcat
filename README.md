@@ -3,37 +3,37 @@ A work-in-progress for Zcash Bitcoin Cross-Chain Atomic Transactions
 
 Contains basic scripts we're still testing in regtest mode on both networks. This may all be refactored as we go.
 
-The ZBXCAT directory contains BitcoinRPC and ZcashRPC, wrappers around the rpc interface that can be imported as Python modules.
-
-The settings.py file in BitcoinRPC and ZcashRPC parse the config files for username/password and set the network ports.
-
-Most functions are named exactly the same as the rpc methods, except for a few additional custom functions that do things like return only the version number.
-
-**EDIT**: The scripts now use the rpc proxy code in python-bitcoinlib, and ZDaemon's functions will be refactored into python-zcashlib (a Zcash fork of python-bitcoinlib)
+Bitcoin scripts use the rpc proxy code in python-bitcoinlib, and Zcash script will use python-zcashlib (a Zcash fork of python-bitcoinlib).
 
 ## Current status of scripts
 
-Run `redeem-preimage-p2sh.py` to test. It creates and redeems a p2sh transaction using a preimage. To successfully run it, you need python3, the dependencies installed, and a bitcoin daemon running in regtest mode.
+The script `btc-p2sh-htlc.py` creates and redeems a p2sh transaction on Bitcoin regtest using a preimage. Locktime scripting still needs work.
 
-(Currently only tested on Bitcoin. Need to verify that the Zcash fork of python-bitcoinlib, one of the dependencies, works properly, then figure out the best way to install it.)
+To successfully run it, you'll need python3, the dependencies installed, and a bitcoin daemon running in regtest mode.
 
-`bitcoin-swap.py` contains all the functions that use a proxy to interact with a Bitcoin daemon.
-
-Use python3 to test. To create a virtualenv for python3, run this command from the top level of the directory:
+To install python3 in a virtualenv, run this command from the top level of the directory:
 ```
 virtualenv -p python3 venv
 source venv/bin/activate
 ```
 
-Install dependencies for ZBXCAT: `pip install -r requirements.txt`
+To install dependencies, run:
+```
+pip install -r requirements.txt
+```
+
+To run a bitcoin daemon in regtest mode, with the ability to inspect transactions outside your wallet (useful for testing purposes), use the command
+```
+bitcoind -regtest -txindex=1 --daemon
+```
 
 ## Installing python-zcashlib for testing and editing
 
-The Zcash fork of python-bitcoinlib that is currently in progress:
+The Zcash fork of python-bitcoinlib is currently in progress:
 
 `git clone https://github.com/arcalinea/python-bitcoinlib/tree/zcashlib`
 
-You can install this module locally through pip, in editable mode, so that changes you make are applied immediately. For install from local filesystem path:
+You can install this module locally through pip, in editable mode, so that changes you make are applied immediately. To install from local filesystem path:
 
 `pip install --editable (-e) <path-to-zcashlib>`
 
