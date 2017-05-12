@@ -5,9 +5,9 @@ Contains basic scripts we're still testing in regtest mode on both networks. Thi
 
 Bitcoin scripts use the rpc proxy code in python-bitcoinlib, and Zcash script will use python-zcashlib (a Zcash fork of python-bitcoinlib).
 
-## Current status of scripts
+## BTC p2sh HTLC script
 
-The script `btc-p2sh-htlc.py` creates and redeems a p2sh transaction on Bitcoin regtest using a preimage. Locktime scripting still needs work.
+The script `btc-p2sh-htlc.py` creates and redeems a p2sh transaction on Bitcoin regtest using a preimage. TODO: Locktime scripting still needs work.
 
 To successfully run it, you'll need python3, the dependencies installed, and a bitcoin daemon running in regtest mode.
 
@@ -27,16 +27,28 @@ To run a bitcoin daemon in regtest mode, with the ability to inspect transaction
 bitcoind -regtest -txindex=1 --daemon
 ```
 
-## Installing python-zcashlib for testing and editing
+## ZEC p2sh HTLC script
 
-The Zcash fork of python-bitcoinlib is currently in progress:
+The script `zec-p2sh-htlc.py` is the same as the BTC script, but uses python-zcashlib, which is still a work in progress.
 
-`git clone https://github.com/arcalinea/python-bitcoinlib/tree/zcashlib`
+To install python-zcashlib for testing and editing, clone the repository to your local filesystem. It is currently on a branch of python-bitcoinlib maintained by @arcalinea.
 
-You can install this module locally through pip, in editable mode, so that changes you make are applied immediately. To install from local filesystem path:
+```
+git clone https://github.com/arcalinea/python-bitcoinlib.git
+cd python-bitcoinlib
+git checkout zcashlib
+```
 
-`pip install --editable (-e) <path-to-zcashlib>`
+Then, install the module locally in editable mode through pip, so that you can make changes to the code of python-zcashlib and they will be applied immediately. It is necessary to install python-zcashlib this way for now because the fork of the library likely contains many bugs, which need to be fixed before `zec-p2sh-htlc.py` will work properly.
 
+To install python-zcashlib from your local filesystem path in editable mode:
+
+`pip install --editable (-e) <path-to-zcashlib-fork-of-python-bitcoinlib>`
+
+Be sure to run a Zcash daemon in regtest mode.
+```
+zcashd -regtest -txindex=1 --daemon
+```
 
 ## Misc
 
