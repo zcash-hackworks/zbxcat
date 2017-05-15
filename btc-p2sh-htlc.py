@@ -34,12 +34,15 @@ senderpubkey = proxy.getnewaddress()
 # privkey of the recipient, used to sign the redeemTx
 seckey = proxy.dumpprivkey(recipientpubkey)
 
-blocknum = 7
+lockduration = 10
+blocknum = proxy.getblockcount()
+redeemblocknum = blocknum + lockduration
 # Create a htlc redeemScript. Similar to a scriptPubKey the redeemScript must be
 # satisfied for the funds to be spent.
 txin_redeemScript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
-                             recipientpubkey, OP_ELSE, blocknum, OP_DROP, OP_HASH160,
+                             recipientpubkey, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
                              senderpubkey, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
+
 print("redeem script:", b2x(txin_redeemScript))
 
 # Create P2SH scriptPubKey from redeemScript.
