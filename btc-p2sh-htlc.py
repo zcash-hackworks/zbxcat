@@ -11,7 +11,7 @@ if sys.version_info.major < 3:
 import bitcoin
 import bitcoin.rpc
 from bitcoin import SelectParams
-from bitcoin.core import b2x, lx, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160
+from bitcoin.core import b2x, lx, b2lx, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160
 from bitcoin.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL
 from bitcoin.core.script import OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
 from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
@@ -56,8 +56,10 @@ print('Pay to:', p2sh)
 
 # AUTOMATE Send funds to p2sh
 amount = 1.0*COIN
+# sendtoaddress return the id of the created tx
 fund_tx = proxy.sendtoaddress(txin_p2sh_address, amount)
 
+print('fund tx sent. It\'s id is:', b2x(lx(b2x(fund_tx))))
 print('Now redeeming.........')
 
 # AUTOMATE getting vout of funding tx
@@ -95,4 +97,4 @@ VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
 
 print("Now sending redeem transaction.......")
 txid = proxy.sendrawtransaction(tx)
-print("Txid of submitted redeem tx: ", b2x(txid))
+print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))

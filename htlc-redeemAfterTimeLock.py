@@ -33,7 +33,7 @@ recipientpubkey = proxy.getnewaddress()
 senderpubkey = proxy.getnewaddress()
 # privkey of the recipient, used to sign the redeemTx
 seckey = proxy.dumpprivkey(senderpubkey)
-
+#proxy.importprivkey(seckey)
 lockduration = 10
 blocknum = proxy.getblockcount()
 print("current block num:", blocknum)
@@ -78,7 +78,7 @@ txin.nSequence = 0
 # Create the txout. Pays out to recipient, so uses recipient's pubkey
 # Withdraw full amount minus fee
 default_fee = 0.001*COIN
-txout = CMutableTxOut(amount - default_fee, recipientpubkey.to_scriptPubKey())
+txout = CMutableTxOut(amount - default_fee, senderpubkey.to_scriptPubKey())
 
 # Create the unsigned raw transaction.
 tx = CMutableTransaction([txin], [txout])
@@ -103,4 +103,4 @@ VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
 
 print("Now sending redeem transaction.......")
 txid = proxy.sendrawtransaction(tx)
-print("Txid of submitted redeem tx: ", b2x(txid))
+print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
