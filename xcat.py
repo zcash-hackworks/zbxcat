@@ -54,19 +54,34 @@ txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
 p2sh = str(txin_p2sh_address)
 print('Pay to:', p2sh)
 
+
 # AUTOMATE Send funds to p2sh
 send_amount = 1.0*COIN
 # sendtoaddress return the id of the created tx
 fund_tx = proxy.sendtoaddress(txin_p2sh_address, send_amount)
 
-print('fund tx sent. It\'s id is:', b2x(lx(b2x(fund_tx))))
+print('fund tx sent. Its id is:', b2x(lx(b2x(fund_tx))))
+
+
+# Import p2sh address and watch
+# proxy.importaddress(p2sh)
+# # Returns list of recently observed transaction, includes p2sh if imported and conf sets txindex=1
+# txs = proxy.listtransactions(p2sh, "*", 10, 10, True)
+# print('txs from listtransaction', txs)
 
 # Now receiver receives txid and checks that it is on the blockchain to the right address
-rec_tx = proxy.getrawtransaction(fund_tx)
-outputAddress = CBitcoinAddress.from_scriptPubKey(rec_tx.vout[0].scriptPubKey)
-output_amount = rec_tx.vout[0].nValue
+txinfo = proxy.gettransaction(fund_tx)
+details = txinfo['details']
+print('details', details) # "details" is an array, for now we can assume it only has one destination address
+outputAddress = details[0]['address']
+print('outputAddress', outputAddress)
+# Let's check amount by importing address and inspecting
+proxy.importaddress(outputAddress)
+# Get amount in address
+output_amount = proxy.getreceivedbyaddress(outputAddress, 0)
 print('output amount', output_amount)
-if (outputAddress != txin_p2sh_address):
+
+if (outputAddress != p2sh):
     print('fund tx to wrong address!')
     quit()
 
@@ -74,10 +89,10 @@ if (output_amount < send_amount):
     print('fund tx to small!')
     quit()
 
-print('sender fund tx has been confirmed, now receiver making their fund tx:')
+print('sender fund tx has been confirmed, now receiver making their fund tx......')
 
 rec_fund_tx = proxy.sendtoaddress(txin_p2sh_address, send_amount)
-print('rec fund tx sent. It\'s id is:', b2x(lx(b2x(fund_tx))))
+print('rec fund tx sent. Its id is:', b2x(lx(b2x(fund_tx))))
 
 # Now sender checks if the lock time is passed, if so she redeems her own tx
 if(proxy.getblockcount()>=redeemblocknum):
@@ -86,7 +101,7 @@ if(proxy.getblockcount()>=redeemblocknum):
     # Create the txout. Pays out to recipient, so uses recipient's pubkey
     # Withdraw full amount minus fee
     default_fee = 0.001*COIN
-    txout = CMutableTxOut(amount - default_fee, senderpubkey.to_scriptPubKey())
+    txout = CMutableTxOut(send_amount - default_fee, senderpubkey.to_scriptPubKey())
     # Create the unsigned raw transaction.
     tx = CMutableTransaction([txin], [txout])
     # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
@@ -104,12 +119,19 @@ if(proxy.getblockcount()>=redeemblocknum):
     quit()
 
 #Otherwise, check that receiver fund tx is on blockchain to correct address with sufficient amount
-
-send_rec_tx = proxy.getrawtransaction(rec_fund_tx)
-outputAddress = CBitcoinAddress.from_scriptPubKey(send_rec_tx.vout[0].scriptPubKey)
-output_amount = send_rec_tx.vout[0].nValue
+send_txinfo = proxy.gettransaction(rec_fund_tx)
+details = send_txinfo['details']
+print('details', details) # "details" is an array, for now we can assume it only has one destination address
+outputAddress = details[0]['address']
+print('outputAddress', outputAddress)
+# Let's check amount by importing address and inspecting
+proxy.importaddress(outputAddress)
+# Get amount in address
+output_amount = proxy.getreceivedbyaddress(outputAddress, 0)
 print('output amount', output_amount)
-if (outputAddress != txin_p2sh_address):
+
+print('output amount', output_amount)
+if (outputAddress != p2sh):
     print('fund tx to wrong address!')
     quit()
 
@@ -121,7 +143,7 @@ print('receiver fund tx confirmed, redeeming it with the hash preimage:')
 # Create the txout. Pays out to recipient, so uses recipient's pubkey
 # Withdraw full amount minus fee
 default_fee = 0.001*COIN
-txout = CMutableTxOut(amount - default_fee, senderpubkey.to_scriptPubKey())
+txout = CMutableTxOut(send_amount - default_fee, senderpubkey.to_scriptPubKey())
 # Create the unsigned raw transaction.
 tx = CMutableTransaction([txin], [txout])
 # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
@@ -152,15 +174,12 @@ print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
 
 
 
-
-
-
 print('Now redeeming.........')
 
 # AUTOMATE getting vout of funding tx
 txinfo = proxy.gettransaction(fund_tx)
 details = txinfo['details'][0] # what is the zero here
-vout = details['vout'] 
+vout = details['vout']
 
 # Create the txin structure. scriptSig defaults to being empty.
 # The input is the p2sh funding transaction txid, vout is its index
