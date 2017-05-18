@@ -23,19 +23,32 @@ bitcoind = bitcoin.rpc.Proxy()
 FEE = 0.001*COIN
 
 # =========================  BITCOIN ADDRESSES =========================
-alice_address = input("Enter alice bitcoin address: (type 'enter' for demo)")
-bob_address = input("Enter bob bitcoin address: (type 'enter' for demo)")
 alicepubkey = CBitcoinAddress('mshp4msfzc73ebg4VzwS6nAXj9t6KqX1wd')
 bobpubkey = CBitcoinAddress('myRh2T5Kg7QJfGLeRzriT5zs9aoek5Jbha')
+alice_address = input("Enter alice bitcoin address: (type 'enter' for demo)")
+bob_address = input("Enter bob bitcoin address: (type 'enter' for demo)")
+
 # bitcoind.getnewaddress() returns CBitcoinAddress
 # bobpubkey = bitcoind.getnewaddress()
 # alicepubkey = bitcoind.getnewaddress()
-print("alicepubkey", alicepubkey)
-print("bobpubkey", bobpubkey)
+# print("alicepubkey", alicepubkey)
+# print("bobpubkey", bobpubkey)
+
+print("alice address", alice_address)
+print("bob address", bob_address)
+
 # privkey of the bob, used to sign the redeemTx
-bob_seckey = bitcoind.dumpprivkey(bobpubkey)
+bob_seckey = bitcoind.dumpprivkey(bob_address)
 # privkey of alice, used to refund tx in case of timeout
-alice_seckey = bitcoind.dumpprivkey(alicepubkey)
+alice_seckey = bitcoind.dumpprivkey(alice_address)
+
+bobpubkey = CBitcoinAddress(bob_address)
+alicepubkey = CBitcoinAddress(alice_address)
+
+
+print("alicepubkey",alicepubkey )
+print("bobpubkey",bobpubkey )
+
 
 # ========================= HASHLOCK SECRET PREIMAGE =========================
 secret = input("Alice: Enter secret to lock funds: (type 'enter' for demo)")
