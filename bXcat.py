@@ -90,14 +90,13 @@ def search_p2sh(block, p2sh):
 
 def get_tx_details(txid):
     # must convert txid string to bytes x(txid)
-    fund_txinfo = bitcoind.gettransaction(x(txid))
+    fund_txinfo = bitcoind.gettransaction(lx(txid))
     return fund_txinfo['details'][0]
 
 def redeem(p2sh, action):
-    # make sure p2sh is imported to redeem:
-    print("Importing p2sh", p2sh)
+    # ensure p2sh is imported
     bitcoind.importaddress(p2sh, '', False)
-    # action is buy or sell
+
     contracts = get_contract()
     trade = get_trade()
     for key in contracts:
@@ -111,28 +110,52 @@ def redeem(p2sh, action):
 
         txid = trade[action]['fund_tx']
         details = get_tx_details(txid)
-        txin = CMutableTxIn(COutPoint(txid, details['vout']))
+        print("Txid for fund tx", txid)
+        # must be little endian hex
+        txin = CMutableTxIn(COutPoint(lx(txid), details['vout']))
         redeemPubKey = CBitcoinAddress(contract['redeemer'])
-        txout = CMutableTxOut(details['amount'] - FEE, redeemPubKey.to_scriptPubKey())
+        amount = trade[action]['amount'] * COIN
+        print("amount: {0}, fee: {1}".format(amount, FEE))
+        txout = CMutableTxOut(amount - FEE, redeemPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
         # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
         # TODO: these things like redeemblocknum should really be properties of a tx class...
         # Need: redeemblocknum, zec_redeemScript, secret (for creator...), txid, redeemer...
+        # Is stored as hex, must convert to bytes
+        zec_redeemScript = CScript(x(zec_redeemScript))
+
         tx.nLockTime = redeemblocknum
         sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
         # TODO: figure out how to better protect privkey?
         privkey = bitcoind.dumpprivkey(redeemPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
-        txin.scriptSig = CScript([sig, privkey.pub, contract['secret'], OP_TRUE, zec_redeemScript])
+        # TODO: Figure out where to store secret preimage securely. Parse from scriptsig of redeemtx
+        secret = trade['sell']['secret']
+        preimage = secret.encode('utf-8')
+        print('preimage', preimage)
+
+        print('zec_redeemScript', zec_redeemScript)
+        txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, zec_redeemScript])
         print("Redeem tx hex:", b2x(tx.serialize()))
+
+        # Can only call to_p2sh_scriptPubKey on CScript obj
+        txin_scriptPubKey = zec_redeemScript.to_p2sh_scriptPubKey()
 
         print("txin.scriptSig", b2x(txin.scriptSig))
         print("txin_scriptPubKey", b2x(txin_scriptPubKey))
         print('tx', tx)
         VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("script verified, sending raw tx")
+        print("Raw tx", b2x(tx.serialize()))
         txid = bitcoind.sendrawtransaction(tx)
-        print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
+        txhex = b2x(lx(b2x(txid)))
+        print("Txid of submitted redeem tx: ", txhex)
+        return txhex
     else:
         print("No contract for this p2sh found in database", p2sh)
+
+def new_bitcoin_addr():
+    addr = bitcoind.getnewaddress()
+    print('new btc addr', addr.to_scriptPubKey)
+    return addr.to_scriptPubKey()

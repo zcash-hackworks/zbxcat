@@ -93,16 +93,24 @@ def get_addresses():
     buy = trade['buy']['currency']
 
     init_offer_addr = input("Enter your {0} address: ".format(sell))
-    init_offer_addr = 'mpxpkAUatZR45rdrWQSjkUK7z9LyeSMoEr'
+    # init_offer_addr = bXcat.new_bitcoin_addr()
+    init_offer_addr = 'myfFr5twPYNwgeXyjCmGcrzXtCmfmWXKYp'
+    print(init_offer_addr)
     init_bid_addr = input("Enter your {0} address: ".format(buy))
-    init_bid_addr = 'tmWnA7ypaCtpG7KhEWfr5XA1Rpm8521yMfX'
+    # init_bid_addr = zXcat.new_zcash_addr()
+    init_bid_addr = 'tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ'
+    print(init_bid_addr)
     trade['sell']['initiator'] = init_offer_addr
     trade['buy']['initiator'] = init_bid_addr
 
     fulfill_offer_addr = input("Enter the {0} address of the party you want to trade with: ".format(sell))
-    fulfill_offer_addr = 'mg1EHcpWyErmGhMvpZ9ch2qzFE7ZTKuaEy'
+    # fulfill_offer_addr = bXcat.new_bitcoin_addr()
+    fulfill_offer_addr = 'mrQzUGU1dwsWRx5gsKKSDPNtrsP65vCA3Z'
+    print(fulfill_offer_addr)
     fulfill_bid_addr = input("Enter the {0} address of the party you want to trade with: ".format(buy))
-    fulfill_bid_addr = 'tmTqTsBFkeKXyawHfZfcAZQY47xEhpEbo1E'
+    # fulfill_bid_addr = zXcat.new_zcash_addr()
+    print(fulfill_bid_addr)
+    fulfill_bid_addr = 'tmTjZSg4pX2Us6V5HttiwFZwj464fD2ZgpY'
     trade['sell']['fulfiller'] = fulfill_offer_addr
     trade['buy']['fulfiller'] = fulfill_bid_addr
 
@@ -131,11 +139,12 @@ def buyer_fulfill():
         input("Type 'enter' to allow this program to send the agreed upon funds on your behalf")
         txid = fund_htlc(currency, p2sh, amount)
         trade['buy']['fund_tx'] = txid
+
+        save_trade(trade)
     else:
         print("It looks like you've already funded the contract to buy {1}, the amount in escrow in the p2sh is {0}.".format(amount, currency))
         print("Please wait for the seller to remove your funds from escrow to complete the trade.")
 
-    save_trade(trade)
 
 def check_blocks(p2sh):
     # blocks = []
@@ -161,16 +170,23 @@ def seller_redeem():
     # Seller redeems buyer's funded tx (contract in p2sh)
     p2sh = trade['buy']['p2sh']
     currency = trade['buy']['currency']
-    redeem_p2sh(currency, p2sh, 'buy')
+    redeem_tx = redeem_p2sh(currency, p2sh, 'buy')
+    trade['buy']['redeem_tx'] = redeem_tx
+    trade['buy']['status'] = 'redeemed'
+    save_trade(trade)
 
 def buyer_redeem():
     trade = get_trade()
     # Buyer redeems seller's funded tx
     p2sh = trade['sell']['p2sh']
     currency = trade['sell']['currency']
-    redeem_p2sh(currency, p2sh, 'sell')
+    redeem_tx = redeem_p2sh(currency, p2sh, 'sell')
+    trade['sell']['redeem_tx'] = redeem_tx
+    trade['sell']['status'] = 'redeemed'
+    save_trade(trade)
 
 if __name__ == '__main__':
+    print("ZEC <-> BTC XCAT (Cross-Chain Atomic Transactions)")
     role = input("Would you like to initiate or accept a trade?")
     # Have initiator propose amounts to trade
 
@@ -182,6 +198,10 @@ if __name__ == '__main__':
     # If there is no status on a sell order (for this json file db...) we assume you must initiate_trade
     if 'status' not in trade['sell']:
         role = 'i'
+    elif trade['sell']['status'] == 'redeemed' and trade['buy']['status'] == 'redeemed':
+        print("This trade is already complete! Trade details:")
+        pprint(trade)
+        exit()
 
     if role == "i":
         if 'status' not in trade['sell']:
@@ -195,16 +215,18 @@ if __name__ == '__main__':
                 print("Buyer funded the contract where you offered to buy {0}, redeeming funds from {1}...".format(trade['buy']['currency'], trade['buy']['p2sh']))
                 seller_redeem()
     else:
-        # if 'status' not in trade['buy']:
-        if trade['sell']['status'] == 'funded':
+        if trade['buy']['status'] == 'redeemed':
+            # Seller has redeemed buyer's tx, buyer can now redeem.
+            print("The seller has redeemed the contract where you paid them in {0}, now redeeming your funds from {1}".format(trade['buy']['currency'], trade['sell']['p2sh']))
+            buyer_redeem()
+        elif trade['sell']['status'] == 'funded':
             trade = get_trade()
             buyer_fulfill()
             # How to monitor if txs are included in blocks -- should use blocknotify and a monitor daemon?
             # For regtest, can mock in a function
             # p2sh = trade['buy']['p2sh']
             # check_blocks(p2sh)
-        elif trade['sell']['status'] == 'redeemed':
-            # Seller has redeemed buyer's tx, buyer can now redeem.
-            buyer_redeem()
 
         pprint(get_trade())
+
+        # Note: there is some little endian weirdness in the bXcat and zXcat files, need to handle the endianness of txids better & more consistently
