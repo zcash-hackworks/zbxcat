@@ -67,8 +67,13 @@ def check_funds(p2sh):
     amount = amount/COIN
     return amount
 
-def redeem(p2sh):
+def get_tx_details(txid):
+    fund_txinfo = zcashd.gettransaction(fund_tx)
+    return fund_txinfo['details'][0]
+
+def redeem(p2sh, action):
     contracts = get_contract()
+    trade = get_trade()
     for key in contracts:
         if key == p2sh:
             contract = contracts[key]
@@ -77,9 +82,12 @@ def redeem(p2sh):
         # TODO: Have to get tx info from saved contract p2sh
         redeemblocknum = contract['redeemblocknum']
         zec_redeemScript = contract['zec_redeemScript']
-        
-        txin = CMutableTxIn(COutPoint(fund_tx, fund_vout))
-        txout = CMutableTxOut(send_amount - FEE, bobpubkey.to_scriptPubKey())
+
+        txid = trade['action']['fund_tx']
+        details = get_tx_details(txid)
+        txin = CMutableTxIn(COutPoint(txid, details['vout']))
+        redeemPubKey = CBitcoinAddress(contract['redeemer'])
+        txout = CMutableTxOut(details['amount'] - FEE, redeemPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
         # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
@@ -87,15 +95,17 @@ def redeem(p2sh):
         # Need: redeemblocknum, zec_redeemScript, secret (for creator...), txid, redeemer...
         tx.nLockTime = redeemblocknum
         sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
-        sig = bob_seckey.sign(sighash) + bytes([SIGHASH_ALL])
-        txin.scriptSig = CScript([sig, bob_seckey.pub, preimage, OP_TRUE, zec_redeemScript])
+        # TODO: figure out how to better protect privkey?
+        privkey = zcashd.dumpprivkey(redeemPubKey)
+        sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
+        txin.scriptSig = CScript([sig, privkey.pub, contract['secret'], OP_TRUE, zec_redeemScript])
         print("Redeem tx hex:", b2x(tx.serialize()))
 
         print("txin.scriptSig", b2x(txin.scriptSig))
         print("txin_scriptPubKey", b2x(txin_scriptPubKey))
         print('tx', tx)
         VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
-
+        print("script verified, sending raw tx")
         txid = zcashd.sendrawtransaction(tx)
         print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
     else:
