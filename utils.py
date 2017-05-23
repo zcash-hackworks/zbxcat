@@ -13,8 +13,11 @@ def save_trade(trade):
 
 def get_trade():
     with open('xcat.json') as data_file:
-        xcatdb = json.load(data_file)
-    return xcatdb
+        try:
+            xcatdb = json.load(data_file)
+            return xcatdb
+        except:
+            return None
 
 def get_contract():
     with open('contract.json') as data_file:

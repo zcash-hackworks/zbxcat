@@ -43,7 +43,7 @@ def hashtimelockcontract(funder, redeemer, secret, locktime):
     zec_redeemScript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
                                  redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
                                  funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
-    print("TX2 Redeem script on Zcash blockchain:", b2x(zec_redeemScript))
+    print("Redeem script for p2sh contract on Zcash blockchain:", b2x(zec_redeemScript))
     txin_scriptPubKey = zec_redeemScript.to_p2sh_scriptPubKey()
     # Convert the P2SH scriptPubKey to a base58 Bitcoin address
     txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
@@ -110,19 +110,19 @@ def redeem(p2sh, action):
         preimage = secret.encode('utf-8')
         print('preimage', preimage)
 
-        print('zec_redeemScript', zec_redeemScript)
+        # print('zec_redeemScript', zec_redeemScript)
         txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, zec_redeemScript])
-        print("Redeem tx hex:", b2x(tx.serialize()))
+        # print("Redeem tx hex:", b2x(tx.serialize()))
 
         # Can only call to_p2sh_scriptPubKey on CScript obj
         txin_scriptPubKey = zec_redeemScript.to_p2sh_scriptPubKey()
 
-        print("txin.scriptSig", b2x(txin.scriptSig))
-        print("txin_scriptPubKey", b2x(txin_scriptPubKey))
-        print('tx', tx)
+        # print("txin.scriptSig", b2x(txin.scriptSig))
+        # print("txin_scriptPubKey", b2x(txin_scriptPubKey))
+        # print('tx', tx)
         VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
-        print("script verified, sending raw tx")
-        print("Raw tx", b2x(tx.serialize()))
+        print("Script verified, sending raw tx...")
+        print("Raw tx of prepared redeem tx: ", b2x(tx.serialize()))
         txid = zcashd.sendrawtransaction(tx)
         txhex = b2x(lx(b2x(txid)))
         print("Txid of submitted redeem tx: ", txhex)

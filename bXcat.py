@@ -135,19 +135,19 @@ def redeem(p2sh, action):
         preimage = secret.encode('utf-8')
         print('preimage', preimage)
 
-        print('zec_redeemScript', zec_redeemScript)
+        # print('zec_redeemScript', zec_redeemScript)
         txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, zec_redeemScript])
-        print("Redeem tx hex:", b2x(tx.serialize()))
+        # print("Redeem tx hex:", b2x(tx.serialize()))
 
         # Can only call to_p2sh_scriptPubKey on CScript obj
         txin_scriptPubKey = zec_redeemScript.to_p2sh_scriptPubKey()
 
-        print("txin.scriptSig", b2x(txin.scriptSig))
-        print("txin_scriptPubKey", b2x(txin_scriptPubKey))
-        print('tx', tx)
+        # print("txin.scriptSig", b2x(txin.scriptSig))
+        # print("txin_scriptPubKey", b2x(txin_scriptPubKey))
+        # print('tx', tx)
         VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
-        print("script verified, sending raw tx")
-        print("Raw tx", b2x(tx.serialize()))
+        print("Script verified, sending raw tx...")
+        print("Raw tx of prepared redeem tx: ", b2x(tx.serialize()))
         txid = bitcoind.sendrawtransaction(tx)
         txhex = b2x(lx(b2x(txid)))
         print("Txid of submitted redeem tx: ", txhex)

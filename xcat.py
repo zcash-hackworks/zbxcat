@@ -4,7 +4,7 @@ from utils import *
 from waiting import *
 from time import sleep
 import json
-import os
+import os, sys
 from pprint import pprint
 
 def check_p2sh(currency, address):
@@ -22,9 +22,13 @@ def set_price():
     sell = 'bitcoin'
     buy = 'zcash'
     sell_amt = input("How much {0} do you want to sell?".format(sell))
+    sell_amt = 3.5
+    print(sell_amt)
     buy_amt = input("How much {0} do you want to receive in exchange?".format(buy))
-    sell = {'currency': sell, 'amount': 1.2}
-    buy = {'currency': buy, 'amount': 2.45}
+    buy_amt = 1.2
+    print(buy_amt)
+    sell = {'currency': sell, 'amount': sell_amt}
+    buy = {'currency': buy, 'amount': buy_amt}
     trade['sell'] = sell
     trade['buy'] = buy
     save_trade(trade)
@@ -48,7 +52,8 @@ def initiate_trade():
     currency = trade['sell']['currency']
     secret = input("Initiating trade: Enter a password to place the {0} you want to sell in escrow: ".format(currency))
     # TODO: hash and store secret only locally.
-    secret = 'test'
+    # secret = 'test'
+    print('Remember your password:', secret)
     locktime = 20 # Must be more than first tx
 
     # Returns contract obj
@@ -76,12 +81,12 @@ def initiate_trade():
     buy_currency = trade['buy']['currency']
     buy_initiator = trade['buy']['initiator']
     buy_fulfiller = trade['buy']['fulfiller']
-    print("Now creating buy contract on the {0} blockchain where you will wait for fulfiller to send funds...".format(buy_currency))
+    print("Now creating buy contract on the {0} blockchain where you will wait for the buyer to send funds...".format(buy_currency))
     buy_contract = create_htlc(buy_currency, buy_fulfiller, buy_initiator, secret, locktime)
     buy_p2sh = buy_contract['p2sh']
     contracts[buy_contract['p2sh']] = buy_contract
     save_contract(contracts)
-    print("Waiting for buyer to send funds to this p2sh", buy_p2sh)
+    print("Now contact the buyer and tell them to send funds to this p2sh: ", buy_p2sh)
 
     trade['buy']['p2sh'] = buy_p2sh
 
@@ -109,8 +114,8 @@ def get_addresses():
     print(fulfill_offer_addr)
     fulfill_bid_addr = input("Enter the {0} address of the party you want to trade with: ".format(buy))
     # fulfill_bid_addr = zXcat.new_zcash_addr()
-    print(fulfill_bid_addr)
     fulfill_bid_addr = 'tmTjZSg4pX2Us6V5HttiwFZwj464fD2ZgpY'
+    print(fulfill_bid_addr)
     trade['sell']['fulfiller'] = fulfill_offer_addr
     trade['buy']['fulfiller'] = fulfill_bid_addr
 
@@ -167,13 +172,17 @@ def redeem_p2sh(currency, p2sh, action):
 def seller_redeem():
     # add locktime as variable?
     trade = get_trade()
-    # Seller redeems buyer's funded tx (contract in p2sh)
-    p2sh = trade['buy']['p2sh']
-    currency = trade['buy']['currency']
-    redeem_tx = redeem_p2sh(currency, p2sh, 'buy')
-    trade['buy']['redeem_tx'] = redeem_tx
-    trade['buy']['status'] = 'redeemed'
-    save_trade(trade)
+    if trade['buy']['status'] == 'redeemed':
+        print("You already redeemed the funds and acquired {0} {1}".format(trade['buy']['amount'], trade['buy']['currency']))
+        exit()
+    else:
+        # Seller redeems buyer's funded tx (contract in p2sh)
+        p2sh = trade['buy']['p2sh']
+        currency = trade['buy']['currency']
+        redeem_tx = redeem_p2sh(currency, p2sh, 'buy')
+        trade['buy']['redeem_tx'] = redeem_tx
+        trade['buy']['status'] = 'redeemed'
+        save_trade(trade)
 
 def buyer_redeem():
     trade = get_trade()
@@ -187,45 +196,58 @@ def buyer_redeem():
 
 if __name__ == '__main__':
     print("ZEC <-> BTC XCAT (Cross-Chain Atomic Transactions)")
-    role = input("Would you like to initiate or accept a trade?")
-    # Have initiator propose amounts to trade
-
     # TODO: Get trade indicated by id number
     # TODO: pass trade into functions?
     # TODO: workflow framed as currency you're trading out of being sell. appropriate?
+    # Have initiator propose amounts to trade
     trade = get_trade()
 
-    # If there is no status on a sell order (for this json file db...) we assume you must initiate_trade
-    if 'status' not in trade['sell']:
-        role = 'i'
-    elif trade['sell']['status'] == 'redeemed' and trade['buy']['status'] == 'redeemed':
-        print("This trade is already complete! Trade details:")
-        pprint(trade)
-        exit()
+    try:
+        role = sys.argv[1]
+        print("Your role in demo:", role)
+    except:
+        if trade == None:
+            print("No active trades available.")
+            res = input("Would you like to initiate a trade? (y/n) ")
+            if res == 'y':
+                role = 'seller'
+            else:
+                exit()
+        else:
+            print("Trade exists, run script as buyer or seller to complete trade.")
+            exit()
 
-    if role == "i":
-        if 'status' not in trade['sell']:
+    if trade is not None:
+        if trade['sell']['status'] == 'redeemed' and trade['buy']['status'] == 'redeemed':
+            print("This trade is already complete! Trade details:")
+            pprint(trade)
+            exit()
+
+    if role == "seller":
+        if trade == None or 'status' not in trade['sell']:
             set_price()
             get_addresses()
             initiate_trade()
-            print("XCATDB Trade", trade)
+            print("Status of XCAT trade:")
+            pprint(get_trade())
         elif 'status' in trade['sell']:
             if trade['sell']['status'] == 'funded':
                 # Means buyer has already funded the currency the transaction initiator wants to exchange into
                 print("Buyer funded the contract where you offered to buy {0}, redeeming funds from {1}...".format(trade['buy']['currency'], trade['buy']['p2sh']))
                 seller_redeem()
     else:
-        if trade['buy']['status'] == 'redeemed':
-            # Seller has redeemed buyer's tx, buyer can now redeem.
-            print("The seller has redeemed the contract where you paid them in {0}, now redeeming your funds from {1}".format(trade['buy']['currency'], trade['sell']['p2sh']))
-            buyer_redeem()
-        elif trade['sell']['status'] == 'funded':
+        if 'status' not in trade['buy'] and trade['sell']['status'] == 'funded':
+            print("One active trade available, fulfilling buyer contract...")
             trade = get_trade()
             buyer_fulfill()
             # How to monitor if txs are included in blocks -- should use blocknotify and a monitor daemon?
             # For regtest, can mock in a function
             # p2sh = trade['buy']['p2sh']
             # check_blocks(p2sh)
+        elif trade['buy']['status'] == 'redeemed':
+            # Seller has redeemed buyer's tx, buyer can now redeem.
+            print("The seller has redeemed the contract where you paid them in {0}, now redeeming your funds from {1}".format(trade['buy']['currency'], trade['sell']['p2sh']))
+            buyer_redeem()
 
         pprint(get_trade())
 
