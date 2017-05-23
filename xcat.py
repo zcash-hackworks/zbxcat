@@ -55,9 +55,8 @@ def initiate_trade():
     contracts = {}
     contract = create_htlc(currency, trade['sell']['initiator'], trade['sell']['fulfiller'], secret, locktime)
     sell_p2sh = contract['p2sh']
-    contracts[contract['p2sh']] = contract
-    save_contract(contracts)
-
+    contracts[sell_p2sh] = contract
+    
     print('To complete your sell, send {0} {1} to this p2sh: {2}'.format(trade['sell']['amount'], currency, contract['p2sh']))
     response = input("Type 'enter' to allow this program to send funds on your behalf.")
     print("Sent")
@@ -70,7 +69,6 @@ def initiate_trade():
     trade['sell']['status'] = 'funded'
     # TODO: Save secret locally for seller
     trade['sell']['secret'] = secret
-
     save_trade(trade)
 
     buy_currency = trade['buy']['currency']
@@ -78,6 +76,11 @@ def initiate_trade():
     buy_fulfiller = trade['buy']['fulfiller']
     print("Now creating buy contract on the {0} blockchain where you will wait for fulfiller to send funds...".format(buy_currency))
     buy_p2sh = create_htlc(buy_currency, buy_fulfiller, buy_initiator, secret, locktime)
+    contracts[buy_p2sh['p2sh']] = buy_p2sh
+    contracts[buy_p2sh['p2sh']]['secret']=secret # Ariel: Added, think this should be here
+    
+    save_contract(contracts)
+
     print("Waiting for buyer to send funds to this p2sh", buy_p2sh)
 
     trade['buy']['p2sh'] = buy_p2sh
@@ -92,14 +95,14 @@ def get_addresses():
     init_offer_addr = input("Enter your {0} address: ".format(sell))
     init_offer_addr = 'mpxpkAUatZR45rdrWQSjkUK7z9LyeSMoEr'
     init_bid_addr = input("Enter your {0} address: ".format(buy))
-    init_bid_addr = 'tmWnA7ypaCtpG7KhEWfr5XA1Rpm8521yMfX'
+    init_bid_addr = 'tmTyZswGado9yHsovF3G2z65vzcoy66jX22'   # 'tmWnA7ypaCtpG7KhEWfr5XA1Rpm8521yMfX'
     trade['sell']['initiator'] = init_offer_addr
     trade['buy']['initiator'] = init_bid_addr
 
     fulfill_offer_addr = input("Enter the {0} address of the party you want to trade with: ".format(sell))
     fulfill_offer_addr = 'mg1EHcpWyErmGhMvpZ9ch2qzFE7ZTKuaEy'
     fulfill_bid_addr = input("Enter the {0} address of the party you want to trade with: ".format(buy))
-    fulfill_bid_addr = 'tmTqTsBFkeKXyawHfZfcAZQY47xEhpEbo1E'
+    fulfill_bid_addr =  'tmTyZswGado9yHsovF3G2z65vzcoy66jX22' # 'tmTqTsBFkeKXyawHfZfcAZQY47xEhpEbo1E'
     trade['sell']['fulfiller'] = fulfill_offer_addr
     trade['buy']['fulfiller'] = fulfill_bid_addr
 
@@ -144,27 +147,28 @@ def check_blocks(p2sh):
     # for block in blocks:
     #     res = bXcat.search_p2sh(block, p2sh)
 
-def redeem_p2sh(currency, p2sh):
+def redeem_p2sh(currency, p2sh, side):
     if currency == 'bitcoin':
-        res = bXcat.redeem(p2sh)
+        res = bXcat.redeem(p2sh, side)
     else:
-        res = zXcat.redeem(p2sh)
+        res = zXcat.redeem(p2sh, side)
     return res
 
 def seller_redeem():
     # add locktime as variable?
     trade = get_trade()
+    print("trade", trade)
     # Seller redeems buyer's funded tx (contract in p2sh)
-    p2sh = trade['buy']['p2sh']
-    currency = trade['sell']['currency']
-    redeem_p2sh(currency, p2sh)
+    p2sh = trade['buy']['p2sh']['p2sh']   
+    currency = trade['buy']['currency']  #Ariel: Changed this to buy, think that's what you meant
+    redeem_p2sh(currency, p2sh, 'buy')
 
 def buyer_redeem():
     trade = get_trade()
     # Buyer redeems seller's funded tx
     p2sh = trade['sell']['p2sh']
-    currency = trade['buy']['currency']
-    redeem_p2sh(currency, p2sh)
+    currency = trade['sell']['currency']
+    redeem_p2sh(currency, p2sh, 'sell')
 
 if __name__ == '__main__':
     role = input("Would you like to initiate or accept a trade?")
@@ -184,10 +188,11 @@ if __name__ == '__main__':
         elif 'status' in trade['sell']:
             if trade['sell']['status'] == 'funded':
                 # Means buyer has already funded the currency the transaction initiator wants to exchange into
+                # Ariel: No - it just means sellet has funded.
                 seller_redeem()
     else:
         # if 'status' not in trade['buy']:
-        elif trade['sell']['status'] == 'funded':
+        if trade['sell']['status'] == 'funded':
             trade = get_trade()
             buyer_fulfill()
             # How to monitor if txs are included in blocks -- should use blocknotify and a monitor daemon?
