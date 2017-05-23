@@ -7,11 +7,6 @@ import json
 import os
 from pprint import pprint
 
-def delay():
-    sleep(1)
-    return "hi"
-
-
 def check_p2sh(currency, address):
     if currency == 'bitcoin':
         print("Checking funds in btc p2sh")
@@ -190,7 +185,8 @@ if __name__ == '__main__':
                 # Means buyer has already funded the currency the transaction initiator wants to exchange into
                 seller_redeem()
     else:
-        if trade['sell']['status'] == 'funded':
+        # if 'status' not in trade['buy']:
+        elif trade['sell']['status'] == 'funded':
             trade = get_trade()
             buyer_fulfill()
             # How to monitor if txs are included in blocks -- should use blocknotify and a monitor daemon?
@@ -202,8 +198,3 @@ if __name__ == '__main__':
             buyer_redeem()
 
         pprint(get_trade())
-
-
-        # result = delay()
-        # wait(lambda: result) is result
-        # print(result)
