@@ -19,6 +19,10 @@ def get_trade():
         except:
             return None
 
+def erase_trade():
+    with open('xcat.json', 'w') as outfile:
+        outfile.write('')
+
 def get_contract():
     with open('contract.json') as data_file:
         contractdb = json.load(data_file)

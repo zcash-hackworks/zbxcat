@@ -58,7 +58,6 @@ def fund_htlc(p2sh, amount):
     return txid
 
 def check_funds(p2sh):
-    print("In zXcat check funds")
     zcashd.importaddress(p2sh, "", False)
     print("Imported address", p2sh)
     # Get amount in address
@@ -105,6 +104,7 @@ def redeem(p2sh, action):
         # TODO: figure out how to better protect privkey?
         privkey = zcashd.dumpprivkey(redeemPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
+        
         # TODO: Figure out where to store secret preimage securely. Parse from scriptsig of redeemtx
         secret = trade['sell']['secret']
         preimage = secret.encode('utf-8')

@@ -9,10 +9,10 @@ from pprint import pprint
 
 def check_p2sh(currency, address):
     if currency == 'bitcoin':
-        print("Checking funds in btc p2sh")
+        print("Checking funds in Bitcoin p2sh")
         return bXcat.check_funds(address)
     else:
-        print("Checking funds in zec p2sh")
+        print("Checking funds in Zcash p2sh")
         return zXcat.check_funds(address)
 
 def set_price():
@@ -127,21 +127,19 @@ def get_addresses():
 def buyer_fulfill():
     trade = get_trade()
 
-    print('trade', trade)
     buy_p2sh = trade['buy']['p2sh']
     sell_p2sh = trade['sell']['p2sh']
 
     buy_amount = check_p2sh(trade['buy']['currency'], buy_p2sh)
     sell_amount = check_p2sh(trade['sell']['currency'], sell_p2sh)
 
-    input("The seller's p2sh is funded with {0} {1}, type 'enter' if this is the amount you want to buy in {1}.".format(trade['sell']['amount'], trade['sell']['currency']))
 
     amount = trade['buy']['amount']
     currency = trade['buy']['currency']
     if buy_amount == 0:
-        input("You have not send funds to the contract to buy {1} (amount: {0}), type 'enter' to fund.".format(amount, currency))
+        input("The seller's p2sh is funded with {0} {1}, type 'enter' if this is the amount you want to buy in {1}.".format(trade['sell']['amount'], trade['sell']['currency']))
+        input("You have not send funds to the contract to buy {1} (requested amount: {0}), type 'enter' to allow this program to send the agreed upon funds on your behalf.".format(amount, currency))
         p2sh = trade['buy']['p2sh']
-        input("Type 'enter' to allow this program to send the agreed upon funds on your behalf")
         txid = fund_htlc(currency, p2sh, amount)
         trade['buy']['fund_tx'] = txid
 
@@ -172,7 +170,7 @@ def redeem_p2sh(currency, p2sh, action):
 def seller_redeem():
     # add locktime as variable?
     trade = get_trade()
-    if trade['buy']['status'] == 'redeemed':
+    if 'status' in trade['buy'] and trade['buy']['status'] == 'redeemed':
         print("You already redeemed the funds and acquired {0} {1}".format(trade['buy']['amount'], trade['buy']['currency']))
         exit()
     else:
@@ -186,13 +184,26 @@ def seller_redeem():
 
 def buyer_redeem():
     trade = get_trade()
-    # Buyer redeems seller's funded tx
-    p2sh = trade['sell']['p2sh']
-    currency = trade['sell']['currency']
-    redeem_tx = redeem_p2sh(currency, p2sh, 'sell')
-    trade['sell']['redeem_tx'] = redeem_tx
-    trade['sell']['status'] = 'redeemed'
-    save_trade(trade)
+    if 'status' in trade['sell'] and trade['sell']['status'] == 'redeemed':
+        print("You already redeemed the funds and acquired {0} {1}".format(trade['sell']['amount'], trade['sell']['currency']))
+        exit()
+    else:
+        # Buyer redeems seller's funded tx
+        p2sh = trade['sell']['p2sh']
+        currency = trade['sell']['currency']
+        redeem_tx = redeem_p2sh(currency, p2sh, 'sell')
+        trade['sell']['redeem_tx'] = redeem_tx
+        trade['sell']['status'] = 'redeemed'
+        save_trade(trade)
+
+def print_trade(role):
+    print("Trade status:")
+    trade = get_trade()
+    if role == 'seller':
+        pprint(trade)
+    else:
+        del trade['sell']['secret']
+        pprint(trade)
 
 if __name__ == '__main__':
     print("ZEC <-> BTC XCAT (Cross-Chain Atomic Transactions)")
@@ -203,8 +214,13 @@ if __name__ == '__main__':
     trade = get_trade()
 
     try:
-        role = sys.argv[1]
-        print("Your role in demo:", role)
+        if sys.argv[1] == 'new':
+            erase_trade()
+            role = 'seller'
+            trade = get_trade()
+        else:
+            role = sys.argv[1]
+            print("Your role in demo:", role)
     except:
         if trade == None:
             print("No active trades available.")
@@ -228,14 +244,19 @@ if __name__ == '__main__':
             set_price()
             get_addresses()
             initiate_trade()
-            print("Status of XCAT trade:")
-            pprint(get_trade())
+            print_trade('seller')
         elif 'status' in trade['sell']:
-            if trade['sell']['status'] == 'funded':
+            if 'fund_tx' in trade['buy']:
                 # Means buyer has already funded the currency the transaction initiator wants to exchange into
                 print("Buyer funded the contract where you offered to buy {0}, redeeming funds from {1}...".format(trade['buy']['currency'], trade['buy']['p2sh']))
                 seller_redeem()
+                print("You have redeemed {0} {1}!".format(trade['buy']['amount'], trade['buy']['currency']))
+                print_trade('seller')
+            else:
+                print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade['buy']['currency']))
+                print_trade('seller')
     else:
+        # Need better way of preventing buyer from having secret
         if 'status' not in trade['buy'] and trade['sell']['status'] == 'funded':
             print("One active trade available, fulfilling buyer contract...")
             trade = get_trade()
@@ -244,11 +265,14 @@ if __name__ == '__main__':
             # For regtest, can mock in a function
             # p2sh = trade['buy']['p2sh']
             # check_blocks(p2sh)
+            print_trade('buyer')
         elif trade['buy']['status'] == 'redeemed':
             # Seller has redeemed buyer's tx, buyer can now redeem.
             print("The seller has redeemed the contract where you paid them in {0}, now redeeming your funds from {1}".format(trade['buy']['currency'], trade['sell']['p2sh']))
             buyer_redeem()
+            print("XCAT trade complete!")
+            print_trade('buyer')
 
-        pprint(get_trade())
+
 
         # Note: there is some little endian weirdness in the bXcat and zXcat files, need to handle the endianness of txids better & more consistently
