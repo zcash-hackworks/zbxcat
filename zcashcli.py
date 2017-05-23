@@ -26,11 +26,11 @@ FEE = 0.001*COIN
 alice_address = input("Enter alice zcash address: (type 'enter' for demo)")
 bob_address = input("Enter bob zcash address: (type 'enter' for demo)")
 # These mock addresses come from regtest on the server
-alicepubkey = CBitcoinAddress('tmFUm31B9wzHWJ9jGe9L9Qb549zfC7zFsEK')
-bobpubkey = CBitcoinAddress('tmFm8R6b22485uDYm6dryC4f8R6oXUTUe5i')
+# alicepubkey = CBitcoinAddress('tmFUm31B9wzHWJ9jGe9L9Qb549zfC7zFsEK')
+# bobpubkey = CBitcoinAddress('tmFm8R6b22485uDYm6dryC4f8R6oXUTUe5i')
 # zcashd.getnewaddress() returns CBitcoinAddress
-# bobpubkey = zcashd.getnewaddress()
-# alicepubkey = zcashd.getnewaddress()
+bobpubkey = zcashd.getnewaddress()
+alicepubkey = zcashd.getnewaddress()
 print("alicepubkey", alicepubkey)
 print("bobpubkey", bobpubkey)
 # privkey of the bob, used to sign the redeemTx
@@ -38,6 +38,13 @@ bob_seckey = zcashd.dumpprivkey(bobpubkey)
 # privkey of alice, used to refund tx in case of timeout
 alice_seckey = zcashd.dumpprivkey(alicepubkey)
 print("bob_seckey", bob_seckey)
+
+def get_keys(funder_address, redeemer_address):
+    # fundpubkey = CBitcoinAddress(funder_address)
+    # redeempubkey = CBitcoinAddress(redeemer_address)
+    fundpubkey = zcashd.getnewaddress()
+    redeempubkey = zcashd.getnewaddress()
+    return fundpubkey, redeempubkey
 
 # ======= secret from Alice, other file ====
 preimage = b'preimage'
@@ -122,6 +129,11 @@ sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
 sig = bob_seckey.sign(sighash) + bytes([SIGHASH_ALL])
 txin.scriptSig = CScript([sig, bob_seckey.pub, preimage, OP_TRUE, zec_redeemScript])
 print("Redeem tx hex:", b2x(tx.serialize()))
+
+print("txin.scriptSig", b2x(txin.scriptSig))
+print("txin_scriptPubKey", b2x(txin_scriptPubKey))
+print('tx', tx)
 VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
-txid = bitcoind.sendrawtransaction(tx)
+
+txid = zcashd.sendrawtransaction(tx)
 print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))

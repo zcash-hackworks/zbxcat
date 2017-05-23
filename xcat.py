@@ -1,138 +1,228 @@
-#!/usr/bin/env python3
+import zXcat
+import bXcat
+from utils import *
+from waiting import *
+from time import sleep
+import json
+import os
+from pprint import pprint
 
-# Based on spend-p2sh-txout.py from python-bitcoinlib.
-# Copyright (C) 2017 The Zcash developers
+def delay():
+    sleep(1)
+    return "hi"
 
-import sys
-if sys.version_info.major < 3:
-    sys.stderr.write('Sorry, Python 3.x required by this example.\n')
-    sys.exit(1)
+# TODO: Port these over to leveldb or some other database
+def save_trade(trade):
+    with open('xcat.json', 'w') as outfile:
+        json.dump(trade, outfile)
 
-import bitcoin
-import bitcoin.rpc
-from bitcoin import SelectParams
-from bitcoin.core import b2x, lx, b2lx, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160
-from bitcoin.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
-from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
-from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret
-import hashlib
+def get_trade():
+    with open('xcat.json') as data_file:
+        xcatdb = json.load(data_file)
+    return xcatdb
 
-# SelectParams('testnet')
-SelectParams('regtest')
-bitcoind = bitcoin.rpc.Proxy()
-FEE = 0.001*COIN
+def get_contract():
+    with open('contract.json') as data_file:
+        contractdb = json.load(data_file)
+    return contractdb
 
-# =========================  BITCOIN ADDRESSES =========================
-alice_address = input("Enter alice bitcoin address: (type 'enter' for demo)")
-bob_address = input("Enter bob bitcoin address: (type 'enter' for demo)")
-alicepubkey = CBitcoinAddress('mshp4msfzc73ebg4VzwS6nAXj9t6KqX1wd')
-bobpubkey = CBitcoinAddress('myRh2T5Kg7QJfGLeRzriT5zs9aoek5Jbha')
-# bitcoind.getnewaddress() returns CBitcoinAddress
-# bobpubkey = bitcoind.getnewaddress()
-# alicepubkey = bitcoind.getnewaddress()
-print("alicepubkey", alicepubkey)
-print("bobpubkey", bobpubkey)
-# privkey of the bob, used to sign the redeemTx
-bob_seckey = bitcoind.dumpprivkey(bobpubkey)
-# privkey of alice, used to refund tx in case of timeout
-alice_seckey = bitcoind.dumpprivkey(alicepubkey)
-
-# ========================= HASHLOCK SECRET PREIMAGE =========================
-secret = input("Alice: Enter secret to lock funds: (type 'enter' for demo)")
-# preimage = secret.encode('UTF-8')
-preimage = b'preimage'
-h = hashlib.sha256(preimage).digest()
-
-# ========================= LOCKTIME SCRIPT CREATION =========================
-lockduration = 10
-blocknum = bitcoind.getblockcount()
-redeemblocknum = blocknum + lockduration
-# Create a htlc redeemScript. Similar to a scriptPubKey the redeemScript must be
-# satisfied for the funds to be spent.
-btc_redeemScript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
-                             alicepubkey, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
-                             bobpubkey, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
-print("Redeem script:", b2x(btc_redeemScript))
-
-# ========================= TX1: CREATE BITCOIN P2SH FROM SCRIPT =========================
-txin_scriptPubKey = btc_redeemScript.to_p2sh_scriptPubKey()
-# Convert the P2SH scriptPubKey to a base58 Bitcoin address
-txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
-p2sh = str(txin_p2sh_address)
-print('Bob -- Assuming Alice has created other tx on Zcash blockchain, send funds to this p2sh address:', p2sh)
-
-## TODO: IMPORT ZCASH XCAT FUNCTIONS
+def save_contract(contract):
+    with open('contract.json', 'w') as outfile:
+        json.dump(contract, outfile)
 
 
-# ========================= FUND BITCOIN P2SH =========================
-response = input("Bob -- Type 'enter' to allow zbxcat to fund the Bitcoin p2sh on your behalf:")
-send_amount = 1.0*COIN
-fund_tx = bitcoind.sendtoaddress(txin_p2sh_address, send_amount)
-print('Alice -- Bitcoin fund tx was sent, please wait for confirmation. Txid:', b2x(lx(b2x(fund_tx))))
+def check_p2sh(currency, address):
+    if currency == 'bitcoin':
+        print("Checking funds in btc p2sh")
+        return bXcat.check_funds(address)
+    else:
+        print("Checking funds in zec p2sh")
+        return zXcat.check_funds(address)
 
-# ========================= PART 2: BITCOIN P2SH FUNDED, REDEEM OR REFUND =========================
-# Check that fund_tx is on the blockchain to the right address, then notify receiver
-# Importing address so we can watch it
-bitcoind.importaddress(p2sh)
-# Get details of funding transaction
-fund_txinfo = bitcoind.gettransaction(fund_tx)
-fund_details = fund_txinfo['details'] # "fund_details" is an array, for now we can assume it only has one destination address
-outputAddress = fund_details[0]['address']
-fund_vout = fund_details[0]['vout']
-if (outputAddress != p2sh):
-    print('Fund tx sent to wrong address! p2sh was {0}, funding tx was sent to {1}'.format(p2sh, outputAddress))
-    quit()
-# Check amount by inspecting imported address
-output_amount = bitcoind.getreceivedbyaddress(outputAddress, 0)
-if (output_amount < send_amount):
-    print('Fund tx too small! Amount sent was {0}, amount expected was {1}'.format(output_amount, send_amount))
-    quit()
-print("P2SH {0} successfully funded with {1}".format(p2sh, send_amount))
+def set_price():
+    trade = {}
+    #TODO: make currencies interchangeable. Save to a tuple?
+    sell = input("Which currency are you selling? (bitcoin)")
+    sell = 'bitcoin'
+    buy = 'zcash'
+    sell_amt = input("How much {0} do you want to sell?".format(sell))
+    buy_amt = input("How much {0} do you want to receive in exchange?".format(buy))
+    sell = {'currency': sell, 'amount': 1.2, 'status': 'empty'}
+    buy = {'currency': buy, 'amount': 2.45, 'status': 'empty'}
+    trade['sell'] = sell
+    trade['buy'] = buy
+    save_trade(trade)
 
-print('Alice -- the fund tx has been confirmed, now you can redeem your Bitcoin with the secret!')
+def create_htlc(currency, funder, redeemer, secret, locktime):
+    if currency == 'bitcoin':
+        sell_p2sh = bXcat.hashtimelockcontract(funder, redeemer, secret, locktime)
+    else:
+        sell_p2sh = zXcat.hashtimelockcontract(funder, redeemer, secret, locktime)
+    return sell_p2sh
+
+def fund_htlc(currency, p2sh, amount):
+    if currency == 'bitcoin':
+        txid = bXcat.fund_htlc(p2sh, amount)
+    else:
+        txid = zXcat.fund_htlc(p2sh, amount)
+    return txid
+
+def initiate_trade():
+    trade = get_trade()
+    currency = trade['sell']['currency']
+    secret = input("Initiating trade: Enter a password to place the {0} you want to sell in escrow: ".format(currency))
+    # TODO: hash and store secret only locally.
+    secret = 'test'
+    locktime = 20 # Must be more than first tx
+
+    # Returns contract obj
+    contracts = []
+    contract = create_htlc(currency, trade['sell']['initiator'], trade['sell']['fulfiller'], secret, locktime)
+    contracts.append(contract)
+
+    print('To complete your sell, send {0} {1} to this p2sh: {2}'.format(trade['sell']['amount'], currency, contract['p2sh']))
+    response = input("Type 'enter' to allow this program to send funds on your behalf.")
+    print("Sent")
+
+    sell_amt = trade['sell']['amount']
+    txid = fund_htlc(currency, sell_p2sh, sell_amt)
+
+    trade['sell']['p2sh'] = sell_p2sh
+    trade['sell']['fund_tx'] = txid
+    trade['sell']['status'] = 'funded'
+    # TODO: Save secret locally for seller
+    trade['sell']['secret'] = secret
+
+    save_trade(trade)
+
+    buy_currency = trade['buy']['currency']
+    buy_initiator = trade['buy']['initiator']
+    buy_fulfiller = trade['buy']['fulfiller']
+    print("Now creating buy contract on the {0} blockchain where you will wait for fulfiller to send funds...".format(buy_currency))
+    buy_p2sh = create_htlc(buy_currency, buy_fulfiller, buy_initiator, secret, locktime)
+    print("Waiting for buyer to send funds to this p2sh", buy_p2sh)
+
+    trade['buy']['p2sh'] = buy_p2sh
+
+    save_trade(trade)
+
+def get_addresses():
+    trade = get_trade()
+    sell = trade['sell']['currency']
+    buy = trade['buy']['currency']
+
+    init_offer_addr = input("Enter your {0} address: ".format(sell))
+    init_offer_addr = 'mpxpkAUatZR45rdrWQSjkUK7z9LyeSMoEr'
+    init_bid_addr = input("Enter your {0} address: ".format(buy))
+    init_bid_addr = 'tmWnA7ypaCtpG7KhEWfr5XA1Rpm8521yMfX'
+    trade['sell']['initiator'] = init_offer_addr
+    trade['buy']['initiator'] = init_bid_addr
+
+    fulfill_offer_addr = input("Enter the {0} address of the party you want to trade with: ".format(sell))
+    fulfill_offer_addr = 'mg1EHcpWyErmGhMvpZ9ch2qzFE7ZTKuaEy'
+    fulfill_bid_addr = input("Enter the {0} address of the party you want to trade with: ".format(buy))
+    fulfill_bid_addr = 'tmTqTsBFkeKXyawHfZfcAZQY47xEhpEbo1E'
+    trade['sell']['fulfiller'] = fulfill_offer_addr
+    trade['buy']['fulfiller'] = fulfill_bid_addr
+
+    # zec_funder, zec_redeemer = zXcat.get_keys(zec_fund_addr, zec_redeem_addr)
+    trade['id'] = 1
+
+    save_trade(trade)
+
+def buyer_fulfill():
+    trade = get_trade()
+
+    print('trade', trade)
+    buy_p2sh = trade['buy']['p2sh']
+    sell_p2sh = trade['sell']['p2sh']
+
+    buy_amount = check_p2sh(trade['buy']['currency'], buy_p2sh)
+    sell_amount = check_p2sh(trade['sell']['currency'], sell_p2sh)
+
+    input("The seller's p2sh is funded with {0} {1}, type 'enter' if this is the amount you want to buy in {1}.".format(trade['sell']['amount'], trade['sell']['currency']))
+
+    amount = trade['buy']['amount']
+    currency = trade['buy']['currency']
+    if buy_amount == 0:
+        input("You have not send funds to the contract to buy {1} (amount: {0}), type 'enter' to fund.".format(amount, currency))
+        p2sh = trade['buy']['p2sh']
+        input("Type 'enter' to allow this program to send the agreed upon funds on your behalf")
+        txid = fund_htlc(currency, p2sh, amount)
+        trade['buy']['fund_tx'] = txid
+    else:
+        print("It looks like you've already funded the contract to buy {1}, the amount in escrow in the p2sh is {0}.".format(amount, currency))
+        print("Please wait for the seller to remove your funds from escrow to complete the trade.")
+
+    save_trade(trade)
+
+def check_blocks(p2sh):
+    # blocks = []
+    with open('watchdata', 'r') as infile:
+        for line in infile:
+            res = bXcat.search_p2sh(line.strip('\n'), p2sh)
+            # blocks.append(line.strip('\n'))
+    # print(blocks)
+    # for block in blocks:
+    #     res = bXcat.search_p2sh(block, p2sh)
+
+def redeem_p2sh(currency, redeemer, secret, txid):
+    if currency == 'bitcoin':
+        res = bXcat.redeem(redeemer, secret, txid)
+    else:
+        res = zXcat.redeem(redeemer, secret, txid)
+    return res
+
+def seller_redeem():
+    # add locktime as variable?
+    trade = get_trade()
+    currency = trade['sell']['currency']
+    redeemer = trade['sell']['initiator']
+    secret = trade['sell']['secret']
+    fund_txid = trade['sell']['fund_tx']
+    redeem_p2sh(currency, redeemer, secret, fund_txid)
+
+def buyer_redeem():
+    trade = get_trade()
+    currency = trade['buy']['currency']
+    redeemer = trade['buy']['initiator']
+    # TODO: How to pass secret to buyer? Parse seller's spend tx?
+    secret = trade['buy']['secret']
+    fund_txid = trade['buy']['fund_tx']
+    redeem_p2sh(currency, redeemer, secret, fund_txid)
+
+if __name__ == '__main__':
+    role = input("Would you like to initiate or accept a trade?")
+    # Have initiator propose amounts to trade
+
+    # TODO: Get trade indicated by id number
+    # TODO: pass trade into functions?
+    trade = get_trade()
+
+    if role == "i":
+        if trade['sell']['status'] == 'empty':
+            set_price()
+            get_addresses()
+            initiate_trade()
+            print("XCATDB Trade", trade)
+        elif trade['buy']['status'] == 'funded':
+            # Means buyer has already funded the currency the transaction initiator wants to exchange into
+            seller_redeem()
+    else:
+        if trade['sell']['status'] == 'funded':
+            trade = get_trade()
+            buyer_fulfill()
+            # How to monitor if txs are included in blocks -- should use blocknotify and a monitor daemon?
+            # For regtest, can mock in a function
+            # p2sh = trade['buy']['p2sh']
+            # check_blocks(p2sh)
+        elif trade['sell']['status'] == 'redeemed':
+            # Seller has redeemed buyer's tx, buyer can now redeem.
+            buyer_redeem()
+
+        pprint(get_trade())
 
 
-# ========================= CHECKLOCKIME FOR BITCOIN TX1 =========================
-# Mock the timeout period passing for tx1 (comment this out to proceed to redeemtx)
-# bitcoind.generate(20)
-
-# ========================= BITCOIN REFUND CONDITION =========================
-# AFTER 24 HRS (by blocknum): If locktime for first tx has passed, tx1 is refunded to alice
-if(bitcoind.getblockcount() >= redeemblocknum):
-    print("Bob -- Alice did not redeem within the timeout period, so refunding your bitcoin....... ")
-    txin = CMutableTxIn(COutPoint(fund_tx, fund_vout))
-    # The default nSequence of FFFFFFFF won't let you redeem when there's a CHECKTIMELOCKVERIFY
-    txin.nSequence = 0
-    txout = CMutableTxOut(send_amount - FEE, bobpubkey.to_scriptPubKey())
-    # Create the unsigned raw transaction.
-    tx = CMutableTransaction([txin], [txout])
-    # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
-    tx.nLockTime = redeemblocknum
-    # Calculate the signature hash for that transaction. Note how the script we use
-    # is the redeemScript, not the scriptPubKey. EvalScript() will be evaluating the redeemScript
-    sighash = SignatureHash(btc_redeemScript, tx, 0, SIGHASH_ALL)
-    sig = bob_seckey.sign(sighash) + bytes([SIGHASH_ALL])
-    txin.scriptSig = CScript([sig, bob_seckey.pub, OP_FALSE, btc_redeemScript])
-    print("Time lock has passed, Bob redeeming his own tx:")
-    print("Refund tx hex:", b2x(tx.serialize()))
-    VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
-    txid = bitcoind.sendrawtransaction(tx)
-    print("Txid of submitted refund tx: ", b2x(lx(b2x(txid))))
-    quit()
-
-# ========================= BITCOIN REDEEM CONDITION =========================
-# BEFORE 24 HRS (by blocknum): Alice redeems bitcoin tx bob funded
-print("Alice -- Redeeming tx.....")
-txin = CMutableTxIn(COutPoint(fund_tx, fund_vout))
-txout = CMutableTxOut(send_amount - FEE, alicepubkey.to_scriptPubKey())
-# Create the unsigned raw transaction.
-tx = CMutableTransaction([txin], [txout])
-# nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
-tx.nLockTime = redeemblocknum
-sighash = SignatureHash(btc_redeemScript, tx, 0, SIGHASH_ALL)
-sig = alice_seckey.sign(sighash) + bytes([SIGHASH_ALL])
-txin.scriptSig = CScript([sig, alice_seckey.pub, preimage, OP_TRUE, btc_redeemScript])
-print("Redeem tx hex:", b2x(tx.serialize()))
-VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
-txid = bitcoind.sendrawtransaction(tx)
-print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
+        # result = delay()
+        # wait(lambda: result) is result
+        # print(result)
