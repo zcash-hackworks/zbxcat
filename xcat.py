@@ -11,25 +11,6 @@ def delay():
     sleep(1)
     return "hi"
 
-# TODO: Port these over to leveldb or some other database
-def save_trade(trade):
-    with open('xcat.json', 'w') as outfile:
-        json.dump(trade, outfile)
-
-def get_trade():
-    with open('xcat.json') as data_file:
-        xcatdb = json.load(data_file)
-    return xcatdb
-
-def get_contract():
-    with open('contract.json') as data_file:
-        contractdb = json.load(data_file)
-    return contractdb
-
-def save_contract(contracts):
-    with open('contract.json', 'w') as outfile:
-        json.dump(contracts, outfile)
-
 
 def check_p2sh(currency, address):
     if currency == 'bitcoin':
@@ -168,30 +149,27 @@ def check_blocks(p2sh):
     # for block in blocks:
     #     res = bXcat.search_p2sh(block, p2sh)
 
-def redeem_p2sh(currency, redeemer, secret, txid):
+def redeem_p2sh(currency, p2sh):
     if currency == 'bitcoin':
-        res = bXcat.redeem(redeemer, secret, txid)
+        res = bXcat.redeem(p2sh)
     else:
-        res = zXcat.redeem(redeemer, secret, txid)
+        res = zXcat.redeem(p2sh)
     return res
 
 def seller_redeem():
     # add locktime as variable?
     trade = get_trade()
+    # Seller redeems buyer's funded tx (contract in p2sh)
+    p2sh = trade['buy']['p2sh']
     currency = trade['sell']['currency']
-    redeemer = trade['sell']['initiator']
-    secret = trade['sell']['secret']
-    fund_txid = trade['sell']['fund_tx']
-    redeem_p2sh(currency, redeemer, secret, fund_txid)
+    redeem_p2sh(currency, p2sh)
 
 def buyer_redeem():
     trade = get_trade()
+    # Buyer redeems seller's funded tx
+    p2sh = trade['sell']['p2sh']
     currency = trade['buy']['currency']
-    redeemer = trade['buy']['initiator']
-    # TODO: How to pass secret to buyer? Parse seller's spend tx?
-    secret = trade['buy']['secret']
-    fund_txid = trade['buy']['fund_tx']
-    redeem_p2sh(currency, redeemer, secret, fund_txid)
+    redeem_p2sh(currency, p2sh)
 
 if __name__ == '__main__':
     role = input("Would you like to initiate or accept a trade?")

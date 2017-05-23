@@ -67,25 +67,36 @@ def check_funds(p2sh):
     amount = amount/COIN
     return amount
 
-def redeem(redeemer, secret, txid):
-    print("redeeming tx")
-    txin = CMutableTxIn(COutPoint(fund_tx, fund_vout))
-    txout = CMutableTxOut(send_amount - FEE, bobpubkey.to_scriptPubKey())
-    # Create the unsigned raw transaction.
-    tx = CMutableTransaction([txin], [txout])
-    # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
-    # TODO: these things like redeemblocknum should really be properties of a tx class...
-    # Need: redeemblocknum, zec_redeemScript, secret (for creator...), txid, redeemer...
-    tx.nLockTime = redeemblocknum
-    sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
-    sig = bob_seckey.sign(sighash) + bytes([SIGHASH_ALL])
-    txin.scriptSig = CScript([sig, bob_seckey.pub, preimage, OP_TRUE, zec_redeemScript])
-    print("Redeem tx hex:", b2x(tx.serialize()))
+def redeem(p2sh):
+    contracts = get_contract()
+    for key in contracts:
+        if key == p2sh:
+            contract = contracts[key]
+    if contract:
+        print("Redeeming tx in p2sh", p2sh)
+        # TODO: Have to get tx info from saved contract p2sh
+        redeemblocknum = contract['redeemblocknum']
+        zec_redeemScript = contract['zec_redeemScript']
+        
+        txin = CMutableTxIn(COutPoint(fund_tx, fund_vout))
+        txout = CMutableTxOut(send_amount - FEE, bobpubkey.to_scriptPubKey())
+        # Create the unsigned raw transaction.
+        tx = CMutableTransaction([txin], [txout])
+        # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
+        # TODO: these things like redeemblocknum should really be properties of a tx class...
+        # Need: redeemblocknum, zec_redeemScript, secret (for creator...), txid, redeemer...
+        tx.nLockTime = redeemblocknum
+        sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
+        sig = bob_seckey.sign(sighash) + bytes([SIGHASH_ALL])
+        txin.scriptSig = CScript([sig, bob_seckey.pub, preimage, OP_TRUE, zec_redeemScript])
+        print("Redeem tx hex:", b2x(tx.serialize()))
 
-    print("txin.scriptSig", b2x(txin.scriptSig))
-    print("txin_scriptPubKey", b2x(txin_scriptPubKey))
-    print('tx', tx)
-    VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+        print("txin.scriptSig", b2x(txin.scriptSig))
+        print("txin_scriptPubKey", b2x(txin_scriptPubKey))
+        print('tx', tx)
+        VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
 
-    txid = zcashd.sendrawtransaction(tx)
-    print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
+        txid = zcashd.sendrawtransaction(tx)
+        print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
+    else:
+        print("No contract for this p2sh found in database", p2sh)
