@@ -26,9 +26,9 @@ def get_contract():
         contractdb = json.load(data_file)
     return contractdb
 
-def save_contract(contract):
+def save_contract(contracts):
     with open('contract.json', 'w') as outfile:
-        json.dump(contract, outfile)
+        json.dump(contracts, outfile)
 
 
 def check_p2sh(currency, address):
@@ -47,8 +47,8 @@ def set_price():
     buy = 'zcash'
     sell_amt = input("How much {0} do you want to sell?".format(sell))
     buy_amt = input("How much {0} do you want to receive in exchange?".format(buy))
-    sell = {'currency': sell, 'amount': 1.2, 'status': 'empty'}
-    buy = {'currency': buy, 'amount': 2.45, 'status': 'empty'}
+    sell = {'currency': sell, 'amount': 1.2}
+    buy = {'currency': buy, 'amount': 2.45}
     trade['sell'] = sell
     trade['buy'] = buy
     save_trade(trade)
@@ -76,9 +76,11 @@ def initiate_trade():
     locktime = 20 # Must be more than first tx
 
     # Returns contract obj
-    contracts = []
+    contracts = {}
     contract = create_htlc(currency, trade['sell']['initiator'], trade['sell']['fulfiller'], secret, locktime)
-    contracts.append(contract)
+    sell_p2sh = contract['p2sh']
+    contracts[contract['p2sh']] = contract
+    save_contract(contracts)
 
     print('To complete your sell, send {0} {1} to this p2sh: {2}'.format(trade['sell']['amount'], currency, contract['p2sh']))
     response = input("Type 'enter' to allow this program to send funds on your behalf.")
@@ -200,14 +202,15 @@ if __name__ == '__main__':
     trade = get_trade()
 
     if role == "i":
-        if trade['sell']['status'] == 'empty':
+        if 'status' not in trade['sell']:
             set_price()
             get_addresses()
             initiate_trade()
             print("XCATDB Trade", trade)
-        elif trade['buy']['status'] == 'funded':
-            # Means buyer has already funded the currency the transaction initiator wants to exchange into
-            seller_redeem()
+        elif 'status' in trade['sell']:
+            if trade['sell']['status'] == 'funded':
+                # Means buyer has already funded the currency the transaction initiator wants to exchange into
+                seller_redeem()
     else:
         if trade['sell']['status'] == 'funded':
             trade = get_trade()

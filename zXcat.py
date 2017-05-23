@@ -35,21 +35,21 @@ def privkey(address):
     zcashd.dumpprivkey(address)
 
 def hashtimelockcontract(funder, redeemer, secret, locktime):
-    funder = CBitcoinAddress(funder)
-    redeemer = CBitcoinAddress(redeemer)
+    funderAddr = CBitcoinAddress(funder)
+    redeemerAddr = CBitcoinAddress(redeemer)
     h = sha256(secret)
     blocknum = zcashd.getblockcount()
     redeemblocknum = blocknum + locktime
     zec_redeemScript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
-                                 redeemer, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
-                                 funder, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
+                                 redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
+                                 funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
     print("TX2 Redeem script on Zcash blockchain:", b2x(zec_redeemScript))
     txin_scriptPubKey = zec_redeemScript.to_p2sh_scriptPubKey()
     # Convert the P2SH scriptPubKey to a base58 Bitcoin address
     txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
     p2sh = str(txin_p2sh_address)
     # Returning all this to be saved locally in p2sh.json
-    return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'zec_redeemScript': zec_redeemScript, 'redeemer': redeemer, 'funder': funder}
+    return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'zec_redeemScript': b2x(zec_redeemScript), 'redeemer': redeemer, 'funder': funder}
 
 def fund_htlc(p2sh, amount):
     send_amount = amount*COIN
