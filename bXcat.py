@@ -8,7 +8,7 @@ if sys.version_info.major < 3:
 import bitcoin
 import bitcoin.rpc
 from bitcoin import SelectParams
-from bitcoin.core import b2x, lx, b2lx, x, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160
+from bitcoin.core import b2x, lx, b2lx, x, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160, CTransaction
 from bitcoin.base58 import decode
 from bitcoin.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
 from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
@@ -59,7 +59,7 @@ def fund_htlc(p2sh, amount):
     return txid
 
 def check_funds(p2sh):
-    bitcoind.importaddress(p2sh, "", false)
+    bitcoind.importaddress(p2sh, "", False)
     # Get amount in address
     amount = bitcoind.getreceivedbyaddress(p2sh, 0)
     amount = amount/COIN
@@ -89,10 +89,15 @@ def search_p2sh(block, p2sh):
 
 
 def get_tx_details(txid):
-    fund_txinfo = bitcoind.gettransaction(fund_tx)
+    # must convert txid string to bytes x(txid)
+    fund_txinfo = bitcoind.gettransaction(x(txid))
     return fund_txinfo['details'][0]
 
 def redeem(p2sh, action):
+    # make sure p2sh is imported to redeem:
+    print("Importing p2sh", p2sh)
+    bitcoind.importaddress(p2sh, '', False)
+    # action is buy or sell
     contracts = get_contract()
     trade = get_trade()
     for key in contracts:
@@ -104,7 +109,7 @@ def redeem(p2sh, action):
         redeemblocknum = contract['redeemblocknum']
         zec_redeemScript = contract['zec_redeemScript']
 
-        txid = trade['action']['fund_tx']
+        txid = trade[action]['fund_tx']
         details = get_tx_details(txid)
         txin = CMutableTxIn(COutPoint(txid, details['vout']))
         redeemPubKey = CBitcoinAddress(contract['redeemer'])

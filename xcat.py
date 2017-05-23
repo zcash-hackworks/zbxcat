@@ -77,7 +77,10 @@ def initiate_trade():
     buy_initiator = trade['buy']['initiator']
     buy_fulfiller = trade['buy']['fulfiller']
     print("Now creating buy contract on the {0} blockchain where you will wait for fulfiller to send funds...".format(buy_currency))
-    buy_p2sh = create_htlc(buy_currency, buy_fulfiller, buy_initiator, secret, locktime)
+    buy_contract = create_htlc(buy_currency, buy_fulfiller, buy_initiator, secret, locktime)
+    buy_p2sh = buy_contract['p2sh']
+    contracts[buy_contract['p2sh']] = buy_contract
+    save_contract(contracts)
     print("Waiting for buyer to send funds to this p2sh", buy_p2sh)
 
     trade['buy']['p2sh'] = buy_p2sh
@@ -144,11 +147,12 @@ def check_blocks(p2sh):
     # for block in blocks:
     #     res = bXcat.search_p2sh(block, p2sh)
 
-def redeem_p2sh(currency, p2sh):
+def redeem_p2sh(currency, p2sh, action):
+    # action is buy or sell
     if currency == 'bitcoin':
-        res = bXcat.redeem(p2sh)
+        res = bXcat.redeem(p2sh, action)
     else:
-        res = zXcat.redeem(p2sh)
+        res = zXcat.redeem(p2sh, action)
     return res
 
 def seller_redeem():
@@ -156,15 +160,15 @@ def seller_redeem():
     trade = get_trade()
     # Seller redeems buyer's funded tx (contract in p2sh)
     p2sh = trade['buy']['p2sh']
-    currency = trade['sell']['currency']
-    redeem_p2sh(currency, p2sh)
+    currency = trade['buy']['currency']
+    redeem_p2sh(currency, p2sh, 'buy')
 
 def buyer_redeem():
     trade = get_trade()
     # Buyer redeems seller's funded tx
     p2sh = trade['sell']['p2sh']
-    currency = trade['buy']['currency']
-    redeem_p2sh(currency, p2sh)
+    currency = trade['sell']['currency']
+    redeem_p2sh(currency, p2sh, 'sell')
 
 if __name__ == '__main__':
     role = input("Would you like to initiate or accept a trade?")
@@ -175,6 +179,10 @@ if __name__ == '__main__':
     # TODO: workflow framed as currency you're trading out of being sell. appropriate?
     trade = get_trade()
 
+    # If there is no status on a sell order (for this json file db...) we assume you must initiate_trade
+    if 'status' not in trade['sell']:
+        role = 'i'
+
     if role == "i":
         if 'status' not in trade['sell']:
             set_price()
@@ -184,10 +192,11 @@ if __name__ == '__main__':
         elif 'status' in trade['sell']:
             if trade['sell']['status'] == 'funded':
                 # Means buyer has already funded the currency the transaction initiator wants to exchange into
+                print("Buyer funded the contract where you offered to buy {0}, redeeming funds from {1}...".format(trade['buy']['currency'], trade['buy']['p2sh']))
                 seller_redeem()
     else:
         # if 'status' not in trade['buy']:
-        elif trade['sell']['status'] == 'funded':
+        if trade['sell']['status'] == 'funded':
             trade = get_trade()
             buyer_fulfill()
             # How to monitor if txs are included in blocks -- should use blocknotify and a monitor daemon?

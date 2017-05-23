@@ -11,7 +11,7 @@ if sys.version_info.major < 3:
 import zcash
 import zcash.rpc
 from zcash import SelectParams
-from zcash.core import b2x, lx, b2lx, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160
+from zcash.core import b2x, lx, x, b2lx, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160
 from zcash.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
 from zcash.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from zcash.wallet import CBitcoinAddress, CBitcoinSecret
@@ -59,7 +59,7 @@ def fund_htlc(p2sh, amount):
 
 def check_funds(p2sh):
     print("In zXcat check funds")
-    zcashd.importaddress(p2sh, "", false)
+    zcashd.importaddress(p2sh, "", False)
     print("Imported address", p2sh)
     # Get amount in address
     amount = zcashd.getreceivedbyaddress(p2sh, 0)
@@ -68,7 +68,7 @@ def check_funds(p2sh):
     return amount
 
 def get_tx_details(txid):
-    fund_txinfo = zcashd.gettransaction(fund_tx)
+    fund_txinfo = zcashd.gettransaction(txid)
     return fund_txinfo['details'][0]
 
 def redeem(p2sh, action):
@@ -83,11 +83,14 @@ def redeem(p2sh, action):
         redeemblocknum = contract['redeemblocknum']
         zec_redeemScript = contract['zec_redeemScript']
 
-        txid = trade['action']['fund_tx']
+        txid = trade[action]['fund_tx']
         details = get_tx_details(txid)
-        txin = CMutableTxIn(COutPoint(txid, details['vout']))
+        print("Txid for fund tx", txid)
+        txin = CMutableTxIn(COutPoint(x(txid), details['vout']))
         redeemPubKey = CBitcoinAddress(contract['redeemer'])
-        txout = CMutableTxOut(details['amount'] - FEE, redeemPubKey.to_scriptPubKey())
+        amount = trade[action]['amount'] * COIN
+        print("amount: {0}, fee: {1}".format(amount, FEE))
+        txout = CMutableTxOut(amount - FEE, redeemPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
         # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
@@ -98,8 +101,18 @@ def redeem(p2sh, action):
         # TODO: figure out how to better protect privkey?
         privkey = zcashd.dumpprivkey(redeemPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
-        txin.scriptSig = CScript([sig, privkey.pub, contract['secret'], OP_TRUE, zec_redeemScript])
+        # TODO: Figure out where to store secret preimage securely. Parse from scriptsig of redeemtx
+        secret = trade['sell']['secret']
+        preimage = secret.encode('utf-8')
+        print('preimage', preimage)
+        # Is stored as hex, must convert to bytes
+        zec_redeemScript = x(zec_redeemScript)
+        print('zec_redeemScript', zec_redeemScript)
+        txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, zec_redeemScript])
         print("Redeem tx hex:", b2x(tx.serialize()))
+
+        # Can only call to_p2sh_scriptPubKey on CScript obj
+        txin_scriptPubKey = CScript(zec_redeemScript).to_p2sh_scriptPubKey()
 
         print("txin.scriptSig", b2x(txin.scriptSig))
         print("txin_scriptPubKey", b2x(txin_scriptPubKey))
