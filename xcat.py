@@ -18,7 +18,7 @@ def check_p2sh(currency, address):
 def set_price():
     trade = {}
     #TODO: make currencies interchangeable. Save to a tuple?
-    sell = input("Which currency are you selling? (bitcoin)")
+    sell = input("Which currency would you like to trade out of? (bitcoin)")
     sell = 'bitcoin'
     buy = 'zcash'
     sell_amt = input("How much {0} do you want to sell?".format(sell))
@@ -172,6 +172,7 @@ if __name__ == '__main__':
 
     # TODO: Get trade indicated by id number
     # TODO: pass trade into functions?
+    # TODO: workflow framed as currency you're trading out of being sell. appropriate?
     trade = get_trade()
 
     if role == "i":
