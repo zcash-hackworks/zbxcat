@@ -92,6 +92,9 @@ def get_tx_details(txid):
     fund_txinfo = bitcoind.gettransaction(fund_tx)
     return fund_txinfo['details'][0]
 
+
+   
+
 def redeem(p2sh, action):
     contracts = get_contract()
     trade = get_trade()

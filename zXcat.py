@@ -89,6 +89,29 @@ def get_tx_details(txid):
     
     return fund_txinfo['details'][0]
 
+def find_secret(p2sh):
+    return parse_secret('4c25b5db9f3df48e48306891d8437c69308afa122f92416df1a3ba0d3604882f')
+    '''zcashd.importaddress(p2sh, "", False)
+    txs = zcashd.listtransactions()
+    for tx in txs:
+        # print("tx addr:", tx['address'])
+        # print(type(tx['address']))
+        # print(type(p2sh))
+        if (tx['address'] == p2sh ) and (tx['category'] == "send"):
+            print(type(tx['txid']))
+            print(str.encode(tx['txid']))
+
+            raw = zcashd.getrawtransaction(lx(tx['txid']),True)['hex']
+            decoded = zcashd.decoderawtransaction(raw)
+            print("deo:", decoded['vin'][0]['scriptSig']['asm'])'''
+
+def parse_secret(txid):
+    raw = zcashd.getrawtransaction(lx(txid),True)['hex']
+    decoded = zcashd.decoderawtransaction(raw)
+    asm = decoded['vin'][0]['scriptSig']['asm'].split(" ")
+    print(asm[2])
+
+
 def redeem(p2sh,side):
     #checking there are funds in the address
     amount = check_funds(p2sh)

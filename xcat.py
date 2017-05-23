@@ -166,8 +166,10 @@ def seller_redeem():
 def buyer_redeem():
     trade = get_trade()
     # Buyer redeems seller's funded tx
-    p2sh = trade['sell']['p2sh']
+    p2sh = trade['buy']['p2sh']['p2sh']
     currency = trade['sell']['currency']
+    print("p2sh:", p2sh)
+    zXcat.find_secret(p2sh) # currently assuming the buyer is on the Zcash side, i.e., selling zec for btc
     redeem_p2sh(currency, p2sh, 'sell')
 
 if __name__ == '__main__':
