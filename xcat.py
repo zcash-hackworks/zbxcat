@@ -18,13 +18,15 @@ def check_p2sh(currency, address):
 def set_price():
     trade = {}
     #TODO: make currencies interchangeable. Save to a tuple?
-    sell = input("Which currency would you like to trade out of? (bitcoin)")
-    sell = 'bitcoin'
-    buy = 'zcash'
-    sell_amt = input("How much {0} do you want to sell?".format(sell))
+    sell = input("Which currency would you like to trade out of (bitcoin or zcash)? ")
+    if sell == 'bitcoin':
+        buy = 'zcash'
+    else:
+        buy = 'bitcoin'
+    sell_amt = input("How much {0} do you want to sell? ".format(sell))
     sell_amt = 3.5
     print(sell_amt)
-    buy_amt = input("How much {0} do you want to receive in exchange?".format(buy))
+    buy_amt = input("How much {0} do you want to receive in exchange? ".format(buy))
     buy_amt = 1.2
     print(buy_amt)
     sell = {'currency': sell, 'amount': sell_amt}
@@ -197,7 +199,7 @@ def buyer_redeem():
         save_trade(trade)
 
 def print_trade(role):
-    print("Trade status:")
+    print("\nTrade status:")
     trade = get_trade()
     if role == 'seller':
         pprint(trade)
@@ -207,6 +209,7 @@ def print_trade(role):
 
 if __name__ == '__main__':
     print("ZEC <-> BTC XCAT (Cross-Chain Atomic Transactions)")
+    print("=" * 50)
     # TODO: Get trade indicated by id number
     # TODO: pass trade into functions?
     # TODO: workflow framed as currency you're trading out of being sell. appropriate?
@@ -218,6 +221,7 @@ if __name__ == '__main__':
             erase_trade()
             role = 'seller'
             trade = get_trade()
+            print("Creating new XCAT transaction...")
         else:
             role = sys.argv[1]
             print("Your role in demo:", role)
@@ -248,7 +252,7 @@ if __name__ == '__main__':
         elif 'status' in trade['sell']:
             if 'fund_tx' in trade['buy']:
                 # Means buyer has already funded the currency the transaction initiator wants to exchange into
-                print("Buyer funded the contract where you offered to buy {0}, redeeming funds from {1}...".format(trade['buy']['currency'], trade['buy']['p2sh']))
+                input("Buyer funded the contract where you offered to buy {0}, type 'enter' to redeem {1} {0} from {2}.".format(trade['buy']['currency'], trade['buy']['amount'], trade['buy']['p2sh']))
                 seller_redeem()
                 print("You have redeemed {0} {1}!".format(trade['buy']['amount'], trade['buy']['currency']))
                 print_trade('seller')
@@ -268,7 +272,7 @@ if __name__ == '__main__':
             print_trade('buyer')
         elif trade['buy']['status'] == 'redeemed':
             # Seller has redeemed buyer's tx, buyer can now redeem.
-            print("The seller has redeemed the contract where you paid them in {0}, now redeeming your funds from {1}".format(trade['buy']['currency'], trade['sell']['p2sh']))
+            input("Buyer funded the contract where you paid them in {0} to buy {1}, type 'enter' to redeem {2} {1} from {3}.".format(trade['buy']['currency'], trade['sell']['currency'], trade['buy']['amount'], trade['buy']['p2sh']))
             buyer_redeem()
             print("XCAT trade complete!")
             print_trade('buyer')
