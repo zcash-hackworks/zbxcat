@@ -169,7 +169,7 @@ def buyer_redeem():
     p2sh = trade['buy']['p2sh']['p2sh']
     currency = trade['sell']['currency']
     print("p2sh:", p2sh)
-    zXcat.find_secret(p2sh) # currently assuming the buyer is on the Zcash side, i.e., selling zec for btc
+    zXcat.find_secret(p2sh, trade['buy']['fund_tx']) # currently assuming the buyer is on the Zcash side, i.e., selling zec for btc
     redeem_p2sh(currency, p2sh, 'sell')
 
 if __name__ == '__main__':

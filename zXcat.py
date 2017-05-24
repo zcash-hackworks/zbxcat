@@ -89,21 +89,20 @@ def get_tx_details(txid):
     
     return fund_txinfo['details'][0]
 
-def find_secret(p2sh):
-    return parse_secret('4c25b5db9f3df48e48306891d8437c69308afa122f92416df1a3ba0d3604882f')
-    '''zcashd.importaddress(p2sh, "", False)
-    txs = zcashd.listtransactions()
+def find_secret(p2sh,fund_txid):
+    zcashd.importaddress(p2sh, "", False)
+    txs = zcashd.listtransactions(0)
     for tx in txs:
-        # print("tx addr:", tx['address'])
-        # print(type(tx['address']))
-        # print(type(p2sh))
-        if (tx['address'] == p2sh ) and (tx['category'] == "send"):
-            print(type(tx['txid']))
-            print(str.encode(tx['txid']))
-
-            raw = zcashd.getrawtransaction(lx(tx['txid']),True)['hex']
-            decoded = zcashd.decoderawtransaction(raw)
-            print("deo:", decoded['vin'][0]['scriptSig']['asm'])'''
+        raw = zcashd.getrawtransaction(lx(tx['txid']),True)['hex']
+        decoded = zcashd.decoderawtransaction(raw)
+        vin = decoded['vin'][0]
+        if(not 'txid' in vin):
+            print('vin before compare:', vin)
+        if('txid' in vin): # need to check this cause coinbase txs don't have it
+            txin = vin['txid']
+            if(fund_txid == txin):
+                return parse_secret(decoded['txid'])
+        
 
 def parse_secret(txid):
     raw = zcashd.getrawtransaction(lx(txid),True)['hex']
