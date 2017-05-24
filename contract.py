@@ -1,8 +1,41 @@
 
 
 class Contract(object):
-    def __init__(self, funder=None, redeemer=None, blockchain=None):
+    def __init__(self, **kwargs):
+        # initiator=None, fulfiller=None, currency=None, p2sh=None, amount=None, preimage=None
+        print('kwargs in init', kwargs)
+        # print(type(*data))
         '''Create a new hash time-locked contract'''
-        self.funder = funder
-        self.redeemer = redeemer
-        self.blockchain = blockchain
+        self.initiator = kwargs['initiator']
+        self.fulfiller = kwargs['fulfiller']
+        self.currency = kwargs['currency']
+        self.p2sh = kwargs['p2sh']
+        self.amount = kwargs['amount']
+        if 'preimage' in kwargs:
+            self.preimage = kwargs['preimage']
+        # have a 'status' property, for empty, funded, refunded, or redeemed
+
+    # def __new__(cls, **kwargs):
+    #     print("kwargs", **kwargs)
+    #     inst = object.__new__(cls)
+    #     return inst
+
+    # def __str__(self):
+    #     return self
+
+    # how to distinguish buy and sell contracts? use syntax new Contract()? Remember self's pupbkey?
+    # def createBuy():
+
+# Intitialize a trade and then create the contracts?
+class Trade(object):
+    def __init__(self, sellContract=None, buyContract=None):
+        '''Create a new trade with a sell contract and buy contract across two chains'''
+        self.sellContract = sellContract
+        self.buyContract = buyContract
+
+# other classes; transactions? users?
+
+class Participant(object):
+    def __init__(self, zcashAddr=None, bitcoinAddr=None):
+        self.zcashAddr=None
+        self.bitcoinAddr=None

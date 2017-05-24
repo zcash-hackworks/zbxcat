@@ -70,6 +70,49 @@ def get_tx_details(txid):
     fund_txinfo = zcashd.gettransaction(txid)
     return fund_txinfo['details'][0]
 
+def find_transaction_to_address(p2sh):
+    zcashd.importaddress(p2sh, "", False)
+    txs = zcashd.listunspent()
+    for tx in txs:
+        # print("tx addr:", tx['address'])
+        # print(type(tx['address']))
+        # print(type(p2sh))
+        if tx['address'] == CBitcoinAddress(p2sh):
+            print("Found tx to p2sh", p2sh)
+            print(tx)
+            return tx
+
+# def get_tx_details(txid):
+#     # This method is problematic I haven't gotten the type conversions right
+#     print(bytearray.fromhex(txid))
+#     print(b2x(bytearray.fromhex(txid)))
+#     fund_txinfo = zcashd.gettransaction(bytearray.fromhex(txid))
+#     print(fund_txinfo)
+#
+#     return fund_txinfo['details'][0]
+
+def find_secret(p2sh):
+    return parse_secret('4c25b5db9f3df48e48306891d8437c69308afa122f92416df1a3ba0d3604882f')
+    zcashd.importaddress(p2sh, "", False)
+    # is this working?
+    txs = zcashd.listtransactions()
+    for tx in txs:
+        # print("tx addr:", tx['address'])
+        # print(type(tx['address']))
+        # print(type(p2sh))
+        if (tx['address'] == p2sh ) and (tx['category'] == "send"):
+            print(type(tx['txid']))
+            print(str.encode(tx['txid']))
+            raw = zcashd.getrawtransaction(lx(tx['txid']),True)['hex']
+            decoded = zcashd.decoderawtransaction(raw)
+            print("deo:", decoded['vin'][0]['scriptSig']['asm'])
+
+def parse_secret(txid):
+    raw = zcashd.getrawtransaction(lx(txid),True)['hex']
+    decoded = zcashd.decoderawtransaction(raw)
+    asm = decoded['vin'][0]['scriptSig']['asm'].split(" ")
+    print(asm[2])
+
 def redeem(p2sh, action):
     contracts = get_contract()
     trade = get_trade()
@@ -82,9 +125,12 @@ def redeem(p2sh, action):
         redeemblocknum = contract['redeemblocknum']
         zec_redeemScript = contract['zec_redeemScript']
 
-        txid = trade[action]['fund_tx']
-        details = get_tx_details(txid)
-        print("Txid for fund tx", txid)
+        # Replace this with code to find the tx on the blockchain
+        # txid = trade[action]['fund_tx']
+        # details = get_tx_details(txid)
+        # print("Txid for fund tx", txid)
+        fundtx = find_transaction_to_address(p2sh)
+
         # must be little endian hex
         txin = CMutableTxIn(COutPoint(lx(txid), details['vout']))
         redeemPubKey = CBitcoinAddress(contract['redeemer'])
@@ -104,7 +150,7 @@ def redeem(p2sh, action):
         # TODO: figure out how to better protect privkey?
         privkey = zcashd.dumpprivkey(redeemPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
-        
+
         # TODO: Figure out where to store secret preimage securely. Parse from scriptsig of redeemtx
         secret = trade['sell']['secret']
         preimage = secret.encode('utf-8')
