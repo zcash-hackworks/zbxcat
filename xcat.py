@@ -6,7 +6,7 @@ from time import sleep
 import json
 import os, sys
 from pprint import pprint
-from contract import Contract, Trade, Participant
+from trades import Contract, Trade
 import userInput
 
 def check_p2sh(currency, address):
@@ -77,16 +77,6 @@ def redeem_p2sh(contract, secret):
     else:
         res = zXcat.auto_redeem(contract, secret)
     return res
-
-# def check_blocks(p2sh):
-#     # blocks = []
-#     with open('watchdata', 'r') as infile:
-#         for line in infile:
-#             res = bXcat.search_p2sh(line.strip('\n'), p2sh)
-#             # blocks.append(line.strip('\n'))
-#     # print(blocks)
-#     # for block in blocks:
-#     #     res = bXcat.search_p2sh(block, p2sh)
 
 def print_trade(role):
     print("\nTrade status for {0}:".format(role))
