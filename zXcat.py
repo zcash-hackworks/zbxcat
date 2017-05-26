@@ -207,23 +207,20 @@ def auto_redeem(contract, secret):
         print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
 
         # Where can you find redeemblocknum in the transaction?
-        redeemblocknum = contract.redeemblocknum
+        redeemblocknum = find_redeemblocknum(contract)
+        blockcount = zcashd.getblockcount()
+        if blockcount < redeemblocknum:
+            redeemPubKey = find_redeemAddr(contract)
+        else:
+            redeemPubKey = find_refundAddr(contract)
+            tx.nLockTime = redeemblocknum
+        print('redeemPubKey', redeemPubKey)
+
         zec_redeemScript = CScript(x(contract.redeemScript))
 
         # details = get_tx_details(txid)
         # txin = CMutableTxIn(COutPoint(lx(txid), details['vout']))
         txin = CMutableTxIn(fundtx['outpoint'])
-
-        recipient = find_recipient(contract)
-        exit()
-
-        blocknum = zcashd.getblockcount()
-        print("blocknum", blocknum)
-        if blocknum < redeemblocknum:
-            redeemPubKey = CBitcoinAddress(contract.initiator)
-        else:
-            # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
-            tx.nLockTime = redeemblocknum  # Ariel: This is only needed when redeeming with the timelock
 
         txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
@@ -248,6 +245,28 @@ def auto_redeem(contract, secret):
     else:
         print("No contract for this p2sh found in database", p2sh)
 
+def parse_script(script_hex):
+    redeemScript = zcashd.decodescript(script_hex)
+    scriptarray = redeemScript['asm'].split(' ')
+    return scriptarray
+
+def find_redeemblocknum(contract):
+    scriptarray = parse_script(contract.redeemScript)
+    redeemblocknum = scriptarray[8]
+    return int(redeemblocknum)
+
+def find_redeemAddr(contract):
+    scriptarray = parse_script(contract.redeemScript)
+    redeemer = scriptarray[6]
+    redeemAddr = P2PKHBitcoinAddress.from_bytes(x(redeemer))
+    return redeemAddr
+
+def find_refundAddr(contract):
+    scriptarray = parse_script(contract.redeemScript)
+    funder = scriptarray[6]
+    refundAddr = P2PKHBitcoinAddress.from_bytes(x(funder))
+    return refundAddr
+
 def find_recipient(contract):
     # make this dependent on actual fund tx to p2sh, not contract
     txid = contract.fund_tx
@@ -265,7 +284,6 @@ def find_recipient(contract):
     print('pubkey', pubkey)
     redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
     print('redeemPubkey', redeemPubkey)
-
 
 # addr = CBitcoinAddress('tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ')
 # print(addr)

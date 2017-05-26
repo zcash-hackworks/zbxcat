@@ -74,3 +74,8 @@ def redeem(p2sh, action):
         return txhex
     else:
         print("No contract for this p2sh found in database", p2sh)
+
+# addr = CBitcoinAddress('tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ')
+# print(addr)
+# # print(b2x('tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ'))
+# print(b2x(addr))
