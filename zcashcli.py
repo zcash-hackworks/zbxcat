@@ -16,6 +16,7 @@ from zcash.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH
 from zcash.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from zcash.wallet import CBitcoinAddress, CBitcoinSecret
 import hashlib
+import binascii
 
 # SelectParams('testnet')
 SelectParams('regtest')
