@@ -51,13 +51,3 @@ def save(trade):
     'buy': trade.buyContract.__dict__
     }
     save_trade(trade)
-
-
-def get_contract():
-    with open('contract.json') as data_file:
-        contractdb = json.load(data_file)
-    return contractdb
-
-def save_contract(contracts):
-    with open('contract.json', 'w') as outfile:
-        json.dump(contracts, outfile)

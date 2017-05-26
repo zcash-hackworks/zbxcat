@@ -67,11 +67,6 @@ def create_p2sh(htlcTrade):
     # CREATE SELL CONTRACT
     contract = create_htlc(currency, htlcTrade.sellContract.initiator, htlcTrade.sellContract.fulfiller, secret, locktime)
 
-    contracts = {}
-    sell_p2sh = contract['p2sh']
-    contracts[contract['p2sh']] = contract
-    save_contract(contracts)
-
     print("sell contract", contract)
     setattr(htlcTrade.sellContract, 'p2sh', contract['p2sh'])
     setattr(htlcTrade.sellContract, 'redeemScript', contract['redeemScript'])
@@ -102,9 +97,6 @@ def create_p2sh(htlcTrade):
     print("HTLC DETAILS", buy_currency, buy_fulfiller, buy_initiator, secret, locktime)
     buy_contract = create_htlc(buy_currency, buy_fulfiller, buy_initiator, secret, locktime)
     print("Buy contract", buy_contract)
-
-    contracts[buy_contract['p2sh']] = buy_contract
-    save_contract(contracts)
 
     setattr(htlcTrade.buyContract, 'p2sh', buy_contract['p2sh'])
     setattr(htlcTrade.buyContract, 'redeemScript', buy_contract['redeemScript'])
