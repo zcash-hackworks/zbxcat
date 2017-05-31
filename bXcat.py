@@ -51,7 +51,7 @@ def hashtimelockcontract(funder, redeemer, secret, locktime):
     blocknum = bitcoind.getblockcount()
     print("Current blocknum", blocknum)
     redeemblocknum = blocknum + locktime
-    print("REDEEMBLOCKNUM", redeemblocknum)
+    print("REDEEMBLOCKNUM BITCOIN", redeemblocknum)
     redeemScript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
                                  redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
                                  funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
@@ -123,28 +123,28 @@ def auto_redeem(contract, secret):
         # Parsing redeemblocknum from the redeemscript of the p2sh
         redeemblocknum = find_redeemblocknum(contract)
         blockcount = bitcoind.getblockcount()
+        print("\nCurrent blocknum at time of redeem on Bitcoin:", blockcount)
         if blockcount < redeemblocknum:
             redeemPubKey = find_redeemAddr(contract)
+            print('redeemPubKey', redeemPubKey)
         else:
+            print("nLocktime exceeded, refunding")
             redeemPubKey = find_refundAddr(contract)
-            tx.nLockTime = redeemblocknum
-        print('redeemPubKey', redeemPubKey)
+            print('refundPubKey', redeemPubKey)
         # redeemPubKey = CBitcoinAddress.from_scriptPubKey(redeemPubKey)
         # exit()
 
         zec_redeemScript = CScript(x(contract.redeemScript))
-
-        # details = get_tx_details(txid)
-        # txin = CMutableTxIn(COutPoint(lx(txid), details['vout']))
         txin = CMutableTxIn(fundtx['outpoint'])
-
         txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
         # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
         # TODO: these things like redeemblocknum should really be properties of a tx class...
         # Need: redeemblocknum, zec_redeemScript, secret (for creator...), txid, redeemer...
-        tx.nLockTime = redeemblocknum  # Ariel: This is only needed when redeeming with the timelock
+        if blockcount >= redeemblocknum:
+            print("\nLocktime exceeded")
+            tx.nLockTime = redeemblocknum  # Ariel: This is only needed when redeeming with the timelock
         sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
         # TODO: figure out how to better protect privkey
         privkey = bitcoind.dumpprivkey(redeemPubKey)
@@ -185,7 +185,7 @@ def find_redeemAddr(contract):
 
 def find_refundAddr(contract):
     scriptarray = parse_script(contract.redeemScript)
-    funder = scriptarray[6]
+    funder = scriptarray[13]
     refundAddr = P2PKHBitcoinAddress.from_bytes(x(funder))
     return refundAddr
 
@@ -209,7 +209,6 @@ def find_refundAddr(contract):
     # redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
     # print('redeemPubkey', redeemPubkey)
 
-
 def find_transaction_to_address(p2sh):
     bitcoind.importaddress(p2sh, "", False)
     txs = bitcoind.listunspent()
@@ -226,3 +225,7 @@ def new_bitcoin_addr():
     addr = bitcoind.getnewaddress()
     print('new btc addr', addr.to_scriptPubKey)
     return addr.to_scriptPubKey()
+
+def generate(num):
+    blocks = bitcoind.generate(num)
+    return blocks

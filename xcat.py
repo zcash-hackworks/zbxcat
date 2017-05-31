@@ -114,8 +114,8 @@ def seller_redeem(trade):
     else:
         # Seller redeems buyer's funded tx (contract in p2sh)
         secret = userInput.retrieve_password()
-        txid = redeem_p2sh(trade.buyContract, secret)
-        setattr(trade.buyContract, 'redeem_tx', txid)
+        tx_type, txid = redeem_p2sh(trade.buyContract, secret)
+        setattr(trade.buyContract, tx_type, txid)
         save(trade)
         print("You have redeemed {0} {1}!".format(buy.amount, buy.currency))
         print_trade('seller')
@@ -158,16 +158,17 @@ def seller_initiate(trade):
 
     secret = userInput.create_password()
     # TODO: Implement locktimes and mock block passage of time
-    locktime = 20 # Must be more than first tx
+    sell_locktime = 5
+    buy_locktime = 10 # Must be more than first tx
 
-    create_sell_p2sh(trade, secret, locktime)
+    create_sell_p2sh(trade, secret, sell_locktime)
 
     userInput.authorize_fund_sell(trade)
 
     txid = fund_sell_contract(trade)
     print("Sent")
 
-    create_buy_p2sh(trade, secret, locktime)
+    create_buy_p2sh(trade, secret, buy_locktime)
     print_trade('seller')
 
 if __name__ == '__main__':
