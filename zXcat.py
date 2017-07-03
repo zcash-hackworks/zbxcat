@@ -60,9 +60,10 @@ def fund_htlc(p2sh, amount):
     return txid
 
 def check_funds(p2sh):
-    zcashd.importaddress(p2sh, "", True) #Ariel: changed this to true
+    zcashd.importaddress(p2sh, "", False) #Ariel: changed this to true
     print("Imported address", p2sh)
     # Get amount in address
+    print("findtxtoaddr:::::::", find_transaction_to_address(p2sh))
     amount = zcashd.getreceivedbyaddress(p2sh, 0)
     print("Amount in address", amount)
     amount = amount/COIN
@@ -93,24 +94,28 @@ def find_transaction_to_address(p2sh):
 #
 #     return fund_txinfo['details'][0]
 
-def find_secret(p2sh):
-    return parse_secret('4c25b5db9f3df48e48306891d8437c69308afa122f92416df1a3ba0d3604882f')
-    zcashd.importaddress(p2sh, "", False)
+def find_secret(p2sh,vinid):
+    zcashd.importaddress(p2sh, "", True)
     # is this working?
     txs = zcashd.listtransactions()
     for tx in txs:
-        # print("tx addr:", tx['address'])
+        print("tx addr:", tx['txid'])
         # print(type(tx['address']))
         # print(type(p2sh))
-        if (tx['address'] == p2sh ) and (tx['category'] == "send"):
-            print(type(tx['txid']))
-            print(str.encode(tx['txid']))
-            raw = zcashd.getrawtransaction(lx(tx['txid']),True)['hex']
-            decoded = zcashd.decoderawtransaction(raw)
-            print("deo:", decoded['vin'][0]['scriptSig']['asm'])
+        raw = zcashd.getrawtransaction(lx(tx['txid']),True)['hex']
+        decoded = zcashd.decoderawtransaction(raw)
+        print("fdsfdfds", decoded['vin'][0])
+        if('txid' in decoded['vin'][0]):
+            sendid = decoded['vin'][0]['txid']
+            print("sendid:", sendid)
+            
+            if (sendid == vinid ):
+                print(type(tx['txid']))
+                print(str.encode(tx['txid']))
+                return parse_secret(lx(tx['txid']))
 
 def parse_secret(txid):
-    raw = zcashd.gettransaction(lx(txid), True)['hex']
+    raw = zcashd.gettransaction(txid, True)['hex']
     # print("Raw", raw)
     decoded = zcashd.decoderawtransaction(raw)
     scriptSig = decoded['vin'][0]['scriptSig']
@@ -144,8 +149,8 @@ def auto_redeem(contract, secret):
 
         # Parsing redeemblocknum from the redeemscript of the p2sh
         redeemblocknum = find_redeemblocknum(contract)
-        blockcount = bitcoind.getblockcount()
-        print("\nCurrent blocknum at time of redeem on Bitcoin:", blockcount)
+        blockcount = zcashd.getblockcount()
+        print("\nCurrent blocknum at time of redeem on Zcash chain:", blockcount)
         if blockcount < redeemblocknum:
             redeemPubKey = find_redeemAddr(contract)
             print('redeemPubKey', redeemPubKey)
@@ -169,7 +174,7 @@ def auto_redeem(contract, secret):
             tx.nLockTime = redeemblocknum  
         sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
         # TODO: figure out how to better protect privkey
-        privkey = bitcoind.dumpprivkey(redeemPubKey)
+        privkey = zcashd.dumpprivkey(redeemPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
         print("SECRET", secret)
         preimage = secret.encode('utf-8')
@@ -235,9 +240,121 @@ def find_recipient(contract):
 
 def new_zcash_addr():
     addr = zcashd.getnewaddress()
-    print('new ZEC addr', addr.to_p2sh_scriptPubKey)
-    return addr.to_scriptPubKey()
+    print('new ZEC addr', addr)
+    return addr
 
 def generate(num):
     blocks = zcashd.generate(num)
     return blocks
+
+
+
+
+# redeems funded tx automatically, by scanning for transaction to the p2sh
+# i.e., doesn't require buyer telling us fund txid
+# returns false if fund tx doesn't exist or is too small
+def redeem_with_secret(contract, secret):
+    # How to find redeemScript and redeemblocknum from blockchain?
+    print("Redeeming contract using secret", contract.__dict__)
+    p2sh = contract.p2sh
+    minamount = float(contract.amount)
+    #checking there are funds in the address
+    amount = check_funds(p2sh)
+    if(amount < minamount):
+        print("address ", p2sh, " not sufficiently funded")
+        return false
+    fundtx = find_transaction_to_address(p2sh)
+    amount = fundtx['amount'] / COIN
+    print("Found fundtx:", fundtx)
+    p2sh = P2SHBitcoinAddress(p2sh)
+    if fundtx['address'] == p2sh:
+        print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
+
+        redeemPubKey = find_redeemAddr(contract)
+        print('redeemPubKey', redeemPubKey)
+
+        redeemScript = CScript(x(contract.redeemScript))
+        txin = CMutableTxIn(fundtx['outpoint'])
+        txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
+        # Create the unsigned raw transaction.
+        tx = CMutableTransaction([txin], [txout])
+        sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
+        # TODO: figure out how to better protect privkey
+        privkey = zcashd.dumpprivkey(redeemPubKey)
+        sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
+        print("SECRET", secret)
+        preimage = secret.encode('utf-8')
+        txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, redeemScript])
+
+        # exit()
+
+        print("txin.scriptSig", b2x(txin.scriptSig))
+        txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
+        print('Redeem txhex', b2x(tx.serialize()))
+        VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+        print("script verified, sending raw tx")
+        txid = zcashd.sendrawtransaction(tx)
+        print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
+        return  b2x(lx(b2x(txid)))
+    else:
+        print("No contract for this p2sh found in database", p2sh)
+
+
+
+# given a contract return true or false according to whether the relevant fund tx's timelock is still valid
+def still_locked(contract):
+    p2sh = contract.p2sh
+    # Parsing redeemblocknum from the redeemscript of the p2sh
+    redeemblocknum = find_redeemblocknum(contract)
+    blockcount = zcashd.getblockcount()
+    print(blockcount, redeemblocknum, blockcount<redeemblocknum)
+    return (int(blockcount) < int(redeemblocknum))
+
+def redeem_after_timelock(contract):
+    print("Contract in auto redeem", contract.__dict__)
+    p2sh = contract.p2sh
+    fundtx = find_transaction_to_address(p2sh)
+    amount = fundtx['amount'] / COIN
+
+    if (fundtx['address'].__str__() != p2sh):
+        print("no fund transaction found to the contract p2sh address ",p2sh)
+        quit()
+    print("Found fundtx:", fundtx)
+    # Parsing redeemblocknum from the redeemscript of the p2sh
+    redeemblocknum = find_redeemblocknum(contract)
+    blockcount = zcashd.getblockcount()
+    print ("Current block:", blockcount, "Can redeem from block:", redeemblocknum)
+    if(still_locked(contract)):
+        print("too early for redeeming with timelock")
+        quit()
+    
+    print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
+
+        
+    redeemPubKey = find_refundAddr(contract)
+    print('refundPubKey', redeemPubKey)
+
+    redeemScript = CScript(x(contract.redeemScript))
+    txin = CMutableTxIn(fundtx['outpoint'])
+    txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
+    # Create the unsigned raw transaction.
+    txin.nSequence = 0
+    tx = CMutableTransaction([txin], [txout])
+    tx.nLockTime = redeemblocknum
+    
+    sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
+    # TODO: figure out how to better protect privkey
+    privkey = zcashd.dumpprivkey(redeemPubKey)
+    sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
+    txin.scriptSig = CScript([sig, privkey.pub,  OP_FALSE, redeemScript])
+
+    # exit()
+
+    print("txin.scriptSig", b2x(txin.scriptSig))
+    txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
+    print('Redeem txhex', b2x(tx.serialize()))
+    VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+    print("script verified, sending raw tx")
+    txid = zcashd.sendrawtransaction(tx)
+    print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
+    return  b2x(lx(b2x(txid)))

@@ -70,14 +70,25 @@ def create_buy_p2sh(trade, secret, locktime):
 
     save(trade)
 
-def redeem_p2sh(contract, secret):
+# we try to redeem contract with secret
+# we try to redeem revertcontract with time lock
+def redeem_p2sh(contract, secret, revertcontract):
     currency = contract.currency
-    print("in redeem function zcash")
     if currency == 'bitcoin':
-        res = bXcat.auto_redeem(contract, secret)
+        if(bXcat.still_locked(contract)):
+            print("redeeming btc with secret:")
+            res = bXcat.redeem_with_secret(contract, secret)
+        else:
+            print("redeeming zec with timelock:")
+            res = zXcat.redeem_after_timelock(revertcontract) 
+
     else:
-        res = zXcat.auto_redeem(contract, secret)
-        print("in redeem function zcash")
+        if(zXcat.still_locked(contract)):
+            print("redeeming zec with secret:")
+            res = zXcat.redeem_with_secret(contract, secret)
+        else:
+            print("redeeming btc with timelock:")
+            res = bXcat.redeem_after_timelock(revertcontract) 
 
     return res
 
