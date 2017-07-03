@@ -144,7 +144,7 @@ def auto_redeem(contract, secret):
         # Need: redeemblocknum, zec_redeemScript, secret (for creator...), txid, redeemer...
         if blockcount >= redeemblocknum:
             print("\nLocktime exceeded")
-            tx.nLockTime = redeemblocknum  # Ariel: This is only needed when redeeming with the timelock
+            tx.nLockTime = redeemblocknum  
         sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
         # TODO: figure out how to better protect privkey
         privkey = bitcoind.dumpprivkey(redeemPubKey)

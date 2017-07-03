@@ -72,10 +72,13 @@ def create_buy_p2sh(trade, secret, locktime):
 
 def redeem_p2sh(contract, secret):
     currency = contract.currency
+    print("in redeem function zcash")
     if currency == 'bitcoin':
         res = bXcat.auto_redeem(contract, secret)
     else:
         res = zXcat.auto_redeem(contract, secret)
+        print("in redeem function zcash")
+
     return res
 
 def print_trade(role):
