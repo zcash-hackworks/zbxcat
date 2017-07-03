@@ -3,8 +3,29 @@ import json
 import random
 import binascii
 
-def hex2str(hexstring):
+def b(string):
+    """Convert a string to bytes"""
+    return str.encode(string)
+
+def x(h):
+    """Convert a hex string to bytes"""
+    return binascii.unhexlify(h.encode('utf8'))
+
+def b2x(b):
+    """Convert bytes to a hex string"""
+    return binascii.hexlify(b).decode('utf8')
+
+def x2s(hexstring):
+    """Convert hex to a utf-8 string"""
     return binascii.unhexlify(hexstring).decode('utf-8')
+
+def s2x(string):
+    """Convert a utf-8 string to hex"""
+    return b2x(b(string))
+
+
+######################
+
 
 def sha256(secret):
     preimage = secret.encode('utf8')

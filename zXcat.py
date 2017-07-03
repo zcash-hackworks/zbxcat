@@ -117,7 +117,7 @@ def parse_secret(txid):
     print("Decoded", scriptSig)
     asm = scriptSig['asm'].split(" ")
     pubkey = asm[1]
-    secret = hex2str(asm[2])
+    secret = x2s(asm[2])
     redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
     print('redeemPubkey', redeemPubkey)
     print(secret)
