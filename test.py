@@ -3,7 +3,7 @@ from api import *
 
 print("Starting test of xcat...")
 htlcTrade = initiate()
-buyer_fulfill()
+fund_buyer()
 # zXcat.generate(8)
 
 zXcat.generate(6)
