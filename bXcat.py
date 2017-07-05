@@ -29,7 +29,6 @@ zcashd = zcash.rpc.Proxy()
 
 def parse_secret(txid):
     decoded = bitcoind.getrawtransaction(lx(txid), 1)
-    print("Decoded", decoded)
     # decoded = bitcoind.decoderawtransaction(raw)
     asm = decoded['vin'][0]['scriptSig']['asm'].split(" ")
     print(asm[2])
@@ -119,7 +118,6 @@ def redeem_with_secret(contract, secret):
         return false
     fundtx = find_transaction_to_address(p2sh)
     amount = fundtx['amount'] / COIN
-    print("Found fundtx:", fundtx)
     p2sh = P2SHBitcoinAddress(p2sh)
     if fundtx['address'] == p2sh:
         print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
@@ -142,9 +140,9 @@ def redeem_with_secret(contract, secret):
 
         # exit()
 
-        print("txin.scriptSig", b2x(txin.scriptSig))
+        # print("txin.scriptSig", b2x(txin.scriptSig))
         txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
-        print('Redeem txhex', b2x(tx.serialize()))
+        # print('Redeem txhex', b2x(tx.serialize()))
         VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("script verified, sending raw tx")
         txid = bitcoind.sendrawtransaction(tx)
@@ -161,11 +159,13 @@ def still_locked(contract):
     # Parsing redeemblocknum from the redeemscript of the p2sh
     redeemblocknum = find_redeemblocknum(contract)
     blockcount = bitcoind.getblockcount()
-    print(blockcount, redeemblocknum, blockcount<redeemblocknum)
-    return (int(blockcount) < int(redeemblocknum))
+    # print(blockcount, redeemblocknum, blockcount<redeemblocknum)
+    if (blockcount < redeemblocknum):
+        return True
+    else:
+        return False
 
 def redeem_after_timelock(contract):
-    print("Contract in auto redeem", contract.__dict__)
     p2sh = contract.p2sh
     fundtx = find_transaction_to_address(p2sh)
     amount = fundtx['amount'] / COIN
@@ -179,8 +179,8 @@ def redeem_after_timelock(contract):
     blockcount = bitcoind.getblockcount()
     print ("Current block:", blockcount, "Can redeem from block:", redeemblocknum)
     if(still_locked(contract)):
-        print("too early for redeeming with timelock")
-        quit()
+        print("too early for redeeming with timelock try again at block", redeemblocknum, "or later")
+        return 0
     
     print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
 
@@ -204,9 +204,9 @@ def redeem_after_timelock(contract):
 
     # exit()
 
-    print("txin.scriptSig", b2x(txin.scriptSig))
+    # print("txin.scriptSig", b2x(txin.scriptSig))
     txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
-    print('Redeem txhex', b2x(tx.serialize()))
+    # print('Redeem txhex', b2x(tx.serialize()))
     VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
     print("script verified, sending raw tx")
     txid = bitcoind.sendrawtransaction(tx)
@@ -260,15 +260,14 @@ def find_refundAddr(contract):
     # print('redeemPubkey', redeemPubkey)
 
 def find_transaction_to_address(p2sh):
-    bitcoind.importaddress(p2sh, "", False)
+    bitcoind.importaddress(p2sh, "", True)
     txs = bitcoind.listunspent()
     for tx in txs:
-        # print("tx addr:", tx['address'])
+        # print("tx addr:", )
         # print(type(tx['address']))
         # print(type(p2sh))
         if tx['address'] == CBitcoinAddress(p2sh):
             print("Found tx to p2sh", p2sh)
-            print(tx)
             return tx
 
 def new_bitcoin_addr():
@@ -280,19 +279,39 @@ def generate(num):
     blocks = bitcoind.generate(num)
     return blocks
 
-def find_secret(p2sh):
-    bitcoind.importaddress(p2sh, "", False)
+def find_secret(p2sh,vinid):
+    bitcoind.importaddress(p2sh, "", True)
     # is this working?
+
     txs = bitcoind.listtransactions()
+    # print("==========================================LISTTT============", txs)
+    # print()
     for tx in txs:
-        # print("tx addr:", tx['address'])
-        # print(type(tx['address']))
-        # print(type(p2sh))
-        if (tx['address'] == p2sh ) and (tx['category'] == "send"):
-            print(type(tx['txid']))
-            print(str.encode(tx['txid']))
-            raw = bitcoind.getrawtransaction(lx(tx['txid']),True)['hex']
-            decoded = bitcoind.decoderawtransaction(raw)
-            secret = decoded['vin'][0]['scriptSig']['asm']
-            print("secret:", secret)
-            return secret
+        print("tx addr:", tx['address'], "tx id:", tx['txid'])
+        raw = bitcoind.gettransaction(lx(tx['txid']))['hex']
+        decoded = bitcoind.decoderawtransaction(raw)
+        if('txid' in decoded['vin'][0]):
+            sendid = decoded['vin'][0]['txid']
+            
+            if (sendid == vinid ):
+                print(type(tx['txid']))
+                print(str.encode(tx['txid']))
+                return parse_secret(lx(tx['txid']))
+            print("Redeem transaction with secret not found")
+            return ""
+
+def parse_secret(txid):
+    raw = bitcoind.gettransaction(txid)['hex']
+    # print("Raw", raw)
+    decoded = bitcoind.decoderawtransaction(raw)
+    scriptSig = decoded['vin'][0]['scriptSig']
+    print("Decoded", scriptSig)
+    asm = scriptSig['asm'].split(" ")
+    pubkey = asm[1]
+    secret = hex2str(asm[2])
+    redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
+    print('redeemPubkey', redeemPubkey)
+    print(secret)
+    return secret
+
+

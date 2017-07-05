@@ -15,7 +15,7 @@ from zcash.core import b2x, lx, x, b2lx, COIN, COutPoint, CMutableTxOut, CMutabl
 from zcash.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
 from zcash.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from zcash.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2PKHBitcoinAddress
-
+import bitcoin
 from utils import *
 
 # SelectParams('testnet')
@@ -63,7 +63,6 @@ def check_funds(p2sh):
     zcashd.importaddress(p2sh, "", False) #Ariel: changed this to true
     print("Imported address", p2sh)
     # Get amount in address
-    print("findtxtoaddr:::::::", find_transaction_to_address(p2sh))
     amount = zcashd.getreceivedbyaddress(p2sh, 0)
     print("Amount in address", amount)
     amount = amount/COIN
@@ -77,12 +76,8 @@ def find_transaction_to_address(p2sh):
     zcashd.importaddress(p2sh, "", False)
     txs = zcashd.listunspent()
     for tx in txs:
-        # print("tx addr:", tx['address'])
-        # print(type(tx['address']))
-        # print(type(p2sh))
         if tx['address'] == CBitcoinAddress(p2sh):
             print("Found tx to p2sh", p2sh)
-            print(tx)
             return tx
 
 # def get_tx_details(txid):
@@ -93,29 +88,37 @@ def find_transaction_to_address(p2sh):
 #     print(fund_txinfo)
 #
 #     return fund_txinfo['details'][0]
-
 def find_secret(p2sh,vinid):
     zcashd.importaddress(p2sh, "", True)
     # is this working?
+
     txs = zcashd.listtransactions()
+    # print("==========================================LISTTT============", txs)
+    # print()
+    # print('LENNNNNNN:', len(txs))
+    # print('LENNNNNNN2:', len(txs))
     for tx in txs:
-        print("tx addr:", tx['txid'])
+        # print("tx addr:", tx['address'], "tx id:", tx['txid'])
         # print(type(tx['address']))
         # print(type(p2sh))
-        raw = zcashd.getrawtransaction(lx(tx['txid']),True)['hex']
+        # print('type::',type(tx['txid']))
+        raw = zcashd.gettransaction(lx(tx['txid']))['hex']
         decoded = zcashd.decoderawtransaction(raw)
-        print("fdsfdfds", decoded['vin'][0])
+        # print("fdsfdfds", decoded['vin'][0])
         if('txid' in decoded['vin'][0]):
             sendid = decoded['vin'][0]['txid']
-            print("sendid:", sendid)
+            # print("sendid:", sendid)
             
             if (sendid == vinid ):
-                print(type(tx['txid']))
-                print(str.encode(tx['txid']))
+                # print(type(tx['txid']))
+                # print(str.encode(tx['txid']))
                 return parse_secret(lx(tx['txid']))
+            print("Redeem transaction with secret not found")
+            return ""
+
 
 def parse_secret(txid):
-    raw = zcashd.gettransaction(txid, True)['hex']
+    raw = zcashd.gettransaction(txid)['hex']
     # print("Raw", raw)
     decoded = zcashd.decoderawtransaction(raw)
     scriptSig = decoded['vin'][0]['scriptSig']
@@ -142,7 +145,6 @@ def auto_redeem(contract, secret):
         quit()
     fundtx = find_transaction_to_address(p2sh)
     amount = fundtx['amount'] / COIN
-    print("Found fundtx:", fundtx)
     p2sh = P2SHBitcoinAddress(p2sh)
     if fundtx['address'] == p2sh:
         print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
@@ -182,9 +184,9 @@ def auto_redeem(contract, secret):
 
         # exit()
 
-        print("txin.scriptSig", b2x(txin.scriptSig))
+        # print("txin.scriptSig", b2x(txin.scriptSig))
         txin_scriptPubKey = zec_redeemScript.to_p2sh_scriptPubKey()
-        print('Redeem txhex', b2x(tx.serialize()))
+        # print('Redeem txhex', b2x(tx.serialize()))
         VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("script verified, sending raw tx")
         txid = bitcoind.sendrawtransaction(tx)
@@ -212,7 +214,7 @@ def find_redeemAddr(contract):
 def find_refundAddr(contract):
     scriptarray = parse_script(contract.redeemScript)
     funder = scriptarray[13]
-    refundAddr = P2PKHBitcoinAddress.from_bytes(x(funder))
+    refundAddr = P2PKHBitcoinAddress.from_bytes(x(funder))  
     return refundAddr
 
 def find_recipient(contract):
@@ -255,7 +257,7 @@ def generate(num):
 # returns false if fund tx doesn't exist or is too small
 def redeem_with_secret(contract, secret):
     # How to find redeemScript and redeemblocknum from blockchain?
-    print("Redeeming contract using secret", contract.__dict__)
+    # print("Redeeming contract using secret", contract.__dict__)
     p2sh = contract.p2sh
     minamount = float(contract.amount)
     #checking there are funds in the address
@@ -265,7 +267,6 @@ def redeem_with_secret(contract, secret):
         return false
     fundtx = find_transaction_to_address(p2sh)
     amount = fundtx['amount'] / COIN
-    print("Found fundtx:", fundtx)
     p2sh = P2SHBitcoinAddress(p2sh)
     if fundtx['address'] == p2sh:
         print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
@@ -288,9 +289,9 @@ def redeem_with_secret(contract, secret):
 
         # exit()
 
-        print("txin.scriptSig", b2x(txin.scriptSig))
+        # print("txin.scriptSig", b2x(txin.scriptSig))
         txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
-        print('Redeem txhex', b2x(tx.serialize()))
+        # print('Redeem txhex', b2x(tx.serialize()))
         VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("script verified, sending raw tx")
         txid = zcashd.sendrawtransaction(tx)
@@ -307,11 +308,9 @@ def still_locked(contract):
     # Parsing redeemblocknum from the redeemscript of the p2sh
     redeemblocknum = find_redeemblocknum(contract)
     blockcount = zcashd.getblockcount()
-    print(blockcount, redeemblocknum, blockcount<redeemblocknum)
     return (int(blockcount) < int(redeemblocknum))
 
 def redeem_after_timelock(contract):
-    print("Contract in auto redeem", contract.__dict__)
     p2sh = contract.p2sh
     fundtx = find_transaction_to_address(p2sh)
     amount = fundtx['amount'] / COIN
@@ -319,14 +318,14 @@ def redeem_after_timelock(contract):
     if (fundtx['address'].__str__() != p2sh):
         print("no fund transaction found to the contract p2sh address ",p2sh)
         quit()
-    print("Found fundtx:", fundtx)
+    # print("Found fundtx:", fundtx)
     # Parsing redeemblocknum from the redeemscript of the p2sh
     redeemblocknum = find_redeemblocknum(contract)
     blockcount = zcashd.getblockcount()
     print ("Current block:", blockcount, "Can redeem from block:", redeemblocknum)
     if(still_locked(contract)):
-        print("too early for redeeming with timelock")
-        quit()
+        print("too early for redeeming with timelock try again at block", redeemblocknum, "or later")
+        return
     
     print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
 
@@ -350,9 +349,9 @@ def redeem_after_timelock(contract):
 
     # exit()
 
-    print("txin.scriptSig", b2x(txin.scriptSig))
+    # print("txin.scriptSig", b2x(txin.scriptSig))
     txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
-    print('Redeem txhex', b2x(tx.serialize()))
+    # print('Redeem txhex', b2x(tx.serialize()))
     VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
     print("script verified, sending raw tx")
     txid = zcashd.sendrawtransaction(tx)

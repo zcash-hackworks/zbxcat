@@ -72,23 +72,48 @@ def create_buy_p2sh(trade, secret, locktime):
 
 # we try to redeem contract with secret
 # we try to redeem revertcontract with time lock
+# returns True if at least one redeem succeeded
 def redeem_p2sh(contract, secret, revertcontract):
-    currency = contract.currency
-    if currency == 'bitcoin':
-        if(bXcat.still_locked(contract)):
-            print("redeeming btc with secret:")
-            res = bXcat.redeem_with_secret(contract, secret)
-        else:
-            print("redeeming zec with timelock:")
-            res = zXcat.redeem_after_timelock(revertcontract) 
 
-    else:
-        if(zXcat.still_locked(contract)):
-            print("redeeming zec with secret:")
+    currency = contract.currency
+    res = False 
+    revert_currency = revertcontract.currency
+
+    if (currency == 'bitcoin' and bXcat.still_locked(contract)):
+        print("trying to redeem btc with secret:")
+        try:
+            res = bXcat.redeem_with_secret(contract, secret)
+        except Exception:
+            print("Failed - you might not have the correct secret - perhaps because the seller has not redeemed the buy contract correctly")
+        if(res): print("You have redeemed {0} {1}!".format(contract.amount, contract.currency))
+    
+    if (currency == 'zcash' and zXcat.still_locked(contract)):
+        print("trying to redeeming zec with secret:")
+        try:
             res = zXcat.redeem_with_secret(contract, secret)
-        else:
-            print("redeeming btc with timelock:")
-            res = bXcat.redeem_after_timelock(revertcontract) 
+        except Exception:
+            print("Failed - you might not have the correct secret - perhaps because the seller has not redeemed the buy contract correctly")
+        if(res): print("You have redeemed {0} {1}!".format(contract.amount, contract.currency))
+    if (revert_currency == 'bitcoin'):
+        if(bXcat.still_locked(revertcontract)):
+            print('too early for redeeminng with time lock on btc chain')
+        else:        
+            print("trying to redeeming btc with timelock:")
+            try:
+                res = bXcat.redeem_after_timelock(revertcontract)
+            except Exception:
+                print("Failed - the other party might have redeemed the fund tx with the secret by now") 
+            if(res): print("You have redeemed {0} {1}!".format(revertcontract.amount, revertcontract.currency))   
+    if (revert_currency == 'zcash'):
+        if(zXcat.still_locked(revertcontract)):
+            print('too early for redeeminng with time lock on zcash chain')
+        else:        
+            print("trying to redeeming zec with timelock:")
+            try:
+                res = zXcat.redeem_after_timelock(revertcontract)
+            except Exception:
+                print("Failed - the other party might have redeemed the fund tx with the secret by now") 
+            if(res): print("You have redeemed {0} {1}!".format(revertcontract.amount, revertcontract.currency))   
 
     return res
 
@@ -97,58 +122,58 @@ def print_trade(role):
     trade = get_trade()
     pprint(trade)
 
-####  Main functions determining user flow from command line
-def buyer_redeem(trade):
-    userInput.authorize_buyer_redeem(trade)
-    if trade.sellContract.get_status() == 'redeemed':
-        print("You already redeemed the funds and acquired {0} {1}".format(trade.sellContract.amount, trade.sellContract.currency))
-        exit()
-    else:
-        # Buyer redeems seller's funded tx
-        p2sh = trade.sellContract.p2sh
-        currency = trade.sellContract.currency
-        # Buy contract is where seller disclosed secret in redeeming
-        if trade.buyContract.currency == 'bitcoin':
-            secret = bXcat.parse_secret(trade.buyContract.redeem_tx)
-        else:
-            secret = zXcat.parse_secret(trade.buyContract.redeem_tx)
-        print("Found secret in seller's redeem tx", secret)
-        redeem_tx = redeem_p2sh(trade.sellContract, secret)
-        setattr(trade.sellContract, 'redeem_tx', redeem_tx)
-        save(trade)
-    exit()
+# ####  Main functions determining user flow from command line
+# def buyer_redeem(trade):
+#     userInput.authorize_buyer_redeem(trade)
+#     if trade.sellContract.get_status() == 'redeemed':
+#         print("You already redeemed the funds and acquired {0} {1}".format(trade.sellContract.amount, trade.sellContract.currency))
+#         exit()
+#     else:
+#         # Buyer redeems seller's funded tx
+#         p2sh = trade.sellContract.p2sh
+#         currency = trade.sellContract.currency
+#         # Buy contract is where seller disclosed secret in redeeming
+#         if trade.buyContract.currency == 'bitcoin':
+#             secret = bXcat.parse_secret(trade.buyContract.redeem_tx)
+#         else:
+#             secret = zXcat.parse_secret(trade.buyContract.redeem_tx)
+#         print("Found secret in seller's redeem tx", secret)
+#         redeem_tx = redeem_p2sh(trade.sellContract, secret)
+#         setattr(trade.sellContract, 'redeem_tx', redeem_tx)
+#         save(trade)
+#     exit()
 
-def seller_redeem(trade):
-    buy = trade.buyContract
-    userInput.authorize_seller_redeem(buy)
+# def seller_redeem(trade):
+#     buy = trade.buyContract
+#     userInput.authorize_seller_redeem(buy)
 
-    if trade.sellContract.get_status() == 'redeemed':
-        print("You already redeemed the funds and acquired {0} {1}".format(buy.amount, buy.currency))
-        exit()
-    else:
-        # Seller redeems buyer's funded tx (contract in p2sh)
-        secret = userInput.retrieve_password()
-        tx_type, txid = redeem_p2sh(trade.buyContract, secret)
-        setattr(trade.buyContract, tx_type, txid)
-        save(trade)
-        print("You have redeemed {0} {1}!".format(buy.amount, buy.currency))
-        print_trade('seller')
+#     if trade.sellContract.get_status() == 'redeemed':
+#         print("You already redeemed the funds and acquired {0} {1}".format(buy.amount, buy.currency))
+#         exit()
+#     else:
+#         # Seller redeems buyer's funded tx (contract in p2sh)
+#         secret = userInput.retrieve_password()
+#         tx_type, txid = redeem_p2sh(trade.buyContract, secret)
+#         setattr(trade.buyContract, tx_type, txid)
+#         save(trade)
+#         print("You have redeemed {0} {1}!".format(buy.amount, buy.currency))
+#         print_trade('seller')
 
-def buyer_fulfill(trade):
-    buy = trade.buyContract
-    sell = trade.sellContract
-    buy_p2sh_balance = check_p2sh(buy.currency, buy.p2sh)
-    sell_p2sh_balance = check_p2sh(sell.currency, sell.p2sh)
+# def buyer_fulfill(trade):
+#     buy = trade.buyContract
+#     sell = trade.sellContract
+#     buy_p2sh_balance = check_p2sh(buy.currency, buy.p2sh)
+#     sell_p2sh_balance = check_p2sh(sell.currency, sell.p2sh)
 
-    if buy_p2sh_balance == 0:
-        userInput.authorize_buyer_fulfill(sell_p2sh_balance, sell.currency, buy_p2sh_balance, buy.currency)
-        print("Buy amt:", buy.amount)
-        txid = fund_buy_contract(trade)
-        print("Fund tx txid:", txid)
-    else:
-        print("It looks like you've already funded the contract to buy {1}, the amount in escrow in the p2sh is {0}.".format(buy_p2sh_balance, buy.currency))
-        print("Please wait for the seller to remove your funds from escrow to complete the trade.")
-    print_trade('buyer')
+#     if buy_p2sh_balance == 0:
+#         userInput.authorize_buyer_fulfill(sell_p2sh_balance, sell.currency, buy_p2sh_balance, buy.currency)
+#         print("Buy amt:", buy.amount)
+#         txid = fund_buy_contract(trade)
+#         print("Fund tx txid:", txid)
+#     else:
+#         print("It looks like you've already funded the contract to buy {1}, the amount in escrow in the p2sh is {0}.".format(buy_p2sh_balance, buy.currency))
+#         print("Please wait for the seller to remove your funds from escrow to complete the trade.")
+#     print_trade('buyer')
 
 def seller_initiate(trade):
     # Get amounts
