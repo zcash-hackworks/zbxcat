@@ -9,7 +9,7 @@ fund_buyer()
 zXcat.generate(6)
 redeem_seller()
 zXcat.generate(2)
-
+bXcat.generate(20)
 redeem_buyer()
 
 
