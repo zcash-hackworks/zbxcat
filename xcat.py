@@ -102,7 +102,7 @@ def redeem_p2sh(contract, secret, revertcontract):
             try:
                 res = bXcat.redeem_after_timelock(revertcontract)
             except Exception:
-                print("Failed - the other party might have redeemed the fund tx with the secret by now") 
+                print("Failed - the other party might have redeemed the fund tx on the btc chain with the secret by now") 
             if(res): print("You have redeemed {0} {1}!".format(revertcontract.amount, revertcontract.currency))   
     if (revert_currency == 'zcash'):
         if(zXcat.still_locked(revertcontract)):
@@ -112,7 +112,7 @@ def redeem_p2sh(contract, secret, revertcontract):
             try:
                 res = zXcat.redeem_after_timelock(revertcontract)
             except Exception:
-                print("Failed - the other party might have redeemed the fund tx with the secret by now") 
+                print("Failed - the other party might have redeemed the fund tx on the zcash chain with the secret by now") 
             if(res): print("You have redeemed {0} {1}!".format(revertcontract.amount, revertcontract.currency))   
 
     return res

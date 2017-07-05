@@ -2,6 +2,7 @@ import hashlib
 import json
 import random
 import binascii
+import trades
 
 def hex2str(hexstring):
     return binascii.unhexlify(hexstring).decode('utf-8')
@@ -24,11 +25,27 @@ def save_trade(trade):
 
 def get_trade():
     with open('xcat.json') as data_file:
-        try:
-            xcatdb = json.load(data_file)
-            return xcatdb
-        except:
-            return None
+    # try:
+        xcatdb = json.load(data_file)
+        sellContract = trades.Contract(xcatdb['sell'])
+        buyContract = trades.Contract(xcatdb['buy'])
+        trade = trades.Trade(sellContract,buyContract)
+        
+        # trade.sellContract.currency = xcatdb['sell']['currency']
+        # trade.sellContract.amount = xcatdb['sell']['amount']
+        # trade.sellContract.p2sh = xcatdb['sell']['p2sh']
+        # trade.sellContract.redeemscript = xcatdb['sell']['redeemscript']
+        # # trade.buyContract = xcatdb['buy']
+        # trade.buyContract.currency = xcatdb['buy']['currency']
+        # trade.buyContract.amount = xcatdb['buy']['amount']
+        # trade.buyContract.p2sh = xcatdb['buy']['p2sh']
+        # trade.buyContract.redeemscript = xcatdb['buy']['redeemscript']
+        
+        # trade.buyContract = xcatdb['buy']
+        return trade
+    # except:
+    #    print("HHHEERREE")
+    #    return None
 
 def erase_trade():
     with open('xcat.json', 'w') as outfile:

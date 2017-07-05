@@ -3,15 +3,14 @@ from api import *
 
 print("Starting test of xcat...")
 htlcTrade = initiate()
-buyer_fulfill(htlcTrade)
+# buyer_fulfill(htlcTrade)
 # zXcat.generate(8)
 
-# print("LLLLTTTTTTTTTTTTT:: ",zXcat.zcashd.listtransactions())
-zXcat.generate(2)
+zXcat.generate(6)
 redeem_seller(htlcTrade)
-zXcat.generate(2)
+# zXcat.generate(2)
 
-redeem_buyer(htlcTrade)
+# redeem_buyer(htlcTrade)
 
 
 # addr = CBitcoinAddress('tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ')
