@@ -27,6 +27,9 @@ FEE = 0.001*COIN
 
 zcashd = zcash.rpc.Proxy()
 
+def validateaddress(addr):
+    return bitcoind.validateaddress(addr)
+
 def parse_secret(txid):
     decoded = bitcoind.getrawtransaction(lx(txid), 1)
     print("Decoded", decoded)

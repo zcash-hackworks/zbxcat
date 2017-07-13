@@ -23,6 +23,8 @@ SelectParams('regtest')
 zcashd = zcash.rpc.Proxy()
 FEE = 0.001*COIN
 
+def validateaddress(addr):
+    return zcashd.validateaddress(addr)
 
 def get_keys(funder_address, redeemer_address):
     fundpubkey = CBitcoinAddress(funder_address)
