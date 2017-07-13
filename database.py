@@ -9,10 +9,6 @@ trade = get_trade()
 ## txid we retrieve by
 txid = trade['sell']['fund_tx']
 
-def hex2dict(hexstr):
-    jsonstr = x2s(hexstr)
-    return json.loads(jsonstr)
-
 def create(hexstr):
     trade = hex2dict(hexstr)
     txid = trade['sell']['fund_tx']

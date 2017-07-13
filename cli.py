@@ -4,6 +4,7 @@ import database as db
 import bXcat, zXcat
 from trades import *
 from xcat import *
+import ast
 
 def find_role(contract):
     # Obviously when regtest created both addrs on same machine, role is both.
@@ -35,6 +36,9 @@ def checkBuyActions(trade):
         buyer_redeem(trade)
         print("XCAT trade complete!")
 
+def instantiateTrade(trade):
+    return Trade(buyContract=Contract(trade['buy']), sellContract=Contract(trade['sell']))
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
         description=textwrap.dedent('''\
@@ -42,10 +46,11 @@ if __name__ == '__main__':
                 newtrade - create a new trade
                 checktrades - check for actions to be taken on existing trades
                 importcontract "hexstr" - import an existing trade from a hex string
-                exportcontract - (not implemented) export the data of an existing xcat trade as a hex string
+                exportcontract - export the data of an existing xcat trade as a hex string
 
                 '''))
     parser.add_argument("command", action="store", help="list commands")
+    parser.add_argument("argument", action="store", nargs="*", help="add an argument")
     # parser.add_argument("-importcontract", type=str, action="store", help="import an existing trade from a hex string.")
     # parser.add_argument("-newtrade", action="store", help="create a new trade.")
     # parser.add_argument("-checktrades", action="store", help="check status of existing trades")
@@ -54,21 +59,26 @@ if __name__ == '__main__':
     # how to hold state of role
     command = args.command
     if command == 'importcontract':
-        erase_trade()
-        role = 'seller'
-        htlcTrade = Trade()
-        print("Creating new XCAT transaction...")
+        hexstr = args.argument[0]
+        trade = x2s(hexstr)
+        trade = instantiateTrade(ast.literal_eval(trade))
+        print(trade)
+    elif command == 'exportcontract':
+        trade = get_trade()
+        hexstr = s2x(str(trade))
+        print(trade)
+        print(hexstr)
     elif command == 'checktrades':
         trade = get_trade()
-        buyContract = Contract(trade['buy'])
-        sellContract = Contract(trade['sell'])
-        trade = Trade(buyContract=buyContract, sellContract=sellContract)
-        if find_role(sellContract) == 'initiator':
+        trade = instantiateTrade(trade)
+        if find_role(trade.sellContract) == 'initiator':
             role = 'seller'
             checkSellActions(trade)
         else:
             role = 'buyer'
             checkBuyActions(trade)
     elif command == 'newtrade':
-        hexstr = args.importcontract
-        db.create(hexstr)
+        erase_trade()
+        role = 'seller'
+        htlcTrade = Trade()
+        print("Creating new XCAT transaction...")

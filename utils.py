@@ -23,6 +23,10 @@ def s2x(string):
     """Convert a utf-8 string to hex"""
     return b2x(b(string))
 
+def hex2dict(hexstr):
+    jsonstr = x2s(hexstr)
+    print(jsonstr)
+    return json.loads(jsonstr)
 
 ######################
 
