@@ -22,5 +22,5 @@ def create(hexstr):
 def get(txid):
     return db.get(b(txid))
 
-hexstr = get(txid)
-print(x2s(hexstr))
+# hexstr = get(txid)
+# print(x2s(hexstr))
