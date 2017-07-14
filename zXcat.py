@@ -34,13 +34,13 @@ def get_keys(funder_address, redeemer_address):
 def privkey(address):
     zcashd.dumpprivkey(address)
 
-def hashtimelockcontract(funder, redeemer, secret, locktime):
+def hashtimelockcontract(funder, redeemer, secret, lock_increment):
     funderAddr = CBitcoinAddress(funder)
     redeemerAddr = CBitcoinAddress(redeemer)
     h = sha256(secret)
     blocknum = zcashd.getblockcount()
     print("Current blocknum", blocknum)
-    redeemblocknum = blocknum + locktime
+    redeemblocknum = blocknum + lock_increment
     print("REDEEMBLOCKNUM ZCASH", redeemblocknum)
     zec_redeemScript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
                                  redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
@@ -53,6 +53,26 @@ def hashtimelockcontract(funder, redeemer, secret, locktime):
     # Returning all this to be saved locally in p2sh.json
     return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'redeemScript': b2x(zec_redeemScript), 'redeemer': redeemer, 'funder': funder}
 
+# this methods receives secret hash rather that secret. More fitting for Ethereum xcat
+def make_hashtimelockcontract(funder, redeemer, hash_of_secret, lock_increment):
+    funderAddr = CBitcoinAddress(funder)
+    redeemerAddr = CBitcoinAddress(redeemer)
+    blocknum = zcashd.getblockcount()
+    print("Current blocknum", blocknum)
+    redeemblocknum = blocknum + lock_increment
+    print("REDEEMBLOCKNUM ZCASH", redeemblocknum)
+    zec_redeemScript = CScript([OP_IF, OP_SHA256, hash_of_secret, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
+                                 redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
+                                 funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
+    print("Redeem script for p2sh contract on Zcash blockchain:", b2x(zec_redeemScript))
+    txin_scriptPubKey = zec_redeemScript.to_p2sh_scriptPubKey()
+    # Convert the P2SH scriptPubKey to a base58 Bitcoin address
+    txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
+    p2sh = str(txin_p2sh_address)
+    # Returning all this to be saved locally in p2sh.json
+    return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'redeemScript': b2x(zec_redeemScript), 'redeemer': redeemer, 'funder': funder}
+
+
 def fund_htlc(p2sh, amount):
     send_amount = float(amount)*COIN
     fund_txid = zcashd.sendtoaddress(p2sh, send_amount)
@@ -60,7 +80,7 @@ def fund_htlc(p2sh, amount):
     return txid
 
 def check_funds(p2sh):
-    zcashd.importaddress(p2sh, "", False) #Ariel: changed this to true
+    zcashd.importaddress(p2sh, "", False) 
     print("Imported address", p2sh)
     # Get amount in address
     amount = zcashd.getreceivedbyaddress(p2sh, 0)

@@ -1,30 +1,30 @@
-import zXcat
+import zXcatForEth
 import bXcat
 from xcat import *
 
 print("Starting test of xcat...")
 
-def Zcash_getaddr()
-    return zXcatForEth.zcashd.getnewaddresss()
+def Zcash_getaddr():
+    return zXcatForEth.zcashd.getnewaddress()
 
 
-def Zcash_fund(p2sh,amount)
-    fund_txid = zXcatForEth.zcashd.sendtoaddress(p2sh,amount)
+def Zcash_fund(p2sh,amount):
+    fund_txid = zXcat.zcashd.sendtoaddress(p2sh,amount)
     return fund_txid
 
-def Zcash_getredeemscript_andp2sh(seller, buyer, hash_of_secret, lock_increment)
-    return zXcatForEth.hashtimelockcontract(seller, buyer, hash_of_secret, lock_increment)
+def Zcash_make_contract(funder, redeemer, hash_of_secret, lock_increment):
+    return zXcat.make_hashtimelockcontract(funder, redeemer, hash_of_secret, lock_increment)
 
 # finds seller's redeem tx and gets secret from it
-def Zcash_get_secret(p2sh,fund_txid)
+def Zcash_get_secret(p2sh,fund_txid):
     return zXcatForEth.find_secret(p2sh,fund_tx)
 
-def Zcash_refund(redeemscript,buyer_ad,p2sh,fund_txid)
-    return zXcatForEth.
+def Zcash_refund(contract):
+    return zXcat.redeem_after_timelock(contract)
 
-def Zcash_redeem(redeemscript,secret,p2sh, amount):
-
-    txid = zXcatForETH.redeem_with_secret(trade.buyContract, secret, trade.sellContract)
+# returns txid of redeem transaction with secret
+def Zcash_redeem(contract,secret):
+    txid = zXcat.redeem_with_secret(contract,secret)
     return txid
 
 def redeem_buyer():
