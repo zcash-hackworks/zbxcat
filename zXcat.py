@@ -7,7 +7,7 @@ import sys
 if sys.version_info.major < 3:
     sys.stderr.write('Sorry, Python 3.x required by this example.\n')
     sys.exit(1)
-
+import trades
 import zcash
 import zcash.rpc
 from zcash import SelectParams
@@ -60,7 +60,7 @@ def make_hashtimelockcontract(funder, redeemer, hash_of_secret, lock_increment):
     blocknum = zcashd.getblockcount()
     print("Current blocknum", blocknum)
     redeemblocknum = blocknum + lock_increment
-    hash_of_secret = sha256("bla")
+    # hash_of_secret = sha256("blaa")
     print(type(hash_of_secret))
     print("REDEEMBLOCKNUM ZCASH", redeemblocknum)
     zec_redeemScript = CScript([OP_IF, OP_SHA256, hash_of_secret, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
@@ -113,30 +113,36 @@ def find_transaction_to_address(p2sh):
 def find_secret(p2sh,vinid):
     zcashd.importaddress(p2sh, "", True)
     # is this working?
-
+    zcashd.listtransactions()
     txs = zcashd.listtransactions()
-    # print("==========================================LISTTT============", txs)
+    print("==========================================LISTTT============", len(txs))
     # print()
     # print('LENNNNNNN:', len(txs))
     # print('LENNNNNNN2:', len(txs))
-    for tx in txs:
+    for i in range(0,len(txs)):
+        print("blabla", len(txs))
+        tx = txs[i]
+        
+        # print(tx)
         # print("tx addr:", tx['address'], "tx id:", tx['txid'])
         # print(type(tx['address']))
         # print(type(p2sh))
         # print('type::',type(tx['txid']))
         raw = zcashd.gettransaction(lx(tx['txid']))['hex']
         decoded = zcashd.decoderawtransaction(raw)
+        print(decoded)
         # print("fdsfdfds", decoded['vin'][0])
         if('txid' in decoded['vin'][0]):
             sendid = decoded['vin'][0]['txid']
-            # print("sendid:", sendid)
+            print("sendid:", sendid)
             
             if (sendid == vinid ):
                 # print(type(tx['txid']))
                 # print(str.encode(tx['txid']))
+                print("Here")
                 return parse_secret(lx(tx['txid']))
-            print("Redeem transaction with secret not found")
-            return ""
+    print("Redeem transaction with secret not found")
+    return ""
 
 
 def parse_secret(txid):
@@ -147,7 +153,10 @@ def parse_secret(txid):
     print("Decoded", scriptSig)
     asm = scriptSig['asm'].split(" ")
     pubkey = asm[1]
-    secret = hex2str(asm[2])
+    print("asm2", asm[2])
+    secret = hex2str(asm[2]) 
+    # secret = asm[2] # .strip().decode('hex') 
+
     redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
     print('redeemPubkey', redeemPubkey)
     print(secret)
@@ -286,7 +295,7 @@ def redeem_with_secret(contract, secret):
     amount = check_funds(p2sh)
     if(amount < minamount):
         print("address ", p2sh, " not sufficiently funded")
-        return false
+        return False
     fundtx = find_transaction_to_address(p2sh)
     amount = fundtx['amount'] / COIN
     p2sh = P2SHBitcoinAddress(p2sh)
