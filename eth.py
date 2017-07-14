@@ -8,12 +8,20 @@ def Zcash_getaddr():
     return zXcat.zcashd.getnewaddress()
 
 
-def Zcash_fund(p2sh,amount):
+def Zcash_fund(contract,amount):
+    p2sh = contract['p2sh']
     fund_txid = zXcat.zcashd.sendtoaddress(p2sh,amount)
-    return fund_txid
+    contract['fund_tx'] = fund_txid
+    return contract
 
 def Zcash_make_contract(funder, redeemer, hash_of_secret, lock_increment):
-    return zXcat.make_hashtimelockcontract(funder, redeemer, hash_of_secret, lock_increment)
+    contract = zXcat.make_hashtimelockcontract(funder, redeemer, hash_of_secret, lock_increment)
+    return contract
+
+'''def Zcash_make_contract_random(funder, redeemer, hash_of_secret, lock_increment):
+    contract = zXcat.make_hashtimelockcontract(funder, redeemer, hash_of_secret, lock_increment)
+    return contract
+'''
 
 # finds seller's redeem tx and gets secret from it
 def Zcash_get_secret(p2sh,fund_txid):
@@ -26,39 +34,3 @@ def Zcash_refund(contract):
 def Zcash_redeem(contract,secret):
     txid = zXcat.redeem_with_secret(contract,secret)
     return txid
-
-def redeem_buyer():
-    print("BUYER REDEEMING SELL CONTRACT")
-    print("=============================")
-    trade = get_trade()
-    buyContract = trade.buyContract
-    sellContract = trade.sellContract
-    secret = ""
-    # if sellContract.get_status() == 'redeemed':
-    #     raise RuntimeError("Sell contract was redeemed before buyer could retrieve funds")
-    # elif buyContract.get_status() == 'refunded':
-    #     print("buyContract was refunded to buyer")
-    # else:
-    # Buy contract is where seller disclosed secret in redeeming
-    if buyContract.currency == 'bitcoin':
-        if (bXcat.still_locked(buyContract)):
-            if(not hasattr(buyContract,'fund_tx')):
-                print("Seems address has not been funded yet. Aborting.")
-                quit()
-            secret = bXcat.find_secret(buyContract.p2sh,buyContract.fund_tx)
-            if(secret != ""):
-                print("Found secret in seller's redeem tx on bitcoin chain:", secret)
-    else:
-        if zXcat.still_locked(buyContract):
-            secret = zXcat.find_secret(buyContract.p2sh,buyContract.fund_tx)
-            if(secret != ""):
-                print("Found secret in seller's redeem tx on zcash chain:", secret)
-    redeem_tx = redeem_p2sh(sellContract, secret, buyContract)
-    setattr(trade.sellContract, 'redeem_tx', redeem_tx)
-    save(trade)
-
-
-def generate_blocks(num):
-    bXcat.generate(num)
-    zXcat.generate(num)
-

@@ -60,6 +60,8 @@ def make_hashtimelockcontract(funder, redeemer, hash_of_secret, lock_increment):
     blocknum = zcashd.getblockcount()
     print("Current blocknum", blocknum)
     redeemblocknum = blocknum + lock_increment
+    hash_of_secret = sha256("bla")
+    print(type(hash_of_secret))
     print("REDEEMBLOCKNUM ZCASH", redeemblocknum)
     zec_redeemScript = CScript([OP_IF, OP_SHA256, hash_of_secret, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
                                  redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
