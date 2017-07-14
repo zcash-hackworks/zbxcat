@@ -6,10 +6,10 @@ htlcTrade = initiate()
 fund_buyer()
 # zXcat.generate(8)
 
-zXcat.generate(6)
+# zXcat.generate(6)
 redeem_seller()
-zXcat.generate(2)
-bXcat.generate(20)
+zXcat.generate(1)
+bXcat.generate(1)
 redeem_buyer()
 
 
@@ -17,3 +17,4 @@ redeem_buyer()
 # print(addr)
 # # print(b2x('tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ'))
 # print(b2x(addr))
+e

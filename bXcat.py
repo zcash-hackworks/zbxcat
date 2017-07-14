@@ -283,7 +283,7 @@ def find_secret(p2sh,vinid):
     bitcoind.importaddress(p2sh, "", True)
     # is this working?
 
-    txs = bitcoind.listtransactions()
+    txs = bitcoind.listreceivedbyaddress()
     # print("==========================================LISTTT============", txs)
     # print()
     for tx in txs:
