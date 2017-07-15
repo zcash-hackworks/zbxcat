@@ -44,6 +44,7 @@ def hashtimelockcontract(funder, redeemer, secret, locktime):
     print("Current blocknum", blocknum)
     redeemblocknum = blocknum + locktime
     print("REDEEMBLOCKNUM ZCASH", redeemblocknum)
+    # can rm op_dup and op_hash160 if you replace addrs with pubkeys (as raw hex/bin data?), and can rm last op_equalverify (for direct pubkey comparison)
     zec_redeemScript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
                                  redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
                                  funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
