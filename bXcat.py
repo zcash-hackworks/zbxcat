@@ -297,8 +297,8 @@ def find_secret(p2sh,vinid):
                 print(type(tx['txid']))
                 print(str.encode(tx['txid']))
                 return parse_secret(lx(tx['txid']))
-            print("Redeem transaction with secret not found")
-            return ""
+    print("Redeem transaction with secret not found")
+    return ""
 
 def parse_secret(txid):
     raw = bitcoind.gettransaction(txid)['hex']
