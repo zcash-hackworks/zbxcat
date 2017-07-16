@@ -24,7 +24,7 @@ def initiate():
     print("============================")
     trade = Trade()
     # Get amounts
-    amounts = {"sell": {"currency": "zcash", "amount": "0.01"}, "buy": {"currency": "bitcoin", "amount": "1.12"}}
+    amounts = {"sell": {"currency": "bitcoin", "amount": "0.01"}, "buy": {"currency": "zcash", "amount": "1.12"}}
     sell = amounts['sell']
     buy = amounts['buy']
     sell_currency = sell['currency']

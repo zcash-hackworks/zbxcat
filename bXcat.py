@@ -283,9 +283,9 @@ def find_secret(p2sh,vinid):
     bitcoind.importaddress(p2sh, "", True)
     # is this working?
 
-    txs = bitcoind.listtransactions()
-    # print("==========================================LISTTT============", txs)
-    # print()
+    txs = bitcoind.listtransactions ()
+    print("==========================================LISTTT============", txs)
+    print()
     for tx in txs:
         print("tx addr:", tx['address'], "tx id:", tx['txid'])
         raw = bitcoind.gettransaction(lx(tx['txid']))['hex']
