@@ -33,7 +33,7 @@ def save_buyer_trade(trade):
 
 def save_init(trade):
     with open('init.json', 'w') as outfile:
-        json.dump(trade, outfile)
+        json.dump(jsonformat(trade), outfile)
 
 def get_init(trade):
     with open('init.json', 'w') as outfile:
@@ -92,3 +92,10 @@ def save(trade):
     'buy': trade.buyContract.__dict__
     }
     save_trade(trade)
+
+def jsonformat(trade):
+    return {
+    'sell': trade.sellContract.__dict__,
+    'buy': trade.buyContract.__dict__
+    }
+
