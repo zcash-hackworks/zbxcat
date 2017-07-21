@@ -35,7 +35,7 @@ def check_p2sh(currency, address):
         return zXcat.check_funds(address)
 
 def create_htlc(contract):
-    if contract['currency'] == 'bitcoin':
+    if contract.currency == 'bitcoin':
         contract = bXcat.hashtimelockcontract(contract)
     else:
         contract = zXcat.hashtimelockcontract(contract)
@@ -66,11 +66,11 @@ def fund_sell_contract(trade):
 # updates the contract with the p2sh address and redeemscript generated according to the data in the contract
 def create_and_import_p2sh(contract):
     contract = create_htlc(contract)
-    import_p2sh(contract['currency'],contract['p2sh'])
+    import_p2sh(contract.currency,contract.p2sh)
     print("sell contract", contract)
-    setattr(contract, 'p2sh', contract['p2sh'])
-    setattr(contract, 'redeemscript', contract['redeemscript'])
-    setattr(contract, 'redeemblocknum', contract['redeemblocknum'])
+    setattr(contract, 'p2sh', contract.p2sh)
+    setattr(contract, 'redeemscript', contract.redeemscript)
+    setattr(contract, 'redeemblocknum', contract.redeemblocknum)
     return contract
 
 

@@ -50,10 +50,10 @@ def seller_init():
     # TODO: Implement locktimes and mock block passage of time
     seller_lock_increment = 6 # Must be more than buyer_locktime, so that seller reveal secret before their own locktime
     buyer_lock_increment = 3 
-    sell['redeemblocknum'] = 5 # compute_redeemblocknum(sell['currency'], seller_lock_increment)
-    buy['redeemblocknum'] = 5 #compute_redeemblocknum(buy['currency'], buyer_lock_increment)
-    sell['hash_of_secret']= hash_of_secret
-    buy['hash_of_secret']= hash_of_secret
+    sell.redeemblocknum= compute_redeemblocknum(sell.currency, seller_lock_increment)
+    buy.redeemblocknum = compute_redeemblocknum(buy.currency, buyer_lock_increment)
+    sell.hash_of_secret = hash_of_secret
+    buy.hash_of_secret = hash_of_secret
    
     sell = create_and_import_p2sh(sell)
     buy = create_and_import_p2sh(buy)

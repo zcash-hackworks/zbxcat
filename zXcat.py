@@ -36,10 +36,10 @@ def privkey(address):
     zcashd.dumpprivkey(address)
 
 def hashtimelockcontract(contract):
-    funderAddr = CBitcoinAddress(contract['funder'])
-    redeemerAddr = CBitcoinAddress(contract['redeemer'])
-    h = contract['hash_of_secret']
-    redeemblocknum = contract['redeemblocknum']
+    funderAddr = CBitcoinAddress(contract.funder)
+    redeemerAddr = CBitcoinAddress(contract.redeemer)
+    h = contract.hash_of_secret
+    redeemblocknum = contract.redeemblocknum
     print("REDEEMBLOCKNUM ZCASH", redeemblocknum)
     zec_redeemscript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
                                  redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
@@ -50,8 +50,8 @@ def hashtimelockcontract(contract):
     txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
     p2sh = str(txin_p2sh_address)
     zcashd.importaddress(p2sh,"",False)
-    contract['p2sh'] = p2sh
-    contract['redeemscript'] = b2x(zec_redeemscript)
+    contract.p2sh = p2sh
+    contract.redeemscript = b2x(zec_redeemscript)
     # Returning all this to be saved locally in p2sh.json
     return contract
 
