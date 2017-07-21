@@ -19,60 +19,79 @@ def get_fulfiller_addresses():
     # return {'bitcoin': 'myfFr5twPYNwgeXyjCmGcrzXtCmfmWXKYp', 'zcash': 'tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ'}
     # return {'bitcoin': 'mrQzUGU1dwsWRx5gsKKSDPNtrsP65vCA3Z', 'zcash': 'tmTjZSg4pX2Us6V5HttiwFZwj464fD2ZgpY'}
 
-def initiate():
-    print("SELLER FUNDING SELL CONTRACT")
-    print("============================")
-    trade = Trade()
+def seller_init():
+    print("SELLER INITIATING CONTRACTS")
+    print("======+====================")
+    trade = get_buyer_trade()
     # Get amounts
-    amounts = {"sell": {"currency": "bitcoin", "amount": "0.01"}, "buy": {"currency": "zcash", "amount": "1.12"}}
+    '''amounts = {"sell": {"currency": "bitcoin", "amount": "0.01"}, "buy": {"currency": "zcash", "amount": "1.12"}}
     sell = amounts['sell']
     buy = amounts['buy']
     sell_currency = sell['currency']
     buy_currency = buy['currency']
     # Get addresses
     init_addrs = get_initiator_addresses()
-    sell['initiator'] = init_addrs[sell_currency]
-    buy['initiator'] = init_addrs[buy_currency]
+    sell['funder'] = init_addrs[sell_currency]
+    buy['funder'] = init_addrs[buy_currency]
     fulfill_addrs = get_fulfiller_addresses()
-    sell['fulfiller'] = fulfill_addrs[sell_currency]
-    buy['fulfiller'] = fulfill_addrs[buy_currency]
+    sell['redeemer'] = fulfill_addrs[sell_currency]
+    buy['redeemer'] = fulfill_addrs[buy_currency]
     # initializing contract classes with addresses, currencies, and amounts
     trade.sellContract = Contract(sell)
     trade.buyContract = Contract(buy)
     print(trade.sellContract.__dict__)
     print(trade.buyContract.__dict__)
-
+    
     secret = generate_password()
+    hash_of_secret = sha256(secret)
     print("Generating secret to lock funds:", secret)
     save_secret(secret)
     # TODO: Implement locktimes and mock block passage of time
-    seller_locktime = 6 # Must be more than buyer_locktime, so that seller reveal secret before their own locktime
-    buyer_locktime = 3 
-
-    create_sell_p2sh(trade, secret, seller_locktime)
-    txid = fund_sell_contract(trade)
-    print("Sent fund tx of sell contract:", txid)
-    create_buy_p2sh(trade, secret, buyer_locktime)
-    save(trade)
+    seller_lock_increment = 6 # Must be more than buyer_locktime, so that seller reveal secret before their own locktime
+    buyer_lock_increment = 3 
+    sell['redeemblocknum'] = 5 # compute_redeemblocknum(sell['currency'], seller_lock_increment)
+    buy['redeemblocknum'] = 5 #compute_redeemblocknum(buy['currency'], buyer_lock_increment)
+    sell['hash_of_secret']= hash_of_secret
+    buy['hash_of_secret']= hash_of_secret
+   
+    #sell = create_and_import_p2sh(sell)
+    #buy = create_and_import_p2sh(buy)
+    #trade.sellContract = sell
+    #trade.buyContract = buy
+'''
+    save_init(trade)
     return trade
 
-# buyer checks that seller funded the sell contract, and if so funds the buy contract
-def fund_buyer():
+def buyer_init():
+    print("BUYER INITIATING CONTRACTS")
+    print("==========================")
+    trade = get_init()
+    trade.sellContract = create_and_import_p2sh(trade.sellContract)
+    trade.buyContract = create_and_import_p2sh(trade.buyContract)
+    save_buyer_trade()
+
+
+def seller_fund():
+    print("SELLER FUNDING SELL CONTRACT")
+    PRINT("============================")
+    trade = get_seller_trade()
+    txid = fund_sell_contract(trade)
+
+def buyer_fund():
     print("BUYER FUNDING BUY CONTRACT")
     print("==========================")
-    trade = get_trade()
+    trade = get_buyer_trade()
+    txid = fund_buy_contract()
     buy = trade.buyContract
     sell = trade.sellContract
     # buy_p2sh_balance = check_p2sh(buy.currency, buy.p2sh)
     sell_p2sh_balance = check_p2sh(sell.currency, sell.p2sh)
     if (sell_p2sh_balance < float(sell.amount)):
                 raise ValueError("Sell p2sh not funded, buyer cannot redeem")
-    print("Seller has deposited funds, so funding the buy contract:")
-    txid = fund_buy_contract(trade)
-    print("Buyer Fund tx txid:", txid)
+    
 
-def redeem_seller():
-    trade = get_trade()
+def seller_redeem():
+    trade = get_seller_trade()
     print(trade)
     print("SELLER REDEEMING BUY CONTRACT")
     print("=============================")
@@ -88,10 +107,10 @@ def redeem_seller():
     save(trade)
     
 
-def redeem_buyer():
+def buyer_redeem():
     print("BUYER REDEEMING SELL CONTRACT")
     print("=============================")
-    trade = get_trade()
+    trade = get_buyer_trade()
     buyContract = trade.buyContract
     sellContract = trade.sellContract
     secret = ""

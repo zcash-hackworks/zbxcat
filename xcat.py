@@ -9,6 +9,23 @@ from pprint import pprint
 from trades import Contract, Trade
 import userInput
 
+#compute redeemblocknum according to current block
+def compute_redeemblocknum(currency, increment):
+    if currency == 'bitcoin':
+        redeemblocknum = bXcat.bitcoind.getblockcount()+int(increment)
+    else:
+        redeemblocknum = zXcat.zcashd.getblockcount()+int(increment)
+    return redeemblocknum
+
+#import p2sh address according to contract details
+def import_p2sh(currency, p2sh):
+    return
+   # if currency == 'bitcoin':
+       # bXcat.import_address(p2sh)
+   # else:
+       # zXcat.import_address(p2sh)
+
+
 def check_p2sh(currency, address):
     if currency == 'bitcoin':
         print("Checking funds in Bitcoin p2sh")
@@ -17,12 +34,12 @@ def check_p2sh(currency, address):
         print("Checking funds in Zcash p2sh")
         return zXcat.check_funds(address)
 
-def create_htlc(currency, funder, redeemer, secret, locktime):
-    if currency == 'bitcoin':
-        sell_p2sh = bXcat.hashtimelockcontract(funder, redeemer, secret, locktime)
+def create_htlc(contract):
+    if contract['currency'] == 'bitcoin':
+        contract = bXcat.hashtimelockcontract(contract)
     else:
-        sell_p2sh = zXcat.hashtimelockcontract(funder, redeemer, secret, locktime)
-    return sell_p2sh
+        contract = zXcat.hashtimelockcontract(contract)
+    return contract
 
 def fund_htlc(currency, p2sh, amount):
     if currency == 'bitcoin':
@@ -45,29 +62,43 @@ def fund_sell_contract(trade):
     save(trade)
     return txid
 
+
+# updates the contract with the p2sh address and redeemscript generated according to the data in the contract
+def create_and_import_p2sh(contract):
+    contract = create_htlc(contract)
+    import_p2sh(contract['currency'],contract['p2sh'])
+    print("sell contract", contract)
+    '''setattr(trade.sellContract, 'p2sh', contract['p2sh'])
+    setattr(trade.sellContract, 'redeemScript', contract['redeemScript'])
+    setattr(trade.sellContract, 'redeemblocknum', contract['redeemblocknum'])
+    '''
+    return contract
+
+
+
 def create_sell_p2sh(trade, secret, locktime):
     # CREATE SELL CONTRACT
     sell = trade.sellContract
-    contract = create_htlc(sell.currency, sell.initiator, sell.fulfiller, secret, locktime)
+    contract = create_htlc(sell.currency, sell.initiator, sell.fulfiller, hash_of_secret, locktime)
     print("sell contract", contract)
     setattr(trade.sellContract, 'p2sh', contract['p2sh'])
     setattr(trade.sellContract, 'redeemScript', contract['redeemScript'])
     setattr(trade.sellContract, 'redeemblocknum', contract['redeemblocknum'])
     save(trade)
 
-def create_buy_p2sh(trade, secret, locktime):
+def create_buy_2sh(trade, secret, locktime):
     ## CREATE BUY CONTRACT
     buy = trade.buyContract
     print("Now creating buy contract on the {0} blockchain where you will wait for the buyer to send funds...".format(buy.currency))
-    print("HTLC DETAILS", buy.currency, buy.fulfiller, buy.initiator, secret, locktime)
-    buy_contract = create_htlc(buy.currency, buy.fulfiller, buy.initiator, secret, locktime)
+    print("HTLC DETAILS", buy.currency, buy.fulfiller, buy.initiator, hash_of_secret, locktime)
+    buy_contract = create_htlc(buy.currency, buy.fulfiller, buy.initiator, hash_of_secret, locktime)
     print("Buy contract", buy_contract)
 
     setattr(trade.buyContract, 'p2sh', buy_contract['p2sh'])
     setattr(trade.buyContract, 'redeemScript', buy_contract['redeemScript'])
     setattr(trade.buyContract, 'redeemblocknum', buy_contract['redeemblocknum'])
     print("Now contact the buyer and tell them to send funds to this p2sh: ", trade.buyContract.p2sh)
-
+    import_p2sh(buy)
     save(trade)
 
 # we try to redeem contract with secret

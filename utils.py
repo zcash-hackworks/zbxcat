@@ -23,6 +23,23 @@ def save_trade(trade):
     with open('xcat.json', 'w') as outfile:
         json.dump(trade, outfile)
 
+def save_seller_trade(trade):
+    with open('sellertrade.json', 'w') as outfile:
+        json.dump(trade, outfile)
+
+def save_buyer_trade(trade):
+    with open('buyertrade.json', 'w') as outfile:
+        json.dump(trade, outfile)
+
+def save_init(trade):
+    with open('init.json', 'w') as outfile:
+        json.dump(trade, outfile)
+
+def get_init(trade):
+    with open('init.json', 'w') as outfile:
+        json.dump(trade, outfile)
+
+
 def get_trade():
     with open('xcat.json') as data_file:
     # try:
@@ -31,21 +48,28 @@ def get_trade():
         buyContract = trades.Contract(xcatdb['buy'])
         trade = trades.Trade(sellContract,buyContract)
         
-        # trade.sellContract.currency = xcatdb['sell']['currency']
-        # trade.sellContract.amount = xcatdb['sell']['amount']
-        # trade.sellContract.p2sh = xcatdb['sell']['p2sh']
-        # trade.sellContract.redeemscript = xcatdb['sell']['redeemscript']
-        # # trade.buyContract = xcatdb['buy']
-        # trade.buyContract.currency = xcatdb['buy']['currency']
-        # trade.buyContract.amount = xcatdb['buy']['amount']
-        # trade.buyContract.p2sh = xcatdb['buy']['p2sh']
-        # trade.buyContract.redeemscript = xcatdb['buy']['redeemscript']
-        
-        # trade.buyContract = xcatdb['buy']
         return trade
-    # except:
-    #    print("HHHEERREE")
-    #    return None
+
+def get_seller_trade():
+    with open('sellertrade.json') as data_file:
+    # try:
+        xcatdb = json.load(data_file)
+        sellContract = trades.Contract(xcatdb['sell'])
+        buyContract = trades.Contract(xcatdb['buy'])
+        trade = trades.Trade(sellContract,buyContract)
+        
+        return trade
+
+def get_buyer_trade():
+    with open('buyertrade.json') as data_file:
+    # try:
+        xcatdb = json.load(data_file)
+        sellContract = trades.Contract(xcatdb['sell'])
+        buyContract = trades.Contract(xcatdb['buy'])
+        trade = trades.Trade(sellContract,buyContract)
+        
+        return trade
+
 
 def erase_trade():
     with open('xcat.json', 'w') as outfile:

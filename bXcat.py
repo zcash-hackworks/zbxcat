@@ -27,6 +27,9 @@ FEE = 0.001*COIN
 
 zcashd = zcash.rpc.Proxy()
 
+def import_address(address):
+    zcashd.importaddress(address, "", False)
+
 def parse_secret(txid):
     decoded = bitcoind.getrawtransaction(lx(txid), 1)
     # decoded = bitcoind.decoderawtransaction(raw)
@@ -43,23 +46,25 @@ def get_keys(funder_address, redeemer_address):
 def privkey(address):
     bitcoind.dumpprivkey(address)
 
-def hashtimelockcontract(funder, redeemer, secret, locktime):
-    funderAddr = CBitcoinAddress(funder)
-    redeemerAddr = CBitcoinAddress(redeemer)
-    h = sha256(secret)
-    blocknum = bitcoind.getblockcount()
-    print("Current blocknum", blocknum)
-    redeemblocknum = blocknum + locktime
-    print("REDEEMBLOCKNUM BITCOIN", redeemblocknum)
-    redeemScript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
+def hashtimelockcontract(contract):
+    funderAddr = CBitcoinAddress(contract['funder'])
+    redeemerAddr = CBitcoinAddress(contract['redeemer'])
+    h = contract['hash_of_secret']
+    redeemblocknum = contract['redeemblocknum']
+    print("REDEEMBLOCKNUM ZCASH", redeemblocknum)
+    btc_redeemscript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
                                  redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
                                  funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
-    print("Redeem script for p2sh contract on Bitcoin blockchain:", b2x(redeemScript))
-    txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
+    print("Redeem script for p2sh contract on Zcash blockchain:", b2x(btc_redeemscript))
+    txin_scriptPubKey = btc_redeemscript.to_p2sh_scriptPubKey()
     # Convert the P2SH scriptPubKey to a base58 Bitcoin address
     txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
     p2sh = str(txin_p2sh_address)
-    return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'redeemScript': b2x(redeemScript), 'redeemer': redeemer, 'funder': funder}
+    bitcoind.importaddress(p2sh, "", False)
+    contract['p2sh'] = p2sh
+    contract['redeemscript'] = b2x(btc_redeemscript)
+    # Returning all this to be saved locally in p2sh.json
+    return contract
 
 def fund_htlc(p2sh, amount):
     send_amount = float(amount) * COIN
@@ -107,7 +112,7 @@ def get_tx_details(txid):
 # i.e., doesn't require buyer telling us fund txid
 # returns false if fund tx doesn't exist or is too small
 def redeem_with_secret(contract, secret):
-    # How to find redeemScript and redeemblocknum from blockchain?
+    # How to find redeemscript and redeemblocknum from blockchain?
     print("Redeeming contract using secret", contract.__dict__)
     p2sh = contract.p2sh
     minamount = float(contract.amount)
@@ -125,23 +130,23 @@ def redeem_with_secret(contract, secret):
         redeemPubKey = find_redeemAddr(contract)
         print('redeemPubKey', redeemPubKey)
 
-        redeemScript = CScript(x(contract.redeemScript))
+        redeemscript = CScript(x(contract.redeemscript))
         txin = CMutableTxIn(fundtx['outpoint'])
         txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
-        sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
+        sighash = SignatureHash(redeemscript, tx, 0, SIGHASH_ALL)
         # TODO: figure out how to better protect privkey
         privkey = bitcoind.dumpprivkey(redeemPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
         print("SECRET", secret)
         preimage = secret.encode('utf-8')
-        txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, redeemScript])
+        txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, redeemscript])
 
         # exit()
 
         # print("txin.scriptSig", b2x(txin.scriptSig))
-        txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
+        txin_scriptPubKey = redeemscript.to_p2sh_scriptPubKey()
         # print('Redeem txhex', b2x(tx.serialize()))
         VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("script verified, sending raw tx")
@@ -188,7 +193,7 @@ def redeem_after_timelock(contract):
     redeemPubKey = find_refundAddr(contract)
     print('refundPubKey', redeemPubKey)
 
-    redeemScript = CScript(x(contract.redeemScript))
+    redeemscript = CScript(x(contract.redeemscript))
     txin = CMutableTxIn(fundtx['outpoint'])
     txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
     # Create the unsigned raw transaction.
@@ -196,16 +201,16 @@ def redeem_after_timelock(contract):
     tx = CMutableTransaction([txin], [txout])
     tx.nLockTime = redeemblocknum
     
-    sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
+    sighash = SignatureHash(redeemscript, tx, 0, SIGHASH_ALL)
     # TODO: figure out how to better protect privkey
     privkey = bitcoind.dumpprivkey(redeemPubKey)
     sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
-    txin.scriptSig = CScript([sig, privkey.pub,  OP_FALSE, redeemScript])
+    txin.scriptSig = CScript([sig, privkey.pub,  OP_FALSE, redeemscript])
 
     # exit()
 
     # print("txin.scriptSig", b2x(txin.scriptSig))
-    txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
+    txin_scriptPubKey = redeemscript.to_p2sh_scriptPubKey()
     # print('Redeem txhex', b2x(tx.serialize()))
     VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
     print("script verified, sending raw tx")
@@ -218,23 +223,23 @@ def redeem_after_timelock(contract):
 
 # takes hex and returns array of decoded script op codes
 def parse_script(script_hex):
-    redeemScript = zcashd.decodescript(script_hex)
-    scriptarray = redeemScript['asm'].split(' ')
+    redeemscript = zcashd.decodescript(script_hex)
+    scriptarray = redeemscript['asm'].split(' ')
     return scriptarray
 
 def find_redeemblocknum(contract):
-    scriptarray = parse_script(contract.redeemScript)
+    scriptarray = parse_script(contract.redeemscript)
     redeemblocknum = scriptarray[8]
     return int(redeemblocknum)
 
 def find_redeemAddr(contract):
-    scriptarray = parse_script(contract.redeemScript)
+    scriptarray = parse_script(contract.redeemscript)
     redeemer = scriptarray[6]
     redeemAddr = P2PKHBitcoinAddress.from_bytes(x(redeemer))
     return redeemAddr
 
 def find_refundAddr(contract):
-    scriptarray = parse_script(contract.redeemScript)
+    scriptarray = parse_script(contract.redeemscript)
     funder = scriptarray[13]
     refundAddr = P2PKHBitcoinAddress.from_bytes(x(funder))
     return refundAddr
@@ -260,7 +265,7 @@ def find_refundAddr(contract):
     # print('redeemPubkey', redeemPubkey)
 
 def find_transaction_to_address(p2sh):
-    bitcoind.importaddress(p2sh, "", True)
+    bitcoind.importaddress(p2sh, "", False)
     txs = bitcoind.listunspent()
     for tx in txs:
         # print("tx addr:", )
@@ -280,7 +285,7 @@ def generate(num):
     return blocks
 
 def find_secret(p2sh,vinid):
-    bitcoind.importaddress(p2sh, "", True)
+    bitcoind.importaddress(p2sh, "", False)
     # is this working?
 
     txs = bitcoind.listtransactions ()
