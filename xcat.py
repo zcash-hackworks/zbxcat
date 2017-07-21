@@ -68,10 +68,9 @@ def create_and_import_p2sh(contract):
     contract = create_htlc(contract)
     import_p2sh(contract['currency'],contract['p2sh'])
     print("sell contract", contract)
-    '''setattr(trade.sellContract, 'p2sh', contract['p2sh'])
-    setattr(trade.sellContract, 'redeemScript', contract['redeemScript'])
-    setattr(trade.sellContract, 'redeemblocknum', contract['redeemblocknum'])
-    '''
+    setattr(contract, 'p2sh', contract['p2sh'])
+    setattr(contract, 'redeemscript', contract['redeemscript'])
+    setattr(contract, 'redeemblocknum', contract['redeemblocknum'])
     return contract
 
 

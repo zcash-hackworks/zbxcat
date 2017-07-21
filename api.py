@@ -24,7 +24,7 @@ def seller_init():
     print("======+====================")
     trade = get_buyer_trade()
     # Get amounts
-    '''amounts = {"sell": {"currency": "bitcoin", "amount": "0.01"}, "buy": {"currency": "zcash", "amount": "1.12"}}
+    amounts = {"sell": {"currency": "bitcoin", "amount": "0.01"}, "buy": {"currency": "zcash", "amount": "1.12"}}
     sell = amounts['sell']
     buy = amounts['buy']
     sell_currency = sell['currency']
@@ -41,7 +41,8 @@ def seller_init():
     trade.buyContract = Contract(buy)
     print(trade.sellContract.__dict__)
     print(trade.buyContract.__dict__)
-    
+    sell = trade.sellContract
+    buy = trade.buyContract
     secret = generate_password()
     hash_of_secret = sha256(secret)
     print("Generating secret to lock funds:", secret)
@@ -54,11 +55,11 @@ def seller_init():
     sell['hash_of_secret']= hash_of_secret
     buy['hash_of_secret']= hash_of_secret
    
-    #sell = create_and_import_p2sh(sell)
-    #buy = create_and_import_p2sh(buy)
-    #trade.sellContract = sell
-    #trade.buyContract = buy
-'''
+    sell = create_and_import_p2sh(sell)
+    buy = create_and_import_p2sh(buy)
+    trade.sellContract = sell
+    trade.buyContract = buy
+
     save_init(trade)
     return trade
 
