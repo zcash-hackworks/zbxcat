@@ -103,6 +103,7 @@ def redeem_p2sh(contract, secret, revertcontract):
     res = False 
     revert_currency = revertcontract.currency
 
+    # should the code still try to redeem when time has passed? currently it doesn't
     if (currency == 'bitcoin' and bXcat.still_locked(contract)):
         print("trying to redeem btc with secret:")
         try:
