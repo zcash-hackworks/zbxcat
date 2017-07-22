@@ -57,9 +57,9 @@ def hashtimelockcontract(contract):
 
 def fund_contract(contract):
     send_amount = float(contract.amount)*COIN
-    fund_txid = zcashd.sendtoaddress(contract.p2sh, send_amount)
-#    contract.fund_txid = ""
-    contract.fund_txid = b2x(lx(b2x(fund_txid)))
+    fund_tx = zcashd.sendtoaddress(contract.p2sh, send_amount)
+#    contract.fund_tx = ""
+    contract.fund_tx = b2x(lx(b2x(fund_tx)))
     return contract
 
 def check_funds(p2sh):

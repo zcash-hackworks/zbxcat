@@ -80,7 +80,7 @@ def seller_fund():
     print("============================")
     trade = get_init()
     trade.sellContract = fund_contract(trade.sellContract)
-    print("fund txid on ", trade.sellContract.currency, " chain is ", trade.sellContract.fund_txid)
+    print("fund txid on ", trade.sellContract.currency, " chain is ", trade.sellContract.fund_tx)
     save_seller_trade(trade)
 
 def buyer_fund():
@@ -93,7 +93,7 @@ def buyer_fund():
     if (sell_p2sh_balance < float(sell.amount)):
                 raise ValueError("Sell p2sh not funded, buyer cannot redeem")
     trade.buyContract = fund_contract(trade.buyContract)
-    print("fund txid on ", trade.buyContract.currency, " chain is ", trade.buyContract.fund_txid)
+    print("fund txid on ", trade.buyContract.currency, " chain is ", trade.buyContract.fund_tx)
 
     save_buyer_trade(trade)
     

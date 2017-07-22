@@ -15,14 +15,16 @@ from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2PKHBitcoinAddress
 
 from utils import *
-
+import zcash.rpc
 import pprint, json
+
+
 
 # SelectParams('testnet')
 SelectParams('regtest')
 bitcoind = bitcoin.rpc.Proxy()
 FEE = 0.001*COIN
-
+zcashd = zcash.rpc.Proxy()
 
 def import_address(address):
     bitcoind.importaddress(address, "", False)
@@ -65,15 +67,15 @@ def hashtimelockcontract(contract):
 
 def fund_htlc(p2sh, amount):
     send_amount = float(amount) * COIN
-    fund_txid = bitcoind.sendtoaddress(p2sh, send_amount)
-    txid = b2x(lx(b2x(fund_txid)))
+    fund_tx = bitcoind.sendtoaddress(p2sh, send_amount)
+    txid = b2x(lx(b2x(fund_tx)))
     print("funding btc sell address:", txid)
     return txid
 
 def fund_contract(contract):
     send_amount = float(contract.amount)*COIN
-    fund_txid = bitcoind.sendtoaddress(contract.p2sh, send_amount)
-    contract.fund_txid = b2x(lx(b2x(fund_txid)))
+    fund_tx = bitcoind.sendtoaddress(contract.p2sh, send_amount)
+    contract.fund_tx = b2x(lx(b2x(fund_tx)))
     return contract
 
 
@@ -205,7 +207,7 @@ def redeem_after_timelock(contract):
 
 # takes hex and returns array of decoded script op codes
 def parse_script(script_hex):
-    redeemscript = bitcoind.decodescript(script_hex)
+    redeemscript = zcashd.decodescript(script_hex)
     scriptarray = redeemscript['asm'].split(' ')
     return scriptarray
 
