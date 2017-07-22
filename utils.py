@@ -35,9 +35,13 @@ def save_init(trade):
     with open('init.json', 'w') as outfile:
         json.dump(jsonformat(trade), outfile)
 
-def get_init(trade):
-    with open('init.json', 'w') as outfile:
-        json.dump(trade, outfile)
+def get_init():
+    with open('init.json') as data_file:
+        xcatdb = json.load(data_file)
+        sellContract = trades.Contract(xcatdb['sell'])
+        buyContract = trades.Contract(xcatdb['buy'])
+        trade = trades.Trade(sellContract,buyContract)
+        return trade
 
 
 def get_trade():

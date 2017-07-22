@@ -39,7 +39,7 @@ def seller_init():
     # initializing contract classes with addresses, currencies, and amounts
     trade.sellContract = Contract(sell)
     trade.buyContract = Contract(buy)
-    '''print(trade.sellContract.__dict__)
+    print(trade.sellContract.__dict__)
     print(trade.buyContract.__dict__)
     sell = trade.sellContract
     buy = trade.buyContract
@@ -59,7 +59,7 @@ def seller_init():
     buy = create_and_import_p2sh(buy)
     trade.sellContract = sell
     trade.buyContract = buy
-'''
+
     save_init(trade)
     return trade
 
