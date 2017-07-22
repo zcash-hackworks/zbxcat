@@ -38,7 +38,7 @@ def privkey(address):
 def hashtimelockcontract(contract):
     funderAddr = CBitcoinAddress(contract.funder)
     redeemerAddr = CBitcoinAddress(contract.redeemer)
-    h = contract.hash_of_secret
+    h = x(contract.hash_of_secret)
     redeemblocknum = contract.redeemblocknum
     print("REDEEMBLOCKNUM ZCASH", redeemblocknum)
     zec_redeemscript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
@@ -55,11 +55,12 @@ def hashtimelockcontract(contract):
     # Returning all this to be saved locally in p2sh.json
     return contract
 
-def fund_htlc(p2sh, amount):
-    send_amount = float(amount)*COIN
-    fund_txid = zcashd.sendtoaddress(p2sh, send_amount)
-    txid = b2x(lx(b2x(fund_txid)))
-    return txid
+def fund_contract(contract):
+    send_amount = float(contract.amount)*COIN
+    fund_txid = zcashd.sendtoaddress(contract.p2sh, send_amount)
+#    contract.fund_txid = ""
+    contract.fund_txid = b2x(lx(b2x(fund_txid)))
+    return contract
 
 def check_funds(p2sh):
     zcashd.importaddress(p2sh, "", False) #Ariel: changed this to true

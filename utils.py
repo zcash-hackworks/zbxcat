@@ -25,11 +25,11 @@ def save_trade(trade):
 
 def save_seller_trade(trade):
     with open('sellertrade.json', 'w') as outfile:
-        json.dump(trade, outfile)
+        json.dump(jsonformat(trade), outfile)
 
 def save_buyer_trade(trade):
     with open('buyertrade.json', 'w') as outfile:
-        json.dump(trade, outfile)
+        json.dump(jsonformat(trade), outfile)
 
 def save_init(trade):
     with open('init.json', 'w') as outfile:
@@ -55,7 +55,7 @@ def get_trade():
         return trade
 
 def get_seller_trade():
-    with open('sellertrade.json') as data_file:
+    with open('init.json') as data_file:
     # try:
         xcatdb = json.load(data_file)
         sellContract = trades.Contract(xcatdb['sell'])

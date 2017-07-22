@@ -48,19 +48,13 @@ def fund_htlc(currency, p2sh, amount):
         txid = zXcat.fund_htlc(p2sh, amount)
     return txid
 
-def fund_buy_contract(trade):
-    buy = trade.buyContract
-    txid = fund_htlc(buy.currency, buy.p2sh, buy.amount)
-    setattr(trade.buyContract, 'fund_tx', txid)
-    save(trade)
-    return txid
 
-def fund_sell_contract(trade):
-    sell = trade.sellContract
-    txid = fund_htlc(sell.currency, sell.p2sh, sell.amount)
-    setattr(trade.sellContract, 'fund_tx', txid)
-    save(trade)
-    return txid
+def fund_contract(contract):
+    if contract.currency == 'bitcoin':
+        contract = bXcat.fund_contract(contract)
+    else:
+        contract = zXcat.fund_contract(contract)
+    return contract
 
 
 # updates the contract with the p2sh address and redeemscript generated according to the data in the contract

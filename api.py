@@ -1,7 +1,7 @@
 import zXcat
 import bXcat
 from xcat import *
-
+from zcash.core import b2x
 print("Starting test of xcat...")
 
 def get_initiator_addresses():
@@ -22,7 +22,7 @@ def get_fulfiller_addresses():
 def seller_init():
     print("SELLER INITIATING CONTRACTS")
     print("======+====================")
-    trade = get_buyer_trade()
+    trade = Trade()
     # Get amounts
     amounts = {"sell": {"currency": "bitcoin", "amount": "0.01"}, "buy": {"currency": "zcash", "amount": "1.12"}}
     sell = amounts['sell']
@@ -52,11 +52,14 @@ def seller_init():
     buyer_lock_increment = 3 
     sell.redeemblocknum= compute_redeemblocknum(sell.currency, seller_lock_increment)
     buy.redeemblocknum = compute_redeemblocknum(buy.currency, buyer_lock_increment)
-    sell.hash_of_secret = hash_of_secret
-    buy.hash_of_secret = hash_of_secret
+    sell.hash_of_secret = b2x(hash_of_secret)
+    buy.hash_of_secret = b2x(hash_of_secret)
    
     sell = create_and_import_p2sh(sell)
     buy = create_and_import_p2sh(buy)
+    sell.hash_of_secret = b2x(hash_of_secret)
+    buy.hash_of_secret = b2x(hash_of_secret)
+
     trade.sellContract = sell
     trade.buyContract = buy
 
@@ -69,26 +72,31 @@ def buyer_init():
     trade = get_init()
     trade.sellContract = create_and_import_p2sh(trade.sellContract)
     trade.buyContract = create_and_import_p2sh(trade.buyContract)
-    save_buyer_trade()
+    save_buyer_trade(trade)
 
 
 def seller_fund():
     print("SELLER FUNDING SELL CONTRACT")
-    PRINT("============================")
-    trade = get_seller_trade()
-    txid = fund_sell_contract(trade)
+    print("============================")
+    trade = get_init()
+    trade.sellContract = fund_contract(trade.sellContract)
+    print("fund txid on ", trade.sellContract.currency, " chain is ", trade.sellContract.fund_txid)
+    save_seller_trade(trade)
 
 def buyer_fund():
     print("BUYER FUNDING BUY CONTRACT")
     print("==========================")
-    trade = get_buyer_trade()
-    txid = fund_buy_contract()
-    buy = trade.buyContract
+    trade = get_init() 
     sell = trade.sellContract
-    # buy_p2sh_balance = check_p2sh(buy.currency, buy.p2sh)
+    # first check that seller funded as they should 
     sell_p2sh_balance = check_p2sh(sell.currency, sell.p2sh)
     if (sell_p2sh_balance < float(sell.amount)):
                 raise ValueError("Sell p2sh not funded, buyer cannot redeem")
+    trade.buyContract = fund_contract(trade.buyContract)
+    print("fund txid on ", trade.buyContract.currency, " chain is ", trade.buyContract.fund_txid)
+
+    save_buyer_trade(trade)
+    
     
 
 def seller_redeem():

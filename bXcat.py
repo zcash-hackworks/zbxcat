@@ -16,8 +16,6 @@ from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, 
 
 from utils import *
 
-import zcash
-import zcash.rpc
 import pprint, json
 
 # SelectParams('testnet')
@@ -25,10 +23,9 @@ SelectParams('regtest')
 bitcoind = bitcoin.rpc.Proxy()
 FEE = 0.001*COIN
 
-zcashd = zcash.rpc.Proxy()
 
 def import_address(address):
-    zcashd.importaddress(address, "", False)
+    bitcoind.importaddress(address, "", False)
 
 def parse_secret(txid):
     decoded = bitcoind.getrawtransaction(lx(txid), 1)
@@ -49,13 +46,13 @@ def privkey(address):
 def hashtimelockcontract(contract):
     funderAddr = CBitcoinAddress(contract.funder)
     redeemerAddr = CBitcoinAddress(contract.redeemer)
-    h = contract.hash_of_secret
+    h = x(contract.hash_of_secret)
     redeemblocknum = contract.redeemblocknum
-    print("REDEEMBLOCKNUM ZCASH", redeemblocknum)
+    print("REDEEMBLOCKNUM BITCOIN", redeemblocknum)
     btc_redeemscript = CScript([OP_IF, OP_SHA256, h, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
                                  redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
                                  funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
-    print("Redeem script for p2sh contract on Zcash blockchain:", b2x(btc_redeemscript))
+    print("Redeem script for p2sh contract on bitcoin blockchain:", b2x(btc_redeemscript))
     txin_scriptPubKey = btc_redeemscript.to_p2sh_scriptPubKey()
     # Convert the P2SH scriptPubKey to a base58 Bitcoin address
     txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
@@ -73,6 +70,13 @@ def fund_htlc(p2sh, amount):
     print("funding btc sell address:", txid)
     return txid
 
+def fund_contract(contract):
+    send_amount = float(contract.amount)*COIN
+    fund_txid = bitcoind.sendtoaddress(contract.p2sh, send_amount)
+    contract.fund_txid = b2x(lx(b2x(fund_txid)))
+    return contract
+
+
 def check_funds(p2sh):
     bitcoind.importaddress(p2sh, "", False)
     # Get amount in address
@@ -80,28 +84,6 @@ def check_funds(p2sh):
     amount = amount/COIN
     print("Amount in bitcoin address ", p2sh, ":",amount)
     return amount
-
-## TODO: FIX search for p2sh in block
-def search_p2sh(block, p2sh):
-    print("Fetching block...")
-    blockdata = bitcoind.getblock(lx(block))
-    print("done fetching block")
-    txs = blockdata.vtx
-    print("txs", txs)
-    for tx in txs:
-        txhex = b2x(tx.serialize())
-        # Using my fork of python-zcashlib to get result of decoderawtransaction
-        txhex = txhex + '00'
-        rawtx = zcashd.decoderawtransaction(txhex)
-        # print('rawtx', rawtx)
-        print(rawtx)
-        for vout in rawtx['vout']:
-            if 'addresses' in vout['scriptPubKey']:
-                for addr in vout['scriptPubKey']['addresses']:
-                    print("Sent to address:", addr)
-                    if addr == p2sh:
-                        print("Address to p2sh found in transaction!", addr)
-    print("Returning from search_p2sh")
 
 def get_tx_details(txid):
     # must convert txid string to bytes x(txid)
@@ -223,7 +205,7 @@ def redeem_after_timelock(contract):
 
 # takes hex and returns array of decoded script op codes
 def parse_script(script_hex):
-    redeemscript = zcashd.decodescript(script_hex)
+    redeemscript = bitcoind.decodescript(script_hex)
     scriptarray = redeemscript['asm'].split(' ')
     return scriptarray
 
