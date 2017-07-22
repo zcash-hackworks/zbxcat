@@ -128,6 +128,7 @@ def redeem_p2sh(contract, secret, revertcontract):
             except Exception:
                 print("Failed - the other party might have redeemed the fund tx on the btc chain with the secret by now") 
             if(res): print("You have redeemed {0} {1}!".format(revertcontract.amount, revertcontract.currency))   
+    print("HHERE")
     if (revert_currency == 'zcash'):
         if(zXcat.still_locked(revertcontract)):
             print('too early for redeeminng with time lock on zcash chain')
