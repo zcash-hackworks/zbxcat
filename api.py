@@ -22,7 +22,7 @@ def get_fulfiller_addresses():
 def seller_init():
     print("SELLER INITIATING CONTRACTS")
     print("======+====================")
-    trade = Trade()
+    trade = get_init()
     # Get amounts
     amounts = {"sell": {"currency": "bitcoin", "amount": "0.01"}, "buy": {"currency": "zcash", "amount": "0.01"}}
     sell = amounts['sell']
@@ -31,11 +31,11 @@ def seller_init():
     buy_currency = buy['currency']
     # Get addresses
     init_addrs = get_initiator_addresses()
-    sell['funder'] = init_addrs[sell_currency]
-    buy['funder'] = init_addrs[buy_currency]
+    sell['funder'] = trade.sellContract.funder #    init_addrs[sell_currency]
+    buy['funder'] = trade.buyContract.funder #  init_addrs[buy_currency]
     fulfill_addrs = get_fulfiller_addresses()
-    sell['redeemer'] = fulfill_addrs[sell_currency]
-    buy['redeemer'] = fulfill_addrs[buy_currency]
+    sell['redeemer'] = trade.sellContract.funder
+    buy['redeemer'] = trade.buyContract.redeemer
     # initializing contract classes with addresses, currencies, and amounts
     trade.sellContract = Contract(sell)
     trade.buyContract = Contract(buy)
