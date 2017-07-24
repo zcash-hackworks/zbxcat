@@ -48,8 +48,8 @@ def seller_init():
     print("Generating secret to lock funds:", secret)
     save_secret(secret)
     # TODO: Implement locktimes and mock block passage of time
-    seller_lock_increment = 6 # Must be more than buyer_locktime, so that seller reveal secret before their own locktime
-    buyer_lock_increment = 3 
+    seller_lock_increment = 100 # Must be more than buyer_locktime, so that seller reveal secret before their own locktime
+    buyer_lock_increment = 50
     sell.redeemblocknum= compute_redeemblocknum(sell.currency, seller_lock_increment)
     buy.redeemblocknum = compute_redeemblocknum(buy.currency, buyer_lock_increment)
     sell.hash_of_secret = b2x(hash_of_secret)
