@@ -78,7 +78,6 @@ def get_tx_details(txid):
 def find_transaction_to_address(p2sh):
     zcashd.importaddress(p2sh, "", False)
     txs = zcashd.listunspent()
-    prin
     for tx in txs:
         if tx['address'] == CBitcoinAddress(p2sh):
             print("Found tx to p2sh", p2sh, "tx is ", tx)
