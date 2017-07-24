@@ -9,8 +9,8 @@ def get_initiator_addresses():
     zaddr = zXcat.new_zcash_addr()
     # print("type baddr", type(baddr))
     # print("type baddr", type(baddr.to_scriptPubKey()))
-    return {'bitcoin': baddr.__str__(), 'zcash': zaddr.__str__()}
-    # return {'bitcoin': 'myfFr5twPYNwgeXyjCmGcrzXtCmfmWXKYp', 'zcash': 'tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ'}
+    #return {'bitcoin': baddr.__str__(), 'zcash': zaddr.__str__()}
+    return {'bitcoin': 'myfFr5twPYNwgeXyjCmGcrzXtCmfmWXKYp', 'zcash': 'tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ'}
 
 def get_fulfiller_addresses():
     baddr = bXcat.new_bitcoin_addr()
