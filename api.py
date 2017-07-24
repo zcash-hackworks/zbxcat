@@ -9,8 +9,8 @@ def get_initiator_addresses():
     zaddr = zXcat.new_zcash_addr()
     # print("type baddr", type(baddr))
     # print("type baddr", type(baddr.to_scriptPubKey()))
-    return {'bitcoin': baddr.__str__(), 'zcash': zaddr.__str__()}
-    # return {'bitcoin': 'myfFr5twPYNwgeXyjCmGcrzXtCmfmWXKYp', 'zcash': 'tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ'}
+    #return {'bitcoin': baddr.__str__(), 'zcash': zaddr.__str__()}
+    return {'bitcoin': 'myfFr5twPYNwgeXyjCmGcrzXtCmfmWXKYp', 'zcash': 'tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ'}
 
 def get_fulfiller_addresses():
     baddr = bXcat.new_bitcoin_addr()
@@ -22,21 +22,21 @@ def get_fulfiller_addresses():
 def seller_init():
     print("SELLER INITIATING CONTRACTS")
     print("======+====================")
-    trade = Trade()
+    trade = get_init()
     # Get amounts
-    amounts = {"sell": {"currency": "bitcoin", "amount": "0.01"}, "buy": {"currency": "zcash", "amount": "0.01"}}
+    amounts = {"sell": {"currency": "zcash", "amount": "0.01"}, "buy": {"currency": "bitcoin", "amount": "0.01"}}
     sell = amounts['sell']
     buy = amounts['buy']
     sell_currency = sell['currency']
     buy_currency = buy['currency']
-    # Get addresses
-    init_addrs = get_initiator_addresses()
+    # Get addresses - uncomment if you want to run by yourself with random addresses
+'''    init_addrs = get_initiator_addresses()
     sell['funder'] = init_addrs[sell_currency]
     buy['funder'] = init_addrs[buy_currency]
     fulfill_addrs = get_fulfiller_addresses()
     sell['redeemer'] = fulfill_addrs[sell_currency]
     buy['redeemer'] = fulfill_addrs[buy_currency]
-    # initializing contract classes with addresses, currencies, and amounts
+'''    # initializing contract classes with addresses, currencies, and amounts
     trade.sellContract = Contract(sell)
     trade.buyContract = Contract(buy)
     print(trade.sellContract.__dict__)
