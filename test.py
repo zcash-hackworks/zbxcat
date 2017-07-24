@@ -26,10 +26,10 @@ def initiate(trade):
     sell['fulfiller'] = fulfill_addrs[sell_currency]
     buy['fulfiller'] = fulfill_addrs[buy_currency]
     # initializing contract classes with addresses, currencies, and amounts
-    trade.sellContract = Contract(sell)
-    trade.buyContract = Contract(buy)
-    print(trade.sellContract.__dict__)
-    print(trade.buyContract.__dict__)
+    trade.sell = Contract(sell)
+    trade.buy = Contract(buy)
+    print(trade.sell.__dict__)
+    print(trade.buy.__dict__)
 
     secret = generate_password()
     print("Generating secret to lock funds:", secret)
@@ -44,8 +44,8 @@ def initiate(trade):
     create_buy_p2sh(trade, secret, buy_locktime)
 
 def fulfill(trade):
-    buy = trade.buyContract
-    sell = trade.sellContract
+    buy = trade.buy
+    sell = trade.sell
     buy_p2sh_balance = check_p2sh(buy.currency, buy.p2sh)
     sell_p2sh_balance = check_p2sh(sell.currency, sell.p2sh)
 
@@ -57,32 +57,32 @@ def fulfill(trade):
         raise ValueError("Sell p2sh not funded, buyer cannot redeem")
 
 def redeem_one(trade):
-    buy = trade.buyContract
-    if trade.sellContract.get_status() == 'redeemed':
+    buy = trade.buy
+    if trade.sell.get_status() == 'redeemed':
         raise RuntimeError("Sell contract status was already redeemed before seller could redeem buyer's tx")
     else:
         secret = get_secret()
         print("GETTING SECRET IN TEST:", secret)
-        tx_type, txid = redeem_p2sh(trade.buyContract, secret)
+        tx_type, txid = redeem_p2sh(trade.buy, secret)
         print("\nTX Type", tx_type)
-        setattr(trade.buyContract, tx_type, txid)
+        setattr(trade.buy, tx_type, txid)
         save(trade)
         print("You have redeemed {0} {1}!".format(buy.amount, buy.currency))
 
 def redeem_two(trade):
-    if trade.sellContract.get_status() == 'redeemed':
+    if trade.sell.get_status() == 'redeemed':
         raise RuntimeError("Sell contract was redeemed before buyer could retrieve funds")
-    elif trade.buyContract.get_status() == 'refunded':
-        print("buyContract was refunded to buyer")
+    elif trade.buy.get_status() == 'refunded':
+        print("buy was refunded to buyer")
     else:
         # Buy contract is where seller disclosed secret in redeeming
-        if trade.buyContract.currency == 'bitcoin':
-            secret = bXcat.parse_secret(trade.buyContract.redeem_tx)
+        if trade.buy.currency == 'bitcoin':
+            secret = bXcat.parse_secret(trade.buy.redeem_tx)
         else:
-            secret = zXcat.parse_secret(trade.buyContract.redeem_tx)
+            secret = zXcat.parse_secret(trade.buy.redeem_tx)
         print("Found secret in seller's redeem tx", secret)
-        redeem_tx = redeem_p2sh(trade.sellContract, secret)
-        setattr(trade.sellContract, 'redeem_tx', redeem_tx)
+        redeem_tx = redeem_p2sh(trade.sell, secret)
+        setattr(trade.sell, 'redeem_tx', redeem_tx)
         save(trade)
 
 def generate_blocks(num):

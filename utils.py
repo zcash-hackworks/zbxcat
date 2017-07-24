@@ -25,6 +25,7 @@ def s2x(string):
 
 def hex2dict(hexstr):
     jsonstr = x2s(hexstr)
+    print(hexstr['fund_tx'])
     print(jsonstr)
     return json.loads(jsonstr)
 
@@ -76,7 +77,7 @@ def save_secret(secret):
 def save(trade):
     print("Saving trade")
     trade = {
-    'sell': trade.sellContract.__dict__,
-    'buy': trade.buyContract.__dict__
+    'sell': trade.sell.__dict__,
+    'buy': trade.buy.__dict__
     }
     save_trade(trade)

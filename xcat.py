@@ -32,41 +32,41 @@ def fund_htlc(currency, p2sh, amount):
     return txid
 
 def fund_buy_contract(trade):
-    buy = trade.buyContract
+    buy = trade.buy
     txid = fund_htlc(buy.currency, buy.p2sh, buy.amount)
-    setattr(trade.buyContract, 'fund_tx', txid)
+    setattr(trade.buy, 'fund_tx', txid)
     save(trade)
     return txid
 
 def fund_sell_contract(trade):
-    sell = trade.sellContract
+    sell = trade.sell
     txid = fund_htlc(sell.currency, sell.p2sh, sell.amount)
-    setattr(trade.sellContract, 'fund_tx', txid)
+    setattr(trade.sell, 'fund_tx', txid)
     save(trade)
     return txid
 
 def create_sell_p2sh(trade, secret, locktime):
     # CREATE SELL CONTRACT
-    sell = trade.sellContract
+    sell = trade.sell
     contract = create_htlc(sell.currency, sell.initiator, sell.fulfiller, secret, locktime)
     print("sell contract", contract)
-    setattr(trade.sellContract, 'p2sh', contract['p2sh'])
-    setattr(trade.sellContract, 'redeemScript', contract['redeemScript'])
-    setattr(trade.sellContract, 'redeemblocknum', contract['redeemblocknum'])
+    setattr(trade.sell, 'p2sh', contract['p2sh'])
+    setattr(trade.sell, 'redeemScript', contract['redeemScript'])
+    setattr(trade.sell, 'redeemblocknum', contract['redeemblocknum'])
     save(trade)
 
 def create_buy_p2sh(trade, secret, locktime):
     ## CREATE BUY CONTRACT
-    buy = trade.buyContract
+    buy = trade.buy
     print("Now creating buy contract on the {0} blockchain where you will wait for the buyer to send funds...".format(buy.currency))
     print("HTLC DETAILS", buy.currency, buy.fulfiller, buy.initiator, secret, locktime)
     buy_contract = create_htlc(buy.currency, buy.fulfiller, buy.initiator, secret, locktime)
     print("Buy contract", buy_contract)
 
-    setattr(trade.buyContract, 'p2sh', buy_contract['p2sh'])
-    setattr(trade.buyContract, 'redeemScript', buy_contract['redeemScript'])
-    setattr(trade.buyContract, 'redeemblocknum', buy_contract['redeemblocknum'])
-    print("Now contact the buyer and tell them to send funds to this p2sh: ", trade.buyContract.p2sh)
+    setattr(trade.buy, 'p2sh', buy_contract['p2sh'])
+    setattr(trade.buy, 'redeemScript', buy_contract['redeemScript'])
+    setattr(trade.buy, 'redeemblocknum', buy_contract['redeemblocknum'])
+    print("Now contact the buyer and tell them to send funds to this p2sh: ", trade.buy.p2sh)
 
     save(trade)
 
@@ -86,43 +86,43 @@ def print_trade(role):
 ####  Main functions determining user flow from command line
 def buyer_redeem(trade):
     userInput.authorize_buyer_redeem(trade)
-    if trade.sellContract.get_status() == 'redeemed':
-        print("You already redeemed the funds and acquired {0} {1}".format(trade.sellContract.amount, trade.sellContract.currency))
+    if trade.sell.get_status() == 'redeemed':
+        print("You already redeemed the funds and acquired {0} {1}".format(trade.sell.amount, trade.sell.currency))
         exit()
     else:
         # Buyer redeems seller's funded tx
-        p2sh = trade.sellContract.p2sh
-        currency = trade.sellContract.currency
+        p2sh = trade.sell.p2sh
+        currency = trade.sell.currency
         # Buy contract is where seller disclosed secret in redeeming
-        if trade.buyContract.currency == 'bitcoin':
-            secret = bXcat.parse_secret(trade.buyContract.redeem_tx)
+        if trade.buy.currency == 'bitcoin':
+            secret = bXcat.parse_secret(trade.buy.redeem_tx)
         else:
-            secret = zXcat.parse_secret(trade.buyContract.redeem_tx)
+            secret = zXcat.parse_secret(trade.buy.redeem_tx)
         print("Found secret in seller's redeem tx", secret)
-        redeem_tx = redeem_p2sh(trade.sellContract, secret)
-        setattr(trade.sellContract, 'redeem_tx', redeem_tx)
+        redeem_tx = redeem_p2sh(trade.sell, secret)
+        setattr(trade.sell, 'redeem_tx', redeem_tx)
         save(trade)
     exit()
 
 def seller_redeem(trade):
-    buy = trade.buyContract
+    buy = trade.buy
     userInput.authorize_seller_redeem(buy)
 
-    if trade.sellContract.get_status() == 'redeemed':
+    if trade.sell.get_status() == 'redeemed':
         print("You already redeemed the funds and acquired {0} {1}".format(buy.amount, buy.currency))
         exit()
     else:
         # Seller redeems buyer's funded tx (contract in p2sh)
         secret = userInput.retrieve_password()
-        tx_type, txid = redeem_p2sh(trade.buyContract, secret)
-        setattr(trade.buyContract, tx_type, txid)
+        tx_type, txid = redeem_p2sh(trade.buy, secret)
+        setattr(trade.buy, tx_type, txid)
         save(trade)
         print("You have redeemed {0} {1}!".format(buy.amount, buy.currency))
         print_trade('seller')
 
 def buyer_fulfill(trade):
-    buy = trade.buyContract
-    sell = trade.sellContract
+    buy = trade.buy
+    sell = trade.sell
     buy_p2sh_balance = check_p2sh(buy.currency, buy.p2sh)
     sell_p2sh_balance = check_p2sh(sell.currency, sell.p2sh)
 
@@ -151,16 +151,16 @@ def seller_initiate(trade):
     sell['fulfiller'] = fulfill_addrs[sell_currency]
     buy['fulfiller'] = fulfill_addrs[buy_currency]
     # initializing contract classes with addresses, currencies, and amounts
-    trade.sellContract = Contract(sell)
-    trade.buyContract = Contract(buy)
-    print(trade.sellContract.__dict__)
-    print(trade.buyContract.__dict__)
+    trade.sell = Contract(sell)
+    trade.buy = Contract(buy)
+    print(trade.sell.__dict__)
+    print(trade.buy.__dict__)
 
     secret = userInput.create_password()
     # TODO: Implement locktimes and mock block passage of time
     sell_locktime = 5
     buy_locktime = 10 # Must be more than first tx
-
+    print("Creating pay-to-script-hash for sell contract...")
     create_sell_p2sh(trade, secret, sell_locktime)
 
     userInput.authorize_fund_sell(trade)
@@ -169,7 +169,8 @@ def seller_initiate(trade):
     print("Sent")
 
     create_buy_p2sh(trade, secret, buy_locktime)
-    print_trade('seller')
+
+    return trade
 
 if __name__ == '__main__':
     print("ZEC <-> BTC XCAT (Cross-Chain Atomic Transactions)")
@@ -181,9 +182,9 @@ if __name__ == '__main__':
         htlcTrade = Trade()
         print("New empty trade")
     else:
-        buyContract = Contract(trade['buy'])
-        sellContract = Contract(trade['sell'])
-        htlcTrade = Trade(buyContract=buyContract, sellContract=sellContract)
+        buy = Contract(trade['buy'])
+        sell = Contract(trade['sell'])
+        htlcTrade = Trade(buy=buy, sell=sell)
 
     try:
         if sys.argv[1] == 'new':
@@ -206,29 +207,29 @@ if __name__ == '__main__':
             print("Trade exists, run script as buyer or seller to complete trade.")
             exit()
 
-    if htlcTrade.buyContract is not None and htlcTrade.sellContract is not None:
-        if htlcTrade.sellContract.get_status() == 'redeemed' and htlcTrade.buyContract.get_status() == 'redeemed':
+    if htlcTrade.buy is not None and htlcTrade.sell is not None:
+        if htlcTrade.sell.get_status() == 'redeemed' and htlcTrade.buy.get_status() == 'redeemed':
             print("This trade is already complete! Trade details:")
             pprint(trade)
             exit()
 
     if role == "seller":
-        if htlcTrade.sellContract == None:
+        if htlcTrade.sell == None:
             seller_initiate(htlcTrade)
-        elif htlcTrade.buyContract.get_status() == 'funded':
+        elif htlcTrade.buy.get_status() == 'funded':
             seller_redeem(htlcTrade)
-        elif htlcTrade.buyContract.get_status() == 'empty':
-            print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(htlcTrade.buyContract.currency))
+        elif htlcTrade.buy.get_status() == 'empty':
+            print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(htlcTrade.buy.currency))
     else:
         # Need better way of preventing buyer from having secret
         # if 'status' not in trade['buy'] and trade['sell']['status'] == 'funded':
-        if htlcTrade.sellContract.get_status() == 'funded' and htlcTrade.buyContract.get_status() != 'redeemed':
+        if htlcTrade.sell.get_status() == 'funded' and htlcTrade.buy.get_status() != 'redeemed':
             print("One active trade available, fulfilling buyer contract...")
             buyer_fulfill(htlcTrade)
             # How to monitor if txs are included in blocks -- should use blocknotify and a monitor daemon?
             # p2sh = trade['buy']['p2sh']
             # check_blocks(p2sh)
-        elif htlcTrade.buyContract.get_status() == 'redeemed':
+        elif htlcTrade.buy.get_status() == 'redeemed':
             # Seller has redeemed buyer's tx, buyer can now redeem.
             buyer_redeem(htlcTrade)
             print("XCAT trade complete!")

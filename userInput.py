@@ -40,7 +40,7 @@ def retrieve_password():
     return secret
 
 def authorize_fund_sell(htlcTrade):
-    print('To complete your sell, send {0} {1} to this p2sh: {2}'.format(htlcTrade.sellContract.amount, htlcTrade.sellContract.currency, htlcTrade.sellContract.p2sh))
+    print('To complete your sell, send {0} {1} to this p2sh: {2}'.format(htlcTrade.sell.amount, htlcTrade.sell.currency, htlcTrade.sell.p2sh))
     response = input("Type 'enter' to allow this program to send funds on your behalf.")
 
 def get_initiator_addresses():
@@ -75,4 +75,4 @@ def authorize_seller_redeem(buy):
     input("Buyer funded the contract where you offered to buy {0}, type 'enter' to redeem {1} {0} from {2}.".format(buy.currency, buy.amount, buy.p2sh))
 
 def authorize_buyer_redeem(trade):
-    input("Seller funded the contract where you paid them in {0} to buy {1}, type 'enter' to redeem {2} {1} from {3}.".format(trade.buyContract.currency, trade.sellContract.currency, trade.sellContract.amount, trade.sellContract.p2sh))
+    input("Seller funded the contract where you paid them in {0} to buy {1}, type 'enter' to redeem {2} {1} from {3}.".format(trade.buy.currency, trade.sell.currency, trade.sell.amount, trade.sell.p2sh))

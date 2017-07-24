@@ -23,47 +23,46 @@ def parse_addrs(address):
     return status
 
 def checkSellActions(trade):
-    if trade.buyContract.get_status() == 'funded':
+    if trade.buy.get_status() == 'funded':
         seller_redeem(trade)
-    elif trade.buyContract.get_status() == 'empty':
-        print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade.buyContract.currency))
+    elif trade.buy.get_status() == 'empty':
+        print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade.buy.currency))
 
 def checkBuyActions(trade):
-    if trade.sellContract.get_status() == 'funded' and trade.buyContract.get_status() != 'redeemed':
+    if trade.sell.get_status() == 'funded' and trade.buy.get_status() != 'redeemed':
         print("One active trade available, fulfilling buyer contract...")
         buyer_fulfill(trade)
-    elif trade.buyContract.get_status() == 'redeemed':
+    elif trade.buy.get_status() == 'redeemed':
         buyer_redeem(trade)
         print("XCAT trade complete!")
 
 def instantiateTrade(trade):
-    return Trade(buyContract=Contract(trade['buy']), sellContract=Contract(trade['sell']))
+    return Trade(buy=Contract(trade['buy']), sell=Contract(trade['sell']))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
         description=textwrap.dedent('''\
-                == Contracts ==
+                == Trades ==
                 newtrade - create a new trade
                 checktrades - check for actions to be taken on existing trades
-                importcontract "hexstr" - import an existing trade from a hex string
-                exportcontract - export the data of an existing xcat trade as a hex string
+                importtrade "hexstr" - import an existing trade from a hex string
+                exporttrade - export the data of an existing xcat trade as a hex string
 
                 '''))
     parser.add_argument("command", action="store", help="list commands")
     parser.add_argument("argument", action="store", nargs="*", help="add an argument")
-    # parser.add_argument("-importcontract", type=str, action="store", help="import an existing trade from a hex string.")
-    # parser.add_argument("-newtrade", action="store", help="create a new trade.")
-    # parser.add_argument("-checktrades", action="store", help="check status of existing trades")
+    # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     args = parser.parse_args()
 
     # how to hold state of role
     command = args.command
-    if command == 'importcontract':
+    if command == 'importtrade':
         hexstr = args.argument[0]
         trade = x2s(hexstr)
         trade = instantiateTrade(ast.literal_eval(trade))
-        print(trade)
-    elif command == 'exportcontract':
+        db.create(trade)
+        # print(trade.toJ)
+    elif command == 'exporttrade':
         trade = get_trade()
         hexstr = s2x(str(trade))
         print(trade)
@@ -71,7 +70,7 @@ if __name__ == '__main__':
     elif command == 'checktrades':
         trade = get_trade()
         trade = instantiateTrade(trade)
-        if find_role(trade.sellContract) == 'initiator':
+        if find_role(trade.sell) == 'initiator':
             role = 'seller'
             checkSellActions(trade)
         else:
@@ -80,6 +79,10 @@ if __name__ == '__main__':
     elif command == 'newtrade':
         erase_trade()
         role = 'seller'
-        htlcTrade = Trade()
         print("Creating new XCAT trade...")
-        seller_initiate(htlcTrade)
+        trade = seller_initiate(Trade())
+        # Save it to leveldb
+        db.create(trade)
+    elif command == "daemon":
+        #TODO: implement
+        print("Run as daemon process")
