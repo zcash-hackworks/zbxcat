@@ -25,20 +25,10 @@ def seller_init():
     trade = get_init()
     # Get amounts
     amounts = {"sell": {"currency": "zcash", "amount": "0.01"}, "buy": {"currency": "bitcoin", "amount": "0.01"}}
-    sell = amounts['sell']
-    buy = amounts['buy']
-    sell_currency = sell['currency']
-    buy_currency = buy['currency']
-    # Get addresses - uncomment if you want to run by yourself with random addresses
-'''    init_addrs = get_initiator_addresses()
-    sell['funder'] = init_addrs[sell_currency]
-    buy['funder'] = init_addrs[buy_currency]
-    fulfill_addrs = get_fulfiller_addresses()
-    sell['redeemer'] = fulfill_addrs[sell_currency]
-    buy['redeemer'] = fulfill_addrs[buy_currency]
-'''    # initializing contract classes with addresses, currencies, and amounts
-    trade.sellContract = Contract(sell)
-    trade.buyContract = Contract(buy)
+    trade.sellContract.amount = amounts['sell']['amount']
+    trade.buyContract.amount = amounts['buy']['amount']
+    trade.sellContract.currency = amounts['sell']['currency']
+    trade.buyContract.currency = amounts['buy']['currency']
     print(trade.sellContract.__dict__)
     print(trade.buyContract.__dict__)
     sell = trade.sellContract
