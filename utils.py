@@ -66,8 +66,12 @@ def get_secret():
                 return line.strip('\n')
 
 def save_secret(secret):
-    with open('secret.json', 'w') as outfile:
-        outfile.write(secret)
+    try:
+        with open('secret.json', 'w') as outfile:
+            outfile.write(secret)
+    except IOError:
+        with open('secret.json', 'w+') as outfile:
+            outfile.write(secret)
 
 def save(trade):
     print("Saving trade")

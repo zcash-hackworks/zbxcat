@@ -81,4 +81,5 @@ if __name__ == '__main__':
         erase_trade()
         role = 'seller'
         htlcTrade = Trade()
-        print("Creating new XCAT transaction...")
+        print("Creating new XCAT trade...")
+        seller_initiate(htlcTrade)

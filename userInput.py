@@ -1,7 +1,6 @@
 from utils import *
 
 def get_trade_amounts():
-    print("in user input")
     amounts = {}
     sell_currency = input("Which currency would you like to trade out of (bitcoin or zcash)? ")
     if sell_currency == '':

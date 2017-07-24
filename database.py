@@ -7,7 +7,8 @@ db = plyvel.DB('/tmp/testdb', create_if_missing=True)
 
 trade = get_trade()
 ## txid we retrieve by
-txid = trade['sell']['fund_tx']
+if trade and 'sell' in trade:
+    txid = trade['sell']['fund_tx']
 
 def create(hexstr):
     trade = hex2dict(hexstr)
