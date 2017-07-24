@@ -121,7 +121,10 @@ def redeem_with_secret(contract, secret):
         tx = CMutableTransaction([txin], [txout])
         sighash = SignatureHash(redeemscript, tx, 0, SIGHASH_ALL)
         # TODO: figure out how to better protect privkey
+        print("herebeforedump")
         privkey = bitcoind.dumpprivkey(redeemPubKey)
+        print("hereafterdump")
+
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
         print("SECRET", secret)
         preimage = secret.encode('utf-8')
@@ -256,7 +259,7 @@ def find_transaction_to_address(p2sh):
         # print(type(tx['address']))
         # print(type(p2sh))
         if tx['address'] == CBitcoinAddress(p2sh):
-            print("Found tx to p2sh", p2sh)
+            print("Found tx to p2sh", p2sh, "tx is", tx)
             return tx
 
 def new_bitcoin_addr():
