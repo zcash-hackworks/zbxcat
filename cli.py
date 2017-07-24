@@ -47,6 +47,7 @@ if __name__ == '__main__':
                 checktrades - check for actions to be taken on existing trades
                 importtrade "hexstr" - import an existing trade from a hex string
                 exporttrade - export the data of an existing xcat trade as a hex string
+                findtrade - find a trade by the txid of the currency being traded out of
 
                 '''))
     parser.add_argument("command", action="store", help="list commands")
@@ -86,3 +87,8 @@ if __name__ == '__main__':
     elif command == "daemon":
         #TODO: implement
         print("Run as daemon process")
+    elif command == "findtrade":
+        print("Finding trade")
+        txid = args.argument[0]
+        trade = db.get(txid)
+        print(x2s(b2x(trade)))

@@ -37,7 +37,7 @@ def print_entries():
             print('sell: ', j['sell'])
 
 # print_entries()
-txid = '1171aeda64eff388b3568fa4675d0ca78852911109bbe42e0ef11ad6bf1b159e'
-entry = db.get(b(txid))
-print(entry)
+# txid = '1171aeda64eff388b3568fa4675d0ca78852911109bbe42e0ef11ad6bf1b159e'
+# entry = db.get(b(txid))
+# print(entry)
 # print(it.next())
