@@ -34,7 +34,7 @@ def seller_init():
     sell['funder'] = trade.sellContract.funder #    init_addrs[sell_currency]
     buy['funder'] = trade.buyContract.funder #  init_addrs[buy_currency]
     fulfill_addrs = get_fulfiller_addresses()
-    sell['redeemer'] = trade.sellContract.funder
+    sell['redeemer'] = trade.sellContract.redeemer
     buy['redeemer'] = trade.buyContract.redeemer
     # initializing contract classes with addresses, currencies, and amounts
     trade.sellContract = Contract(sell)
