@@ -116,18 +116,15 @@ def seller_redeem():
     if(buy.redeemtype != ""):
         privkey = get_redeemer_priv_key(buy)    
         buy = get_raw_redeem(buy)
+        r
 
     if(sell.redeemtype != ""):
         privkey = get_redeemer_priv_key(sell)
-        
+        sell = get_raw_redeem(sell)        
         contract = check  trade(trade.buyContract, secret, trade.sellContract)
     setattr(trade.buyContract, 'redeem_tx', txid)
     save_seller(trade)
     
-def seller_sign_edeem():
-
-def seller_redeem_after_signature():
-    trade
 
 
 def buyer_redeem():

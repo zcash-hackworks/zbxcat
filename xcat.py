@@ -19,11 +19,10 @@ def compute_redeemblocknum(currency, increment):
 
 #import p2sh address according to contract details
 def import_p2sh(currency, p2sh):
-    return
-   # if currency == 'bitcoin':
-       # bXcat.import_address(p2sh)
-   # else:
-       # zXcat.import_address(p2sh)
+   if currency == 'bitcoin':
+       bXcat.import_address(p2sh)
+   else:
+       zXcat.import_address(p2sh)
 
 
 def check_p2sh(currency, address):
