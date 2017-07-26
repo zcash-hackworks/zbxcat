@@ -378,6 +378,44 @@ def get_redeemer_priv_key(contract):
     return zcashd.dumpprivkey(redeemPubKey)
 
 
+# assuming we have the correct fund tx in the contract prepares the signed redeem raw tx
+def get_raw_redeem(contract, privkey):
+
+    p2sh = contract.p2sh
+    p2sh = P2SHBitcoinAddress(p2sh)
+    '''if contract.fund_tx['address'] == p2sh:
+        print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
+'''
+    redeemPubKey = find_redeemAddr(contract)
+    print('redeemPubKey', redeemPubKey)
+
+    redeemscript = CScript(x(contract.redeemscript))
+    txin = CMutableTxIn(fundtx['outpoint'])
+    txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
+    # Create the unsigned raw transaction.
+    tx = CMutableTransaction([txin], [txout])
+
+
+    sighash = SignatureHash(redeemscript, tx, 0, SIGHASH_ALL)
+    secret = get_secret()  # assumes secret is present in secret.json
+    sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
+    if(contract.redeemtype == "secret"):
+        print("SECRET", secret)
+        preimage = secret.encode('utf-8')
+        txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, redeemscript])
+    elif(contract.redeemtype == "timelock"):
+        txin.scriptSig = CScript([sig, privkey.pub,  OP_FALSE, redeemscript])
+    else:
+        raise ValueError("invalid redeemtype:", contract.redeemtype)
+    
+    txin_scriptPubKey = redeemscript.to_p2sh_scriptPubKey()
+    VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+    print("script verified, writing raw redeem tx in contract")
+    contract.rawredeemtx = tx
+    return contract
+
+
+
 def check_and_return_fundtx(contract):
     # How to find redeemscript and redeemblocknum from blockchain?
     print("Redeeming contract using secret", contract.__dict__)
@@ -387,7 +425,7 @@ def check_and_return_fundtx(contract):
     # will abort in this case. This is a conservative approach to prevent the following attack, for example: the funder splits
     # the amount into many tiny outputs, hoping the redeemer will not have time to redeem them all by the timelock.
     fundtx = find_transaction_to_address(p2sh)
-    if(fundtx=""):
+    if(fundtx== ""):
         raise ValueError("fund tx to ", p2sh, " not found")
 
     amount = fundtx['amount'] / COIN
@@ -395,5 +433,5 @@ def check_and_return_fundtx(contract):
         raise ValueError("Insufficient funds in fund transaction.")
     
     
-    contract.fund_tx = fund_tx
+    contract.fund_tx = fundtx
     return contract

@@ -100,7 +100,7 @@ def get_tx_details(txid):
 def get_redeemer_priv_key(contract):
     if (contract.redeemtype == 'secret'):
         redeemPubKey = find_redeemAddr(contract)
-    elif (contract.redeemtype = 'timelock'):
+    elif (contract.redeemtype == 'timelock'):
         redeemPubKey = find_refundAddr(contract)
     else:
         raise ValueError("Invalid redeemtype:", contract.redeemtype)
@@ -118,7 +118,7 @@ def check_and_return_fundtx(contract):
     # will abort in this case. This is a conservative approach to prevent the following attack, for example: the funder splits
     # the amount into many tiny outputs, hoping the redeemer will not have time to redeem them all by the timelock.
     fundtx = find_transaction_to_address(p2sh)
-    if(fundtx=""):
+    if(fundtx==""):
         raise ValueError("fund tx to ", p2sh, " not found")
 
     amount = fundtx['amount'] / COIN
@@ -130,7 +130,7 @@ def check_and_return_fundtx(contract):
     return contract
 
 # assuming we have the correct fund tx in the contract prepares the signed redeem raw tx
-def get_raw_redeem(contract, privkey)
+def get_raw_redeem(contract, privkey):
 
     p2sh = contract.p2sh
     p2sh = P2SHBitcoinAddress(p2sh)
@@ -152,11 +152,11 @@ def get_raw_redeem(contract, privkey)
     sighash = SignatureHash(redeemscript, tx, 0, SIGHASH_ALL)
     secret = get_secret()  # assumes secret is present in secret.json
     sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
-    if(contract.redeemtype = "secret"):
+    if(contract.redeemtype == "secret"):
         print("SECRET", secret)
         preimage = secret.encode('utf-8')
         txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, redeemscript])
-    elif(contract.redeemtype = "timelock"):
+    elif(contract.redeemtype == "timelock"):
         txin.scriptSig = CScript([sig, privkey.pub,  OP_FALSE, redeemscript])
     else:
         raise ValueError("invalid redeemtype:", contract.redeemtype)

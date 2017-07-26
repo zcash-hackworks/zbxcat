@@ -13,24 +13,24 @@ import userInput
 def get_redeemer_priv_key(contract):
     if contract.currency == 'bitcoin':
         return bXcat.get_redeemer_priv_key(contract)
-    elif contract.currency = 'zcash':
+    elif contract.currency == 'zcash':
         return zXcat.get_redeemer_priv_key(contract)
     else:
         raise ValueError("invalid currency value:", contract.currency)
 
 
-def get_raw_redeem(contract, privkey)
+def get_raw_redeem(contract, privkey):
     if contract.currency == 'bitcoin':
         return bXcat.get_raw_redeem(contract, privkey)
-    elif contract.currency = 'zcash':
+    elif contract.currency == 'zcash':
         return zXcat.get_raw_redeem(contract, privkey)
     else:
         raise ValueError("invalid currency value:", contract.currency)
 
-def send_raw_tx(rawtx)
+def send_raw_tx(rawtx):
     if contract.currency == 'bitcoin':
         return bXcat.send_raw_tx(rawtx)
-    elif contract.currency = 'zcash':
+    elif contract.currency == 'zcash':
         return zXcat.send_raw_tx(rawtx)
     else:
         raise ValueError("invalid currency value:", contract.currency)
