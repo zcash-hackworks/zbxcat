@@ -392,7 +392,7 @@ def check_and_return_fundtx(contract):
 
     amount = fundtx['amount'] / COIN
     if(amount < minamount):
-        print("funder funded ", p2sh, " in more than one tx will need to run redeem again to get whole amount")
+        raise ValueError("Insufficient funds in fund transaction")
     
     
     contract.fund_tx = fund_tx

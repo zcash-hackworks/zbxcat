@@ -96,51 +96,35 @@ def create_buy_2sh(trade, secret, locktime):
 # we try to redeem contract with secret
 # we try to redeem revertcontract with time lock
 # returns True if at least one redeem succeeded
-def redeem_p2sh(contract, secret, revertcontract):
+def init_redeem_p2sh(contract, revertcontract):
 
     currency = contract.currency
-    res = False 
+    contract.redeemtype=""
+    revertcontract.redeemtype=""
     revert_currency = revertcontract.currency
 
-    # should the code still try to redeem when time has passed? currently it doesn't
-    if (currency == 'bitcoin' and bXcat.still_locked(contract)):
-        print("trying to redeem btc with secret:")
-        try:
-            res = bXcat.redeem_with_secret(contract, secret)
-        except Exception:
-            print("Failed - you might not have the correct secret - perhaps because the seller has not redeemed the buy contract correctly")
-        if(res): print("You have redeemed {0} {1}!".format(contract.amount, contract.currency))
+    if (currency == 'bitcoin'):
+        contract = bXcat.check_and_return_fundtx(contract)
+        contract.redeemtype = "secret"
     
-    if (currency == 'zcash' and zXcat.still_locked(contract)):
-        print("trying to redeeming zec with secret:")
-        try:
-            res = zXcat.redeem_with_secret(contract, secret)
-        except Exception:
-            print("Failed - you might not have the correct secret - perhaps because the seller has not redeemed the buy contract correctly")
-        if(res): print("You have redeemed {0} {1}!".format(contract.amount, contract.currency))
+    if (currency == 'zcash'):
+        contract = zXcat.check_and_return_fundtx(contract)
+        contract.redeemtype = 'secret'
+    
+    
     if (revert_currency == 'bitcoin'):
         if(bXcat.still_locked(revertcontract)):
             print('too early for redeeminng with time lock on btc chain')
         else:        
-            print("trying to redeeming btc with timelock:")
-            try:
-                res = bXcat.redeem_after_timelock(revertcontract)
-            except Exception:
-                print("Failed - the other party might have redeemed the fund tx on the btc chain with the secret by now") 
-            if(res): print("You have redeemed {0} {1}!".format(revertcontract.amount, revertcontract.currency))   
-    print("HHERE")
+            revertcontract.redeemtype = 'timelock'
+   
+   
     if (revert_currency == 'zcash'):
-        if(zXcat.still_locked(revertcontract)):
-            print('too early for redeeminng with time lock on zcash chain')
+        if(bXcat.still_locked(revertcontract)):
+            print('too early for redeeminng with time lock on zec chain')
         else:        
-            print("trying to redeeming zec with timelock:")
-            try:
-                res = zXcat.redeem_after_timelock(revertcontract)
-            except Exception:
-                print("Failed - the other party might have redeemed the fund tx on the zcash chain with the secret by now") 
-            if(res): print("You have redeemed {0} {1}!".format(revertcontract.amount, revertcontract.currency))   
-
-    return res
+            revertcontract.redeemtype = 'timelock'
+    return (contract,revertcontract)
 
 def print_trade(role):
     print("\nTrade status for {0}:".format(role))
