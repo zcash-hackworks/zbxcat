@@ -19,6 +19,11 @@ def get_fulfiller_addresses():
     # return {'bitcoin': 'myfFr5twPYNwgeXyjCmGcrzXtCmfmWXKYp', 'zcash': 'tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ'}
     # return {'bitcoin': 'mrQzUGU1dwsWRx5gsKKSDPNtrsP65vCA3Z', 'zcash': 'tmTjZSg4pX2Us6V5HttiwFZwj464fD2ZgpY'}
 
+
+
+
+
+
 def seller_init():
     print("SELLER INITIATING CONTRACTS")
     print("======+====================")
@@ -30,10 +35,8 @@ def seller_init():
     sell_currency = sell['currency']
     buy_currency = buy['currency']
     # Get addresses
-    init_addrs = get_initiator_addresses()
-    sell['funder'] = trade.sellContract.funder #    init_addrs[sell_currency]
-    buy['funder'] = trade.buyContract.funder #  init_addrs[buy_currency]
-    fulfill_addrs = get_fulfiller_addresses()
+    sell['funder'] = trade.sellContract.funder 
+    buy['funder'] = trade.buyContract.funder 
     sell['redeemer'] = trade.sellContract.redeemer
     buy['redeemer'] = trade.buyContract.redeemer
     # initializing contract classes with addresses, currencies, and amounts
@@ -48,7 +51,8 @@ def seller_init():
     print("Generating secret to lock funds:", secret)
     save_secret(secret)
     # TODO: Implement locktimes and mock block passage of time
-    seller_lock_increment = 100 # Must be more than buyer_locktime, so that seller reveal secret before their own locktime
+    seller_lock_increment = 100 # Must be more than buyer_locktime, so that seller reveal secret before their own locktime. Currently assuming seller is bitcoin side. If seller is Zcash side this number needs
+                            
     buyer_lock_increment = 50
     sell.redeemblocknum= compute_redeemblocknum(sell.currency, seller_lock_increment)
     buy.redeemblocknum = compute_redeemblocknum(buy.currency, buyer_lock_increment)
@@ -99,7 +103,7 @@ def buyer_fund():
     
     
 
-def seller_redeem():
+def seller_redeem_before_signature():
     trade = get_seller_trade()
     print(trade)
     print("SELLER REDEEMING BUY CONTRACT")

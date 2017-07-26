@@ -95,18 +95,21 @@ def get_tx_details(txid):
 # redeems funded tx automatically, by scanning for transaction to the p2sh
 # i.e., doesn't require buyer telling us fund txid
 # returns false if fund tx doesn't exist or is too small
-def redeem_with_secret(contract, secret):
+def check_redeem_with_secret(contract):
     # How to find redeemscript and redeemblocknum from blockchain?
     print("Redeeming contract using secret", contract.__dict__)
     p2sh = contract.p2sh
     minamount = float(contract.amount)
-    #checking there are funds in the address
+    # checking there are funds in the address
     amount = check_funds(p2sh)
     if(amount < minamount):
         print("address ", p2sh, " not sufficiently funded")
         return false
+    # may have problems in case funder funded address in more than one tx
     fundtx = find_transaction_to_address(p2sh)
     amount = fundtx['amount'] / COIN
+    if(amount < minamount):
+        print("funder funded ", p2sh, " in more than one tx will need to run redeem again to get whole amount")
     p2sh = P2SHBitcoinAddress(p2sh)
     if fundtx['address'] == p2sh:
         print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
@@ -119,6 +122,11 @@ def redeem_with_secret(contract, secret):
         txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
+    else:
+        print("No contract for this p2sh found in database", p2sh)
+
+
+def finish_redeem_with_secret():        
         sighash = SignatureHash(redeemscript, tx, 0, SIGHASH_ALL)
         # TODO: figure out how to better protect privkey
         print("herebeforedump")
@@ -140,8 +148,7 @@ def redeem_with_secret(contract, secret):
         txid = bitcoind.sendrawtransaction(tx)
         print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
         return  b2x(lx(b2x(txid)))
-    else:
-        print("No contract for this p2sh found in database", p2sh)
+    
 
 
 
@@ -252,12 +259,9 @@ def find_refundAddr(contract):
     # print('redeemPubkey', redeemPubkey)
 
 def find_transaction_to_address(p2sh):
-    bitcoind.importaddress(p2sh, "", False)
+    bitcoind.importaddress(p2sh, "", False) # this may be redundant as assuming address was imported before fund tx during init phase
     txs = bitcoind.listunspent()
     for tx in txs:
-        # print("tx addr:", )
-        # print(type(tx['address']))
-        # print(type(p2sh))
         if tx['address'] == CBitcoinAddress(p2sh):
             print("Found tx to p2sh", p2sh, "tx is", tx)
             return tx
