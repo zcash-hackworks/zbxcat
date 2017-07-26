@@ -9,6 +9,33 @@ from pprint import pprint
 from trades import Contract, Trade
 import userInput
 
+
+def get_redeemer_priv_key(contract):
+    if contract.currency == 'bitcoin':
+        return bXcat.get_redeemer_priv_key(contract)
+    elif contract.currency = 'zcash':
+        return zXcat.get_redeemer_priv_key(contract)
+    else:
+        raise ValueError("invalid currency value:", contract.currency)
+
+
+def get_raw_redeem(contract, privkey)
+    if contract.currency == 'bitcoin':
+        return bXcat.get_raw_redeem(contract, privkey)
+    elif contract.currency = 'zcash':
+        return zXcat.get_raw_redeem(contract, privkey)
+    else:
+        raise ValueError("invalid currency value:", contract.currency)
+
+def send_raw_tx(rawtx)
+    if contract.currency == 'bitcoin':
+        return bXcat.send_raw_tx(rawtx)
+    elif contract.currency = 'zcash':
+        return zXcat.send_raw_tx(rawtx)
+    else:
+        raise ValueError("invalid currency value:", contract.currency)
+
+
 #compute redeemblocknum according to current block
 def compute_redeemblocknum(currency, increment):
     if currency == 'bitcoin':
@@ -105,7 +132,7 @@ def init_redeem_p2sh(contract, revertcontract):
 
     if (currency == 'bitcoin'):
         contract = bXcat.check_and_return_fundtx(contract)
-        contract.redeemtype = "secret"
+        contract.redeemtype = 'secret'
     
     if (currency == 'zcash'):
         contract = zXcat.check_and_return_fundtx(contract)

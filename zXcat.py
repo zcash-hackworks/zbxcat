@@ -370,7 +370,7 @@ def redeem_after_timelock(contract):
 def get_redeemer_priv_key(contract):
     if (contract.redeemtype == 'secret'):
         redeemPubKey = find_redeemAddr(contract)
-    elif (contract.redeemtype = 'timelock'):
+    elif (contract.redeemtype == 'timelock'):
         redeemPubKey = find_refundAddr(contract)
     else:
         raise ValueError("Invalid redeemtype:", contract.redeemtype)
@@ -392,7 +392,7 @@ def check_and_return_fundtx(contract):
 
     amount = fundtx['amount'] / COIN
     if(amount < minamount):
-        raise ValueError("Insufficient funds in fund transaction")
+        raise ValueError("Insufficient funds in fund transaction.")
     
     
     contract.fund_tx = fund_tx

@@ -113,16 +113,19 @@ def seller_redeem():
     (buy,sell) = init_redeem_p2sh(trade.buyContract, trade.sellContract)
     
     # in case we're still in the time lock on buy side, try to redeem with secret
-    if(buy.redeemtype != ""):
+    if(buy.redeemtype == 'secret'):
         privkey = get_redeemer_priv_key(buy)    
-        buy = get_raw_redeem(buy)
-        r
+        buy = get_raw_redeem(buy,privkey)  #puts the raw transaction in the raw_redeem field
+        buy.redeem_tx = send_raw_tx(buy.rawredeem)
 
-    if(sell.redeemtype != ""):
-        privkey = get_redeemer_priv_key(sell)
-        sell = get_raw_redeem(sell)        
-        contract = check  trade(trade.buyContract, secret, trade.sellContract)
-    setattr(trade.buyContract, 'redeem_tx', txid)
+    if(sell.redeemtype == 'timelock'):
+        privkey = get_redeemer_priv_key(sell)    
+        sell = get_raw_redeem(sell,privkey)
+        sell.redeem_tx = send_raw_tx(sell.rawredeem)
+    
+    trade.buyContract = buy
+    trade.sellContract = sell
+    
     save_seller(trade)
     
 
