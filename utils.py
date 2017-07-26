@@ -17,12 +17,12 @@ def generate_password():
     passlen = 8
     p =  "".join(random.sample(s,passlen))
     return p
-
+'''
 # TODO: Port these over to leveldb or some other database
 def save_trade(trade):
     with open('xcat.json', 'w') as outfile:
         json.dump(trade, outfile)
-
+'''
 def save_seller_trade(trade):
     with open('sellertrade.json', 'w') as outfile:
         json.dump(jsonformat(trade), outfile)
@@ -43,7 +43,7 @@ def get_init():
         trade = trades.Trade(sellContract,buyContract)
         return trade
 
-
+'''
 def get_trade():
     with open('xcat.json') as data_file:
     # try:
@@ -52,7 +52,7 @@ def get_trade():
         buyContract = trades.Contract(xcatdb['buy'])
         trade = trades.Trade(sellContract,buyContract)
         
-        return trade
+        return trade'''
 
 def get_seller_trade():
     with open('init.json') as data_file:

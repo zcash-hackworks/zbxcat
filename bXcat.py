@@ -26,6 +26,11 @@ bitcoind = bitcoin.rpc.Proxy()
 FEE = 0.001*COIN
 zcashd = zcash.rpc.Proxy()
 
+def send_raw_tx(rawtx):
+    txid = bitcoind.sendrawtransaction(rawtx)
+    return txid
+
+
 def import_address(address):
     bitcoind.importaddress(address, "", False)
 
@@ -92,24 +97,42 @@ def get_tx_details(txid):
     fund_txinfo = bitcoind.gettransaction(lx(txid))
     return fund_txinfo['details'][0]
 
-# redeems funded tx automatically, by scanning for transaction to the p2sh
-# i.e., doesn't require buyer telling us fund txid
-# returns false if fund tx doesn't exist or is too small
-def check_redeem_with_secret(contract):
+def get_redeemer_priv_key(contract):
+    if (contract.redeemtype == 'secret'):
+        redeemPubKey = find_redeemAddr(contract)
+    elif (contract.redeemtype = 'timelock'):
+        redeemPubKey = find_refundAddr(contract)
+    else:
+        raise ValueError("Invalid redeemtype:", contract.redeemtype)
+
+    return bitcoind.dumpprivkey(redeemPubKey)
+
+
+
+def check_and_return_fundtx(contract):
     # How to find redeemscript and redeemblocknum from blockchain?
     print("Redeeming contract using secret", contract.__dict__)
     p2sh = contract.p2sh
     minamount = float(contract.amount)
-    # checking there are funds in the address
-    amount = check_funds(p2sh)
-    if(amount < minamount):
-        print("address ", p2sh, " not sufficiently funded")
-        return false
-    # may have problems in case funder funded address in more than one tx
+    # the funder may have accidentily funded the p2sh with sufficient amount in several transactions. The current code
+    # will abort in this case. This is a conservative approach to prevent the following attack, for example: the funder splits
+    # the amount into many tiny outputs, hoping the redeemer will not have time to redeem them all by the timelock.
     fundtx = find_transaction_to_address(p2sh)
+    if(fundtx=""):
+        raise ValueError("fund tx to ", p2sh, " not found")
+
     amount = fundtx['amount'] / COIN
     if(amount < minamount):
         print("funder funded ", p2sh, " in more than one tx will need to run redeem again to get whole amount")
+    
+    
+    contract.fund_tx = fund_tx
+    return contract
+
+# assuming we have the correct fund tx in the contract prepares the signed redeem raw tx
+def get_raw_redeem(contract, privkey)
+
+    p2sh = contract.p2sh
     p2sh = P2SHBitcoinAddress(p2sh)
     if fundtx['address'] == p2sh:
         print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
@@ -126,29 +149,23 @@ def check_redeem_with_secret(contract):
         print("No contract for this p2sh found in database", p2sh)
 
 
-def finish_redeem_with_secret():        
-        sighash = SignatureHash(redeemscript, tx, 0, SIGHASH_ALL)
-        # TODO: figure out how to better protect privkey
-        print("herebeforedump")
-        privkey = bitcoind.dumpprivkey(redeemPubKey)
-        print("hereafterdump")
-
-        sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
+    sighash = SignatureHash(redeemscript, tx, 0, SIGHASH_ALL)
+    secret = get_secret()  # assumes secret is present in secret.json
+    sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
+    if(contract.redeemtype = "secret"):
         print("SECRET", secret)
         preimage = secret.encode('utf-8')
         txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, redeemscript])
-
-        # exit()
-
-        # print("txin.scriptSig", b2x(txin.scriptSig))
-        txin_scriptPubKey = redeemscript.to_p2sh_scriptPubKey()
-        # print('Redeem txhex', b2x(tx.serialize()))
-        VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
-        print("script verified, sending raw tx")
-        txid = bitcoind.sendrawtransaction(tx)
-        print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
-        return  b2x(lx(b2x(txid)))
+    elif(contract.redeemtype = "timelock"):
+        txin.scriptSig = CScript([sig, privkey.pub,  OP_FALSE, redeemscript])
+    else:
+        raise ValueError("invalid redeemtype:", contract.redeemtype)
     
+    txin_scriptPubKey = redeemscript.to_p2sh_scriptPubKey()
+    VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+    print("script verified, writing raw redeem tx in contract")
+    contract.rawredeemtx = tx
+    return contract
 
 
 
@@ -265,6 +282,7 @@ def find_transaction_to_address(p2sh):
         if tx['address'] == CBitcoinAddress(p2sh):
             print("Found tx to p2sh", p2sh, "tx is", tx)
             return tx
+    return ""
 
 def new_bitcoin_addr():
     addr = bitcoind.getnewaddress()

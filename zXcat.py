@@ -23,6 +23,10 @@ SelectParams('regtest')
 zcashd = zcash.rpc.Proxy()
 FEE = 0.0001*COIN
 
+def send_raw_tx(rawtx):
+    txid = zcashd.sendrawtransaction(rawtx)
+    return txid
+
 
 def import_address(address):
     zcashd.importaddress(address, "", False)
@@ -361,3 +365,35 @@ def redeem_after_timelock(contract):
     txid = zcashd.sendrawtransaction(tx)
     print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
     return  b2x(lx(b2x(txid)))
+
+
+def get_redeemer_priv_key(contract):
+    if (contract.redeemtype == 'secret'):
+        redeemPubKey = find_redeemAddr(contract)
+    elif (contract.redeemtype = 'timelock'):
+        redeemPubKey = find_refundAddr(contract)
+    else:
+        raise ValueError("Invalid redeemtype:", contract.redeemtype)
+
+    return zcashd.dumpprivkey(redeemPubKey)
+
+
+def check_and_return_fundtx(contract):
+    # How to find redeemscript and redeemblocknum from blockchain?
+    print("Redeeming contract using secret", contract.__dict__)
+    p2sh = contract.p2sh
+    minamount = float(contract.amount)
+    # the funder may have accidentily funded the p2sh with sufficient amount in several transactions. The current code
+    # will abort in this case. This is a conservative approach to prevent the following attack, for example: the funder splits
+    # the amount into many tiny outputs, hoping the redeemer will not have time to redeem them all by the timelock.
+    fundtx = find_transaction_to_address(p2sh)
+    if(fundtx=""):
+        raise ValueError("fund tx to ", p2sh, " not found")
+
+    amount = fundtx['amount'] / COIN
+    if(amount < minamount):
+        print("funder funded ", p2sh, " in more than one tx will need to run redeem again to get whole amount")
+    
+    
+    contract.fund_tx = fund_tx
+    return contract

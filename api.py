@@ -103,22 +103,32 @@ def buyer_fund():
     
     
 
-def seller_redeem_before_signature():
+def seller_redeem():
     trade = get_seller_trade()
     print(trade)
     print("SELLER REDEEMING BUY CONTRACT")
     print("=============================")
     buy = trade.buyContract
     print(buy)
-    # if trade.sellContract.get_status() == 'redeemed':
-    #    raise RuntimeError("Sell contract status was already redeemed before seller could redeem buyer's tx")
-    #else:
-    secret = get_secret() # Just the seller getting his local copy of the secret
-    print("SELLER SECRET IN TEST:", secret)
-    txid =  redeem_p2sh(trade.buyContract, secret, trade.sellContract)
-    setattr(trade.buyContract, 'redeem_tx', txid)
-    save(trade)
+    (buy,sell) = init_redeem_p2sh(trade.buyContract, trade.sellContract)
     
+    # in case we're still in the time lock on buy side, try to redeem with secret
+    if(buy.redeemtype != ""):
+        privkey = get_redeemer_priv_key(buy)    
+        buy = get_raw_redeem(buy)
+
+    if(sell.redeemtype != ""):
+        privkey = get_redeemer_priv_key(sell)
+        
+        contract = check  trade(trade.buyContract, secret, trade.sellContract)
+    setattr(trade.buyContract, 'redeem_tx', txid)
+    save_seller(trade)
+    
+def seller_sign_edeem():
+
+def seller_redeem_after_signature():
+    trade
+
 
 def buyer_redeem():
     print("BUYER REDEEMING SELL CONTRACT")
@@ -148,7 +158,7 @@ def buyer_redeem():
                 print("Found secret in seller's redeem tx on zcash chain:", secret)
     redeem_tx = redeem_p2sh(sellContract, secret, buyContract)
     setattr(trade.sellContract, 'redeem_tx', redeem_tx)
-    save(trade)
+    save_buyer(trade)
 
 
 def generate_blocks(num):
