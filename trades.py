@@ -1,10 +1,11 @@
 import json
 
 class Trade(object):
-    def __init__(self, sell=None, buy=None):
+    def __init__(self, sell=None, buy=None, commitment=None):
         '''Create a new trade with a sell contract and buy contract across two chains'''
         self.sell = sell
         self.buy = buy
+        self.commitment = commitment
 
     def toJSON(self):
         return json.dumps(self, default=lambda o: o.__dict__,

@@ -6,34 +6,44 @@ from trades import *
 from xcat import *
 import ast
 
-def find_role(contract):
-    # Obviously when regtest created both addrs on same machine, role is both.
-    if parse_addrs(contract.initiator):
-        return 'initiator'
-    else:
-        return 'fulfiller'
+def save_state(trade):
+    save(trade)
+    db.create
 
-def parse_addrs(address):
-    if address[:1] == 'm':
-        status = bXcat.validateaddress(address)
-    else:
-        status = zXcat.validateaddress(address)
-    status = status['ismine']
-    print("Address {0} is mine: {1}".format(address, status))
-    return status
-
-def checkSellActions(trade):
+def checkSellStatus(trade):
     if trade.buy.get_status() == 'funded':
-        seller_redeem(trade)
+        secret = get_secret()
+        print("SECRET found in checksellactions", secret)
+        trade = seller_redeem_p2sh(trade, secret)
+        print("TRADE SUCCESSFULLY REDEEMED", trade)
+        save_state(trade)
     elif trade.buy.get_status() == 'empty':
         print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade.buy.currency))
+    elif trade.buy.get_status() == 'redeemed':
+        print("You have already redeemed the p2sh on the second chain of this trade.")
 
-def checkBuyActions(trade):
+
+def checkBuyStatus(trade):
     if trade.sell.get_status() == 'funded' and trade.buy.get_status() != 'redeemed':
         print("One active trade available, fulfilling buyer contract...")
-        buyer_fulfill(trade)
+        # they should calculate redeemScript for themselves
+        htlc = create_htlc(trade.buy.currency, trade.buy.fulfiller, trade.buy.initiator, trade.commitment, trade.buy.locktime)
+        print("Buyer p2sh:", htlc['p2sh'])
+        # If the two p2sh match...
+        if buyer_p2sh == contract.buy.p2sh:
+            fund_tx = fund_contract(trade.buy)
+            trade.buy.fund_tx = fund_tx
+            print("trade buy with redeemscript?", trade.buy.__dict__)
+            save_state(trade)
+        else:
+            print("Compiled p2sh for htlc does not match what seller sent.")
     elif trade.buy.get_status() == 'redeemed':
-        buyer_redeem(trade)
+        # TODO: secret parsing
+        # secret = parse_secret(trade.buy.currency, trade.buy.redeem_tx)
+        secret = get_secret()
+        print("Found secret", secret)
+        txid = auto_redeem_p2sh(trade.sell, secret)
+        print("TXID after buyer redeem", txid)
         print("XCAT trade complete!")
 
 def instantiateTrade(trade):
@@ -61,7 +71,7 @@ if __name__ == '__main__':
         hexstr = args.argument[0]
         trade = x2s(hexstr)
         trade = instantiateTrade(ast.literal_eval(trade))
-        db.create(trade)
+        save_state(trade)
         # print(trade.toJ)
     elif command == 'exporttrade':
         trade = get_trade()
@@ -73,10 +83,10 @@ if __name__ == '__main__':
         trade = instantiateTrade(trade)
         if find_role(trade.sell) == 'initiator':
             role = 'seller'
-            checkSellActions(trade)
+            checkSellStatus(trade)
         else:
             role = 'buyer'
-            checkBuyActions(trade)
+            checkBuyStatus(trade)
     elif command == 'newtrade':
         erase_trade()
         role = 'seller'
@@ -92,3 +102,19 @@ if __name__ == '__main__':
         txid = args.argument[0]
         trade = db.get(txid)
         print(x2s(b2x(trade)))
+    # Ad hoc testing starts here
+    elif command == "step1":
+        erase_trade()
+        print("Creating new XCAT trade...")
+        trade = seller_initiate(Trade())
+        # Save it to leveldb
+        save_state(trade)
+    elif command == "step2":
+        trade = get_trade()
+        checkBuyStatus(trade)
+    elif command == "step3":
+        trade = get_trade()
+        checkSellStatus(trade)
+    elif command == "step4":
+        trade = get_trade()
+        checkBuyStatus(trade)

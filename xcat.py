@@ -17,11 +17,11 @@ def check_p2sh(currency, address):
         print("Checking funds in Zcash p2sh")
         return zXcat.check_funds(address)
 
-def create_htlc(currency, funder, redeemer, secret, locktime):
+def create_htlc(currency, funder, redeemer, commitment, locktime):
     if currency == 'bitcoin':
-        sell_p2sh = bXcat.hashtimelockcontract(funder, redeemer, secret, locktime)
+        sell_p2sh = bXcat.hashtimelockcontract(funder, redeemer, commitment, locktime)
     else:
-        sell_p2sh = zXcat.hashtimelockcontract(funder, redeemer, secret, locktime)
+        sell_p2sh = zXcat.hashtimelockcontract(funder, redeemer, commitment, locktime)
     return sell_p2sh
 
 def fund_htlc(currency, p2sh, amount):
@@ -30,12 +30,16 @@ def fund_htlc(currency, p2sh, amount):
     else:
         txid = zXcat.fund_htlc(p2sh, amount)
     return txid
+#
+# def fund_buy_contract(trade):
+#     buy = trade.buy
+#     txid = fund_htlc(buy.currency, buy.p2sh, buy.amount)
+#     setattr(trade.buy, 'fund_tx', txid)
+#     save(trade)
+#     return txid
 
-def fund_buy_contract(trade):
-    buy = trade.buy
-    txid = fund_htlc(buy.currency, buy.p2sh, buy.amount)
-    setattr(trade.buy, 'fund_tx', txid)
-    save(trade)
+def fund_contract(contract):
+    txid = fund_htlc(contract.currency, contract.p2sh, contract.amount)
     return txid
 
 def fund_sell_contract(trade):
@@ -45,22 +49,22 @@ def fund_sell_contract(trade):
     save(trade)
     return txid
 
-def create_sell_p2sh(trade, secret, locktime):
+def create_sell_p2sh(trade, commitment, locktime):
     # CREATE SELL CONTRACT
     sell = trade.sell
-    contract = create_htlc(sell.currency, sell.initiator, sell.fulfiller, secret, locktime)
+    contract = create_htlc(sell.currency, sell.initiator, sell.fulfiller, commitment, locktime)
     print("sell contract", contract)
     setattr(trade.sell, 'p2sh', contract['p2sh'])
     setattr(trade.sell, 'redeemScript', contract['redeemScript'])
     setattr(trade.sell, 'redeemblocknum', contract['redeemblocknum'])
     save(trade)
 
-def create_buy_p2sh(trade, secret, locktime):
+def create_buy_p2sh(trade, commitment, locktime):
     ## CREATE BUY CONTRACT
     buy = trade.buy
     print("Now creating buy contract on the {0} blockchain where you will wait for the buyer to send funds...".format(buy.currency))
-    print("HTLC DETAILS", buy.currency, buy.fulfiller, buy.initiator, secret, locktime)
-    buy_contract = create_htlc(buy.currency, buy.fulfiller, buy.initiator, secret, locktime)
+    print("HTLC DETAILS", buy.currency, buy.fulfiller, buy.initiator, commitment, locktime)
+    buy_contract = create_htlc(buy.currency, buy.fulfiller, buy.initiator, commitment, locktime)
     print("Buy contract", buy_contract)
 
     setattr(trade.buy, 'p2sh', buy_contract['p2sh'])
@@ -70,7 +74,7 @@ def create_buy_p2sh(trade, secret, locktime):
 
     save(trade)
 
-def redeem_p2sh(contract, secret):
+def auto_redeem_p2sh(contract, secret):
     currency = contract.currency
     if currency == 'bitcoin':
         res = bXcat.auto_redeem(contract, secret)
@@ -78,10 +82,20 @@ def redeem_p2sh(contract, secret):
         res = zXcat.auto_redeem(contract, secret)
     return res
 
-def print_trade(role):
-    print("\nTrade status for {0}:".format(role))
-    trade = get_trade()
-    pprint(trade)
+
+def redeem_p2sh(contract, secret):
+    currency = contract.currency
+    if currency == 'bitcoin':
+        res = bXcat.redeem_contract(contract, secret)
+    else:
+        res = zXcat.redeem_contract(contract, secret)
+    return res
+
+def parse_secret(chain, txid):
+    if chain == 'bitcoin':
+        secret = bXcat.parse_secret(txid)
+    else:
+        secret = zXcat.parse_secret(txid)
 
 ####  Main functions determining user flow from command line
 def buyer_redeem(trade):
@@ -104,7 +118,7 @@ def buyer_redeem(trade):
         save(trade)
     exit()
 
-def seller_redeem(trade):
+def seller_redeem_p2sh(trade, secret):
     buy = trade.buy
     userInput.authorize_seller_redeem(buy)
 
@@ -113,12 +127,11 @@ def seller_redeem(trade):
         exit()
     else:
         # Seller redeems buyer's funded tx (contract in p2sh)
-        secret = userInput.retrieve_password()
         tx_type, txid = redeem_p2sh(trade.buy, secret)
+        print("Setting tx_type: txid", tx_type, txid)
         setattr(trade.buy, tx_type, txid)
-        save(trade)
         print("You have redeemed {0} {1}!".format(buy.amount, buy.currency))
-        print_trade('seller')
+    return trade
 
 def buyer_fulfill(trade):
     buy = trade.buy
@@ -157,11 +170,13 @@ def seller_initiate(trade):
     print(trade.buy.__dict__)
 
     secret = userInput.create_password()
+    save_secret(secret)
+    hash_of_secret = sha256(secret)
     # TODO: Implement locktimes and mock block passage of time
     sell_locktime = 5
     buy_locktime = 10 # Must be more than first tx
     print("Creating pay-to-script-hash for sell contract...")
-    create_sell_p2sh(trade, secret, sell_locktime)
+    create_sell_p2sh(trade, hash_of_secret, sell_locktime)
 
     userInput.authorize_fund_sell(trade)
 
@@ -170,68 +185,5 @@ def seller_initiate(trade):
 
     create_buy_p2sh(trade, secret, buy_locktime)
 
+    trade.commitment = b2x(hash_of_secret)
     return trade
-
-if __name__ == '__main__':
-    print("ZEC <-> BTC XCAT (Cross-Chain Atomic Transactions)")
-    print("=" * 50)
-
-    trade = get_trade()
-
-    if trade == None:
-        htlcTrade = Trade()
-        print("New empty trade")
-    else:
-        buy = Contract(trade['buy'])
-        sell = Contract(trade['sell'])
-        htlcTrade = Trade(buy=buy, sell=sell)
-
-    try:
-        if sys.argv[1] == 'new':
-            erase_trade()
-            role = 'seller'
-            htlcTrade = Trade()
-            print("Creating new XCAT transaction...")
-        else:
-            role = sys.argv[1]
-            print("Your role in demo:", role)
-    except:
-        if trade == None:
-            print("No active trades available.")
-            res = input("Would you like to initiate a trade? (y/n) ")
-            if res == 'y':
-                role = 'seller'
-            else:
-                exit()
-        else:
-            print("Trade exists, run script as buyer or seller to complete trade.")
-            exit()
-
-    if htlcTrade.buy is not None and htlcTrade.sell is not None:
-        if htlcTrade.sell.get_status() == 'redeemed' and htlcTrade.buy.get_status() == 'redeemed':
-            print("This trade is already complete! Trade details:")
-            pprint(trade)
-            exit()
-
-    if role == "seller":
-        if htlcTrade.sell == None:
-            seller_initiate(htlcTrade)
-        elif htlcTrade.buy.get_status() == 'funded':
-            seller_redeem(htlcTrade)
-        elif htlcTrade.buy.get_status() == 'empty':
-            print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(htlcTrade.buy.currency))
-    else:
-        # Need better way of preventing buyer from having secret
-        # if 'status' not in trade['buy'] and trade['sell']['status'] == 'funded':
-        if htlcTrade.sell.get_status() == 'funded' and htlcTrade.buy.get_status() != 'redeemed':
-            print("One active trade available, fulfilling buyer contract...")
-            buyer_fulfill(htlcTrade)
-            # How to monitor if txs are included in blocks -- should use blocknotify and a monitor daemon?
-            # p2sh = trade['buy']['p2sh']
-            # check_blocks(p2sh)
-        elif htlcTrade.buy.get_status() == 'redeemed':
-            # Seller has redeemed buyer's tx, buyer can now redeem.
-            buyer_redeem(htlcTrade)
-            print("XCAT trade complete!")
-
-        # Note: there is some little endian weirdness in the bXcat and zXcat files, need to handle the endianness of txids better & more consistently

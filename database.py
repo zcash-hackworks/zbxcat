@@ -8,9 +8,9 @@ db = plyvel.DB('/tmp/testdb', create_if_missing=True)
 
 trade = get_trade()
 ## txid we retrieve by
-if trade and 'sell' in trade:
-    if 'fund_tx' in trade['sell']:
-        txid = trade['sell']['fund_tx']
+if trade and trade.sell:
+    if hasattr(trade.sell, 'fund_tx'):
+        txid = trade.sell.fund_tx
 
 # Takes object, saves json as bytes
 def create(trade):
