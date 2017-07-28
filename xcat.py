@@ -18,6 +18,7 @@ def check_p2sh(currency, address):
         return zXcat.check_funds(address)
 
 def create_htlc(currency, funder, redeemer, commitment, locktime):
+    print("Commitment in create_htlc", commitment)
     if currency == 'bitcoin':
         sell_p2sh = bXcat.hashtimelockcontract(funder, redeemer, commitment, locktime)
     else:
@@ -57,6 +58,7 @@ def create_sell_p2sh(trade, commitment, locktime):
     setattr(trade.sell, 'p2sh', contract['p2sh'])
     setattr(trade.sell, 'redeemScript', contract['redeemScript'])
     setattr(trade.sell, 'redeemblocknum', contract['redeemblocknum'])
+    setattr(trade.buy, 'locktime', contract['locktime'])
     save(trade)
 
 def create_buy_p2sh(trade, commitment, locktime):
@@ -70,6 +72,7 @@ def create_buy_p2sh(trade, commitment, locktime):
     setattr(trade.buy, 'p2sh', buy_contract['p2sh'])
     setattr(trade.buy, 'redeemScript', buy_contract['redeemScript'])
     setattr(trade.buy, 'redeemblocknum', buy_contract['redeemblocknum'])
+    setattr(trade.buy, 'locktime', buy_contract['locktime'])
     print("Now contact the buyer and tell them to send funds to this p2sh: ", trade.buy.p2sh)
 
     save(trade)
@@ -149,7 +152,7 @@ def buyer_fulfill(trade):
         print("Please wait for the seller to remove your funds from escrow to complete the trade.")
     print_trade('buyer')
 
-def seller_initiate(trade):
+def seller_init(trade):
     # Get amounts
     amounts = userInput.get_trade_amounts()
     sell = amounts['sell']
@@ -183,7 +186,8 @@ def seller_initiate(trade):
     txid = fund_sell_contract(trade)
     print("Sent")
 
-    create_buy_p2sh(trade, secret, buy_locktime)
+    create_buy_p2sh(trade, hash_of_secret, buy_locktime)
 
     trade.commitment = b2x(hash_of_secret)
+    print("TRADE after seller init", trade.toJSON())
     return trade

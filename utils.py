@@ -95,7 +95,7 @@ def get_trade():
             xcatdb = json.load(data_file)
             sell = trades.Contract(xcatdb['sell'])
             buy = trades.Contract(xcatdb['buy'])
-            trade = trades.Trade(sell, buy)
+            trade = trades.Trade(sell, buy, commitment=xcatdb['commitment'])
             return trade
     except:
         return None
@@ -108,44 +108,7 @@ def save(trade):
     print("Saving trade")
     trade = {
     'sell': trade.sell.__dict__,
-    'buy': trade.buy.__dict__
+    'buy': trade.buy.__dict__,
+    'commitment': trade.commitment
     }
     save_trade(trade)
-
-
-#############################################
-######### Ariel's changes     ###############
-#############################################
-
-
-def save_seller_trade(trade):
-    with open('sellertrade.json', 'w') as outfile:
-        json.dump(jsonformat(trade), outfile)
-
-def save_buyer_trade(trade):
-    with open('buyertrade.json', 'w') as outfile:
-        json.dump(jsonformat(trade), outfile)
-
-def save_init(trade):
-    with open('init.json', 'w') as outfile:
-        json.dump(jsonformat(trade), outfile)
-
-def get_seller_trade():
-    data_file = open('init.json', 'w+')
-    # try:
-    xcatdb = json.load(data_file)
-    sell = trades.Contract(xcatdb['sell'])
-    buyContract = trades.Contract(xcatdb['buy'])
-    trade = trades.Trade(sell,buyContract)
-
-    return trade
-
-def get_buyer_trade():
-    with open('buyertrade.json') as data_file:
-    # try:
-        xcatdb = json.load(data_file)
-        sell = trades.Contract(xcatdb['sell'])
-        buyContract = trades.Contract(xcatdb['buy'])
-        trade = trades.Trade(sell,buyContract)
-
-        return trade

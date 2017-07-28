@@ -14,7 +14,7 @@ class Trade(object):
 class Contract(object):
     def __init__(self, data):
         # Keep track of funding and redeem tx?
-        allowed = ('fulfiller', 'initiator', 'currency', 'p2sh', 'amount', 'fund_tx', 'redeem_tx', 'secret', 'redeemScript', 'redeemblocknum')
+        allowed = ('fulfiller', 'initiator', 'currency', 'p2sh', 'amount', 'fund_tx', 'redeem_tx', 'secret', 'redeemScript', 'redeemblocknum', 'locktime')
         for key in data:
             if key in allowed:
                 setattr(self, key, data[key])
@@ -30,5 +30,3 @@ class Contract(object):
             return 'funded'
         else:
             return 'empty'
-
-# other classes; transactions? users?

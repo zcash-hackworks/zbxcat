@@ -22,15 +22,18 @@ def checkSellStatus(trade):
     elif trade.buy.get_status() == 'redeemed':
         print("You have already redeemed the p2sh on the second chain of this trade.")
 
-
+# TODO: function to calculate appropriate locktimes between chains
 def checkBuyStatus(trade):
     if trade.sell.get_status() == 'funded' and trade.buy.get_status() != 'redeemed':
         print("One active trade available, fulfilling buyer contract...")
         # they should calculate redeemScript for themselves
+        print("Trade commitment", trade.commitment)
+        # TODO: which block to start computation from?
         htlc = create_htlc(trade.buy.currency, trade.buy.fulfiller, trade.buy.initiator, trade.commitment, trade.buy.locktime)
-        print("Buyer p2sh:", htlc['p2sh'])
+        buyer_p2sh = htlc['p2sh']
+        print("Buyer p2sh:", buyer_p2sh)
         # If the two p2sh match...
-        if buyer_p2sh == contract.buy.p2sh:
+        if buyer_p2sh == trade.buy.p2sh:
             fund_tx = fund_contract(trade.buy)
             trade.buy.fund_tx = fund_tx
             print("trade buy with redeemscript?", trade.buy.__dict__)
@@ -91,7 +94,7 @@ if __name__ == '__main__':
         erase_trade()
         role = 'seller'
         print("Creating new XCAT trade...")
-        trade = seller_initiate(Trade())
+        trade = seller_init(Trade())
         # Save it to leveldb
         db.create(trade)
     elif command == "daemon":
@@ -106,7 +109,7 @@ if __name__ == '__main__':
     elif command == "step1":
         erase_trade()
         print("Creating new XCAT trade...")
-        trade = seller_initiate(Trade())
+        trade = seller_init(Trade())
         # Save it to leveldb
         save_state(trade)
     elif command == "step2":

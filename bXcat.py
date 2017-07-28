@@ -20,12 +20,13 @@ import zcash
 import zcash.rpc
 import pprint, json
 
+from zXcat import parse_script
+
 # SelectParams('testnet')
 SelectParams('regtest')
 bitcoind = bitcoin.rpc.Proxy()
 FEE = 0.001*COIN
 
-zcashd = zcash.rpc.Proxy()
 
 def validateaddress(addr):
     return bitcoind.validateaddress(addr)
@@ -50,12 +51,15 @@ def privkey(address):
 def hashtimelockcontract(funder, redeemer, commitment, locktime):
     funderAddr = CBitcoinAddress(funder)
     redeemerAddr = CBitcoinAddress(redeemer)
+    if type(commitment) == str:
+        commitment = x(commitment)
     # h = sha256(secret)
     blocknum = bitcoind.getblockcount()
     print("Current blocknum", blocknum)
     redeemblocknum = blocknum + locktime
     print("REDEEMBLOCKNUM BITCOIN", redeemblocknum)
-    redeemScript = CScript([OP_IF, OP_SHA256, x(commitment), OP_EQUALVERIFY,OP_DUP, OP_HASH160,
+    print("COMMITMENT", commitment)
+    redeemScript = CScript([OP_IF, OP_SHA256, commitment, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
                                  redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
                                  funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
     print("Redeem script for p2sh contract on Bitcoin blockchain:", b2x(redeemScript))
@@ -63,7 +67,8 @@ def hashtimelockcontract(funder, redeemer, commitment, locktime):
     # Convert the P2SH scriptPubKey to a base58 Bitcoin address
     txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
     p2sh = str(txin_p2sh_address)
-    return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'redeemScript': b2x(redeemScript), 'redeemer': redeemer, 'funder': funder}
+    print("p2sh computed", p2sh)
+    return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'redeemScript': b2x(redeemScript), 'redeemer': redeemer, 'funder': funder, 'locktime': locktime}
 
 def fund_htlc(p2sh, amount):
     send_amount = float(amount) * COIN
@@ -111,8 +116,8 @@ def auto_redeem(contract, secret):
     print("Parsing script for auto_redeem...")
     scriptarray = parse_script(contract.redeemScript)
     redeemblocknum = scriptarray[8]
-    redeemPubkey = scriptarray[6]
-    refundPubkey = scriptarray[13]
+    redeemPubKey = P2PKHBitcoinAddress.from_bytes(x(scriptarray[6]))
+    refundPubKey = P2PKHBitcoinAddress.from_bytes(x(scriptarray[13]))
     # How to find redeemScript and redeemblocknum from blockchain?
     print("Contract in auto redeem", contract.__dict__)
     p2sh = contract.p2sh
@@ -132,12 +137,13 @@ def auto_redeem(contract, secret):
         # redeemblocknum = find_redeemblocknum(contract)
         blockcount = bitcoind.getblockcount()
         print("\nCurrent blocknum at time of redeem on Bitcoin:", blockcount)
-        if blockcount < redeemblocknum:
+        if blockcount < int(redeemblocknum):
             # redeemPubKey = find_redeemAddr(contract)
             print('redeemPubKey', redeemPubKey)
         else:
             print("nLocktime exceeded, refunding")
-            redeemPubKey = find_refundAddr(contract)
+            # refundPubKey = find_refundAddr(contract)
+            redeemPubKey = refundPubkey
             print('refundPubKey', redeemPubKey)
         # redeemPubKey = CBitcoinAddress.from_scriptPubKey(redeemPubKey)
         # exit()
@@ -150,7 +156,7 @@ def auto_redeem(contract, secret):
         # nLockTime needs to be at least as large as parameter of CHECKLOCKTIMEVERIFY for script to verify
         # TODO: these things like redeemblocknum should really be properties of a tx class...
         # Need: redeemblocknum, zec_redeemScript, secret (for creator...), txid, redeemer...
-        if blockcount >= redeemblocknum:
+        if blockcount >= int(redeemblocknum):
             print("\nLocktime exceeded")
             tx.nLockTime = redeemblocknum  # Ariel: This is only needed when redeeming with the timelock
         sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
@@ -233,13 +239,6 @@ def redeem_contract(contract, secret):
             return 'refund_tx', b2x(lx(b2x(txid)))
     else:
         print("No contract for this p2sh found in database", p2sh)
-
-# takes hex and returns array of decoded script op codes
-# This seems to be a costly operation, minimize frequency of calls.
-def parse_script(script_hex):
-    redeemScript = zcashd.decodescript(script_hex)
-    scriptarray = redeemScript['asm'].split(' ')
-    return scriptarray
 
 def find_redeemblocknum(contract):
     scriptarray = parse_script(contract.redeemScript)

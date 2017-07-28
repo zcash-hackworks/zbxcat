@@ -39,13 +39,16 @@ def privkey(address):
 def hashtimelockcontract(funder, redeemer, commitment, locktime):
     funderAddr = CBitcoinAddress(funder)
     redeemerAddr = CBitcoinAddress(redeemer)
+    if type(commitment) == str:
+        commitment = x(commitment)
     # h = sha256(secret)
     blocknum = zcashd.getblockcount()
     print("Current blocknum", blocknum)
     redeemblocknum = blocknum + locktime
     print("REDEEMBLOCKNUM ZCASH", redeemblocknum)
+    print("COMMITMENT on zxcat", commitment)
     # can rm op_dup and op_hash160 if you replace addrs with pubkeys (as raw hex/bin data?), and can rm last op_equalverify (for direct pubkey comparison)
-    zec_redeemScript = CScript([OP_IF, OP_SHA256, x(commitment), OP_EQUALVERIFY,OP_DUP, OP_HASH160,
+    zec_redeemScript = CScript([OP_IF, OP_SHA256, commitment, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
                                  redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
                                  funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
     print("Redeem script for p2sh contract on Zcash blockchain:", b2x(zec_redeemScript))
@@ -53,8 +56,9 @@ def hashtimelockcontract(funder, redeemer, commitment, locktime):
     # Convert the P2SH scriptPubKey to a base58 Bitcoin address
     txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
     p2sh = str(txin_p2sh_address)
+    print("p2sh computed", p2sh)
     # Returning all this to be saved locally in p2sh.json
-    return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'redeemScript': b2x(zec_redeemScript), 'redeemer': redeemer, 'funder': funder}
+    return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'redeemScript': b2x(zec_redeemScript), 'redeemer': redeemer, 'funder': funder, 'locktime': locktime}
 
 def fund_htlc(p2sh, amount):
     send_amount = float(amount)*COIN
@@ -206,7 +210,7 @@ def redeem_contract(contract, secret):
         # redeemblocknum = find_redeemblocknum(contract)
         blockcount = zcashd.getblockcount()
         print("\nCurrent blocknum at time of redeem on Zcash:", blockcount)
-        if blockcount < contract.d:
+        if blockcount < contract.redeemblocknum:
             # TODO: parse the script once, up front.
             redeemPubKey = find_redeemAddr(contract)
 
