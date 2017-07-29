@@ -83,12 +83,9 @@ def save_secret(secret):
 #############################################
 
 def instantiate(tradedata):
-    print("tradedata", tradedata)
     if type(tradedata) == dict:
         string = str(tradedata)
-        print("STRING", string)
         tradedata = json.loads(ast.literal_eval(tradedata))
-        print("@", tradedata)
     elif type(tradedata) == hex:
         hexstr = x2s(tradedata)
         tradedata = ast.literal_eval(hexstr)

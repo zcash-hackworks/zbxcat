@@ -7,7 +7,7 @@ import xcat.zcashRPC
 import xcat.bitcoinRPC
 from xcat.utils import *
 from xcat.trades import Contract, Trade
-import xcat.userInput
+import xcat.userInput as userInput
 
 def check_p2sh(currency, address):
     if currency == 'bitcoin':

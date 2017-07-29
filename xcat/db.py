@@ -6,9 +6,12 @@ import json
 
 db = plyvel.DB('/tmp/testdb', create_if_missing=True)
 
-# Takes object, saves json as bytes
+# Takes dict or obj, saves json str as bytes
 def create(trade, tradeid):
-    trade = trade.toJSON()
+    if type(trade) == dict:
+        trade = json.dumps(trade)
+    else:
+        trade = trade.toJSON()
     db.put(b(tradeid), b(trade))
 
 #  Uses the funding txid as the key to save trade

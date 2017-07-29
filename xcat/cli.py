@@ -1,9 +1,9 @@
 import argparse, textwrap
 from xcat.utils import *
-import xcat.database as db
+import xcat.db as db
 import xcat.bitcoinRPC
 import xcat.zcashRPC
-import xcat.userInput
+import xcat.userInput 
 from xcat.trades import *
 from xcat.protocol import *
 
@@ -51,17 +51,21 @@ def checkBuyStatus(trade):
         print("XCAT trade complete!")
 
 # Import a trade in hex, and save to db
-def importtrade(hexstr):
+def importtrade(hexstr, tradeid=None):
+    print('importing trade')
+    trade = x2s(hexstr)
     trade = instantiate(trade)
-    save_state(trade)
+    save_state(trade, tradeid)
+    return trade
 
 # Export a trade by its tradeid
 def exporttrade(tradeid):
     # trade = get_trade()
     trade  = db.get(tradeid)
-    hexstr = s2x(str(trade))
-    print(trade)
+    hexstr = s2x(trade.toJSON())
+    print(trade.toJSON())
     print(hexstr)
+    return hexstr
 
 def newtrade(tradeid):
     erase_trade()
@@ -79,8 +83,8 @@ def main():
                 == Trades ==
                 newtrade - create a new trade
                 checktrades - check for actions to be taken on existing trades
-                importtrade "hexstr" - import an existing trade from a hex string
-                exporttrade - export the data of an existing trade as a hex string. Takes the tradeid as an argument
+                importtrade "hexstr" "tradeid" - import an existing trade from a hex string and save by a unique tradid
+                exporttrade "tradeid" - export the data of an existing trade as a hex string. Takes the tradeid as an argument
                 findtrade - find a trade by the txid of the currency being traded out of
 
                 '''))
@@ -89,13 +93,18 @@ def main():
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     # TODO: function to view available trades
     # TODO: function to tell if tradeid already exists for newtrade
+    # TODO: If no tradeid provided, save by funding txid
     args = parser.parse_args()
 
     # how to hold state of role
     command = args.command
     if command == 'importtrade':
         hexstr = args.argument[0]
-        importtrade(hexstr)
+        try:
+            tradeid = args.argument[1]
+        except:
+            tradeid = None
+        importtrade(hexstr, tradeid)
     elif command == 'exporttrade':
         tradeid = args.argument[0]
         exporttrade(tradeid)
