@@ -1,16 +1,10 @@
 import plyvel
-from .utils import *
+from xcat.utils import *
 import binascii
 import sys
 import json
 
 db = plyvel.DB('/tmp/testdb', create_if_missing=True)
-
-# trade = get_trade()
-# ## txid we retrieve by
-# if trade and trade.sell:
-#     if hasattr(trade.sell, 'fund_tx'):
-#         txid = trade.sell.fund_tx
 
 # Takes object, saves json as bytes
 def create(trade, tradeid):
@@ -26,14 +20,19 @@ def createByFundtx(trade):
     db.put(b(txid), b(trade))
 
 def get(txid):
-    return db.get(b(txid))
+    rawtrade = db.get(b(txid))
+    tradestr = x2s(b2x(rawtrade))
+    trade = instantiate(tradestr)
+    return trade
 
 # db.delete(b'hello')
-db.get(b'test')
+# testtrade = get('test')
+# testtrade = instantiate(testtrade)
+# print(testtrade)
 
 # hexstr = get(txid)
 # print(x2s(hexstr))
-#
+
 def print_entries():
     it = db.iterator()
     with db.iterator() as it:

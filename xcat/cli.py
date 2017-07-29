@@ -6,7 +6,6 @@ import xcat.zcashRPC
 import xcat.userInput
 from xcat.trades import *
 from xcat.protocol import *
-import ast
 
 def save_state(trade, tradeid):
     save(trade)
@@ -53,8 +52,7 @@ def checkBuyStatus(trade):
 
 # Import a trade in hex, and save to db
 def importtrade(hexstr):
-    trade = x2s(hexstr)
-    trade = instantiateTrade(ast.literal_eval(trade))
+    trade = instantiate(trade)
     save_state(trade)
 
 # Export a trade by its tradeid
@@ -74,8 +72,6 @@ def newtrade(tradeid):
     # db.create(trade)
     save_state(trade, tradeid)
 
-def instantiateTrade(trade):
-    return Trade(buy=Contract(trade['buy']), sell=Contract(trade['sell']))
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
@@ -105,7 +101,7 @@ def main():
         exporttrade(tradeid)
     elif command == 'checktrades':
         trade = get_trade()
-        trade = instantiateTrade(trade)
+        trade = instantiate(trade)
         if find_role(trade.sell) == 'initiator':
             role = 'seller'
             checkSellStatus(trade)

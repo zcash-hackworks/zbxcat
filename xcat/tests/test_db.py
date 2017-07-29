@@ -15,7 +15,11 @@ class DatabaseTest(unittest.TestCase):
 
     def test_get(self):
         trade = db.get('test')
-        print("Trade")
+        tradejson = json.loads(trade.toJSON())
+        datajson = json.loads(json.dumps(self.data))
+        self.assertEqual(datajson['sell'], tradejson['sell'])
+        self.assertEqual(datajson['buy'], tradejson['buy'])
+        self.assertEqual(datajson['commitment'], tradejson['commitment'])
 
 if __name__ == '__main__':
     unittest.main()
