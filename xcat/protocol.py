@@ -1,35 +1,35 @@
-import zXcat
-import bXcat
-from utils import *
 from waiting import *
 from time import sleep
 import json
 import os, sys
 from pprint import pprint
-from trades import Contract, Trade
-import userInput
+import xcat.zcashRPC
+import xcat.bitcoinRPC
+from xcat.utils import *
+from xcat.trades import Contract, Trade
+import xcat.userInput
 
 def check_p2sh(currency, address):
     if currency == 'bitcoin':
         print("Checking funds in Bitcoin p2sh")
-        return bXcat.check_funds(address)
+        return bitcoinRPC.check_funds(address)
     else:
         print("Checking funds in Zcash p2sh")
-        return zXcat.check_funds(address)
+        return zcashRPC.check_funds(address)
 
 def create_htlc(currency, funder, redeemer, commitment, locktime):
     print("Commitment in create_htlc", commitment)
     if currency == 'bitcoin':
-        sell_p2sh = bXcat.hashtimelockcontract(funder, redeemer, commitment, locktime)
+        sell_p2sh = bitcoinRPC.hashtimelockcontract(funder, redeemer, commitment, locktime)
     else:
-        sell_p2sh = zXcat.hashtimelockcontract(funder, redeemer, commitment, locktime)
+        sell_p2sh = zcashRPC.hashtimelockcontract(funder, redeemer, commitment, locktime)
     return sell_p2sh
 
 def fund_htlc(currency, p2sh, amount):
     if currency == 'bitcoin':
-        txid = bXcat.fund_htlc(p2sh, amount)
+        txid = bitcoinRPC.fund_htlc(p2sh, amount)
     else:
-        txid = zXcat.fund_htlc(p2sh, amount)
+        txid = zcashRPC.fund_htlc(p2sh, amount)
     return txid
 #
 # def fund_buy_contract(trade):
@@ -80,25 +80,25 @@ def create_buy_p2sh(trade, commitment, locktime):
 def auto_redeem_p2sh(contract, secret):
     currency = contract.currency
     if currency == 'bitcoin':
-        res = bXcat.auto_redeem(contract, secret)
+        res = bitcoinRPC.auto_redeem(contract, secret)
     else:
-        res = zXcat.auto_redeem(contract, secret)
+        res = zcashRPC.auto_redeem(contract, secret)
     return res
 
 
 def redeem_p2sh(contract, secret):
     currency = contract.currency
     if currency == 'bitcoin':
-        res = bXcat.redeem_contract(contract, secret)
+        res = bitcoinRPC.redeem_contract(contract, secret)
     else:
-        res = zXcat.redeem_contract(contract, secret)
+        res = zcashRPC.redeem_contract(contract, secret)
     return res
 
 def parse_secret(chain, txid):
     if chain == 'bitcoin':
-        secret = bXcat.parse_secret(txid)
+        secret = bitcoinRPC.parse_secret(txid)
     else:
-        secret = zXcat.parse_secret(txid)
+        secret = zcashRPC.parse_secret(txid)
 
 ####  Main functions determining user flow from command line
 def buyer_redeem(trade):
@@ -112,9 +112,9 @@ def buyer_redeem(trade):
         currency = trade.sell.currency
         # Buy contract is where seller disclosed secret in redeeming
         if trade.buy.currency == 'bitcoin':
-            secret = bXcat.parse_secret(trade.buy.redeem_tx)
+            secret = bitcoinRPC.parse_secret(trade.buy.redeem_tx)
         else:
-            secret = zXcat.parse_secret(trade.buy.redeem_tx)
+            secret = zcashRPC.parse_secret(trade.buy.redeem_tx)
         print("Found secret in seller's redeem tx", secret)
         redeem_tx = redeem_p2sh(trade.sell, secret)
         setattr(trade.sell, 'redeem_tx', redeem_tx)

@@ -1,14 +1,16 @@
 import argparse, textwrap
-from utils import *
-import database as db
-import bXcat, zXcat
-from trades import *
-from xcat import *
+from xcat.utils import *
+import xcat.database as db
+import xcat.bitcoinRPC
+import xcat.zcashRPC
+import xcat.userInput
+from xcat.trades import *
+from xcat.protocol import *
 import ast
 
-def save_state(trade):
+def save_state(trade, tradeid):
     save(trade)
-    db.create
+    db.create(trade, tradeid)
 
 def checkSellStatus(trade):
     if trade.buy.get_status() == 'funded':
@@ -49,38 +51,58 @@ def checkBuyStatus(trade):
         print("TXID after buyer redeem", txid)
         print("XCAT trade complete!")
 
+# Import a trade in hex, and save to db
+def importtrade(hexstr):
+    trade = x2s(hexstr)
+    trade = instantiateTrade(ast.literal_eval(trade))
+    save_state(trade)
+
+# Export a trade by its tradeid
+def exporttrade(tradeid):
+    # trade = get_trade()
+    trade  = db.get(tradeid)
+    hexstr = s2x(str(trade))
+    print(trade)
+    print(hexstr)
+
+def newtrade(tradeid):
+    erase_trade()
+    role = 'seller'
+    print("Creating new XCAT trade...")
+    trade = seller_init(Trade())
+    # Save it to leveldb
+    # db.create(trade)
+    save_state(trade, tradeid)
+
 def instantiateTrade(trade):
     return Trade(buy=Contract(trade['buy']), sell=Contract(trade['sell']))
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
         description=textwrap.dedent('''\
                 == Trades ==
                 newtrade - create a new trade
                 checktrades - check for actions to be taken on existing trades
                 importtrade "hexstr" - import an existing trade from a hex string
-                exporttrade - export the data of an existing xcat trade as a hex string
+                exporttrade - export the data of an existing trade as a hex string. Takes the tradeid as an argument
                 findtrade - find a trade by the txid of the currency being traded out of
 
                 '''))
     parser.add_argument("command", action="store", help="list commands")
     parser.add_argument("argument", action="store", nargs="*", help="add an argument")
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
+    # TODO: function to view available trades
+    # TODO: function to tell if tradeid already exists for newtrade
     args = parser.parse_args()
 
     # how to hold state of role
     command = args.command
     if command == 'importtrade':
         hexstr = args.argument[0]
-        trade = x2s(hexstr)
-        trade = instantiateTrade(ast.literal_eval(trade))
-        save_state(trade)
-        # print(trade.toJ)
+        importtrade(hexstr)
     elif command == 'exporttrade':
-        trade = get_trade()
-        hexstr = s2x(str(trade))
-        print(trade)
-        print(hexstr)
+        tradeid = args.argument[0]
+        exporttrade(tradeid)
     elif command == 'checktrades':
         trade = get_trade()
         trade = instantiateTrade(trade)
@@ -91,12 +113,12 @@ if __name__ == '__main__':
             role = 'buyer'
             checkBuyStatus(trade)
     elif command == 'newtrade':
-        erase_trade()
-        role = 'seller'
-        print("Creating new XCAT trade...")
-        trade = seller_init(Trade())
-        # Save it to leveldb
-        db.create(trade)
+        try:
+            tradeid = args.argument[0]
+            newtrade(tradeid)
+        except:
+            tradeid = userInput.enter_trade_id()
+            newtrade(tradeid)
     elif command == "daemon":
         #TODO: implement
         print("Run as daemon process")

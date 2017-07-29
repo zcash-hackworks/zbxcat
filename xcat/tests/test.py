@@ -1,5 +1,5 @@
-import zXcat
-import bXcat
+import xcat.zcash
+import xcat.bitcoin
 from xcat import *
 
 htlcTrade = Trade()

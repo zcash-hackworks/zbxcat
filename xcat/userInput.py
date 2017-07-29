@@ -1,4 +1,8 @@
-from utils import *
+from xcat.utils import *
+
+def enter_trade_id():
+    tradeid = input("Enter a unique identifier for this trade: ")
+    return tradeid
 
 def get_trade_amounts():
     amounts = {}

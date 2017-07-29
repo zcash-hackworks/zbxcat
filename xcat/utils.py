@@ -1,5 +1,5 @@
 import hashlib, json, random, binascii
-import trades
+import xcat.trades
 
 ############################################
 ########### Data conversion utils ##########

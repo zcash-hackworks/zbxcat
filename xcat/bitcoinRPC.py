@@ -14,13 +14,13 @@ from bitcoin.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HA
 from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2PKHBitcoinAddress
 
-from utils import *
+from xcat.utils import *
 
 import zcash
 import zcash.rpc
 import pprint, json
 
-from zXcat import parse_script
+from xcat.zcashRPC import parse_script
 
 # SelectParams('testnet')
 SelectParams('regtest')
