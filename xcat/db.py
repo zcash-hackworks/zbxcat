@@ -3,6 +3,8 @@ from xcat.utils import *
 import binascii
 import sys
 import json
+import ast
+from xcat.trades import *
 
 db = plyvel.DB('/tmp/testdb', create_if_missing=True)
 
@@ -24,14 +26,25 @@ def createByFundtx(trade):
 
 def get(txid):
     rawtrade = db.get(b(txid))
-    tradestr = x2s(b2x(rawtrade))
+    tradestr = str(rawtrade, 'utf-8')
     trade = instantiate(tradestr)
     return trade
 
+def instantiate(trade):
+    if type(trade) == str:
+        print(type(trade))
+        tradestr = json.loads(trade)
+        print(tradestr)
+        trade = Trade(buy=Contract(tradestr['buy']), sell=Contract(tradestr['sell']), commitment=tradestr['commitment'])
+        print(trade)
+        return trade
+
+
+
 # db.delete(b'hello')
-# testtrade = get('test')
-# testtrade = instantiate(testtrade)
-# print(testtrade)
+testtrade = get('test')
+testtrade = instantiate(testtrade)
+print(testtrade)
 
 # hexstr = get(txid)
 # print(x2s(hexstr))

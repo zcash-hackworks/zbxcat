@@ -50,11 +50,11 @@ def authorize_fund_sell(htlcTrade):
 def get_initiator_addresses():
     btc_addr = input("Enter your bitcoin address: ")
     # btc_addr = bXcat.new_bitcoin_addr()
-    btc_addr = 'myfFr5twPYNwgeXyjCmGcrzXtCmfmWXKYp'
+    btc_addr = 'mihDbm4QGzDUqYtjAaq71RSjXeA1ptDpkY'
     print(btc_addr)
     zec_addr = input("Enter your zcash address: ")
     # zec_addr = zXcat.new_zcash_addr()
-    zec_addr = 'tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ'
+    zec_addr = 'tmCDNXibkr2QoG7QxtwqeyfYcXBBZoqUwQm'
     print(zec_addr)
     addresses = {'bitcoin': btc_addr, 'zcash': zec_addr}
     return addresses
@@ -62,11 +62,11 @@ def get_initiator_addresses():
 def get_fulfiller_addresses():
     btc_addr = input("Enter the bitcoin address of the party you want to trade with: ")
     # btc_addr = bXcat.new_bitcoin_addr()
-    btc_addr = 'mrQzUGU1dwsWRx5gsKKSDPNtrsP65vCA3Z'
+    btc_addr = 'mk8k2dpYEGpffbr6JtDg1797prTM9UTTaw'
     print(btc_addr)
     zec_addr = input("Enter the zcash address of the party you want to trade with: ")
     # zec_addr = zXcat.new_zcash_addr()
-    zec_addr = 'tmTjZSg4pX2Us6V5HttiwFZwj464fD2ZgpY'
+    zec_addr = 'tmAz1aYqBzqvRnhCdp38e8q45rkJZTERGh9'
     print(zec_addr)
     addresses = {'bitcoin': btc_addr, 'zcash': zec_addr}
     return addresses

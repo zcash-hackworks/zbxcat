@@ -12,20 +12,22 @@ def save_state(trade, tradeid):
     save(trade)
     db.create(trade, tradeid)
 
-def checkSellStatus(trade):
+def checkSellStatus(tradeid):
+    trade = db.get(tradeid)
     if trade.buy.get_status() == 'funded':
         secret = get_secret()
         print("SECRET found in checksellactions", secret)
         trade = seller_redeem_p2sh(trade, secret)
         print("TRADE SUCCESSFULLY REDEEMED", trade)
-        save_state(trade)
+        save_state(trade, tradeid)
     elif trade.buy.get_status() == 'empty':
         print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade.buy.currency))
     elif trade.buy.get_status() == 'redeemed':
         print("You have already redeemed the p2sh on the second chain of this trade.")
 
 # TODO: function to calculate appropriate locktimes between chains
-def checkBuyStatus(trade):
+def checkBuyStatus(tradeid):
+    trade = db.get(tradeid)
     if trade.sell.get_status() == 'funded' and trade.buy.get_status() != 'redeemed':
         print("One active trade available, fulfilling buyer contract...")
         # they should calculate redeemScript for themselves
@@ -39,7 +41,7 @@ def checkBuyStatus(trade):
             fund_tx = fund_contract(trade.buy)
             trade.buy.fund_tx = fund_tx
             print("trade buy with redeemscript?", trade.buy.__dict__)
-            save_state(trade)
+            save_state(trade, tradeid)
         else:
             print("Compiled p2sh for htlc does not match what seller sent.")
     elif trade.buy.get_status() == 'redeemed':
@@ -141,12 +143,10 @@ def main():
     elif command == "step2":
         # trade = get_trade()
         tradeid = args.argument[0]
-        trade = db.get(tradeid)
-        print(trade)
-        checkBuyStatus(trade)
+        checkBuyStatus(tradeid)
     elif command == "step3":
-        trade = get_trade()
-        checkSellStatus(trade)
+        tradeid = args.argument[0]
+        checkSellStatus(tradeid)
     elif command == "step4":
-        trade = get_trade()
-        checkBuyStatus(trade)
+        tradeid = args.argument[0]
+        checkBuyStatus(tradeid)
