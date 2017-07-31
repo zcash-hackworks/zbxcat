@@ -1,5 +1,3 @@
-from waiting import *
-from time import sleep
 import json
 import os, sys
 from pprint import pprint
@@ -7,7 +5,7 @@ import xcat.zcashRPC
 import xcat.bitcoinRPC
 from xcat.utils import *
 from xcat.trades import Contract, Trade
-import xcat.userInput as userInput
+import xcat.userInput
 
 def check_p2sh(currency, address):
     if currency == 'bitcoin':

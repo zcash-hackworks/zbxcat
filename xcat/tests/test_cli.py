@@ -14,8 +14,11 @@ class CliTest(SimpleTestCase):
     def test_importtrade(self):
         trade = cli.importtrade(self.hexstr, 'test')
 
-    def test_newtrade(self):
-        cli.newtrade('test2')
+    def test_findtrade(self):
+        trade = cli.findtrade('test')
+
+    # def test_newtrade(self):
+    #     cli.newtrade('test2')
 
 if __name__ == '__main__':
     unittest.main()

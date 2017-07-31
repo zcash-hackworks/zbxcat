@@ -3,9 +3,10 @@ from xcat.utils import *
 import xcat.db as db
 import xcat.bitcoinRPC
 import xcat.zcashRPC
-import xcat.userInput 
+import xcat.userInput
 from xcat.trades import *
 from xcat.protocol import *
+import ast
 
 def save_state(trade, tradeid):
     save(trade)
@@ -51,21 +52,22 @@ def checkBuyStatus(trade):
         print("XCAT trade complete!")
 
 # Import a trade in hex, and save to db
-def importtrade(hexstr, tradeid=None):
-    print('importing trade')
+def importtrade(hexstr):
     trade = x2s(hexstr)
-    trade = instantiate(trade)
-    save_state(trade, tradeid)
-    return trade
+    trade = instantiateTrade(ast.literal_eval(trade))
+    save_state(trade)
 
 # Export a trade by its tradeid
 def exporttrade(tradeid):
     # trade = get_trade()
     trade  = db.get(tradeid)
-    hexstr = s2x(trade.toJSON())
-    print(trade.toJSON())
+    hexstr = s2x(str(trade))
+    print(trade)
     print(hexstr)
-    return hexstr
+
+def findtrade(key):
+    trade = db.get(key)
+    print(x2s(b2x(trade)))
 
 def newtrade(tradeid):
     erase_trade()
@@ -76,6 +78,8 @@ def newtrade(tradeid):
     # db.create(trade)
     save_state(trade, tradeid)
 
+def instantiateTrade(trade):
+    return Trade(buy=Contract(trade['buy']), sell=Contract(trade['sell']))
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
@@ -83,8 +87,8 @@ def main():
                 == Trades ==
                 newtrade - create a new trade
                 checktrades - check for actions to be taken on existing trades
-                importtrade "hexstr" "tradeid" - import an existing trade from a hex string and save by a unique tradid
-                exporttrade "tradeid" - export the data of an existing trade as a hex string. Takes the tradeid as an argument
+                importtrade "hexstr" - import an existing trade from a hex string
+                exporttrade - export the data of an existing trade as a hex string. Takes the tradeid as an argument
                 findtrade - find a trade by the txid of the currency being traded out of
 
                 '''))
@@ -93,24 +97,23 @@ def main():
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     # TODO: function to view available trades
     # TODO: function to tell if tradeid already exists for newtrade
-    # TODO: If no tradeid provided, save by funding txid
     args = parser.parse_args()
 
     # how to hold state of role
     command = args.command
     if command == 'importtrade':
         hexstr = args.argument[0]
-        try:
-            tradeid = args.argument[1]
-        except:
-            tradeid = None
-        importtrade(hexstr, tradeid)
+        importtrade(hexstr)
     elif command == 'exporttrade':
         tradeid = args.argument[0]
         exporttrade(tradeid)
+    elif command == "findtrade":
+        print("Finding trade")
+        key = args.argument[0]
+        find_trade(key)
     elif command == 'checktrades':
         trade = get_trade()
-        trade = instantiate(trade)
+        trade = instantiateTrade(trade)
         if find_role(trade.sell) == 'initiator':
             role = 'seller'
             checkSellStatus(trade)
@@ -127,11 +130,6 @@ def main():
     elif command == "daemon":
         #TODO: implement
         print("Run as daemon process")
-    elif command == "findtrade":
-        print("Finding trade")
-        txid = args.argument[0]
-        trade = db.get(txid)
-        print(x2s(b2x(trade)))
     # Ad hoc testing starts here
     elif command == "step1":
         erase_trade()
