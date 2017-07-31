@@ -1,4 +1,4 @@
-import hashlib, json, random, binascii, ast
+import hashlib, json, random, binascii
 import xcat.trades as trades
 
 ############################################
@@ -26,6 +26,8 @@ def s2x(string):
 
 def hex2dict(hexstr):
     jsonstr = x2s(hexstr)
+    print(hexstr['fund_tx'])
+    print(jsonstr)
     return json.loads(jsonstr)
 
 def jsonformat(trade):
@@ -82,33 +84,18 @@ def save_secret(secret):
 #########  xcat.json temp file  #############
 #############################################
 
-def instantiate(tradedata):
-    if type(tradedata) == dict:
-        string = str(tradedata)
-        tradedata = json.loads(ast.literal_eval(tradedata))
-    elif type(tradedata) == hex:
-        hexstr = x2s(tradedata)
-        tradedata = ast.literal_eval(hexstr)
-    elif type(tradedata) == str:
-        tradedata = json.loads(tradedata)
-    sell = trades.Contract(tradedata['sell'])
-    buy = trades.Contract(tradedata['buy'])
-    trade = trades.Trade(sell, buy, commitment=tradedata['commitment'])
-    return trade
-
 def save_trade(trade):
     print("Trade in save_trade", trade)
     with open('xcat.json', 'w+') as outfile:
         json.dump(trade, outfile)
 
 def get_trade():
-    try:
-        with open('xcat.json') as data_file:
-            xcatdb = json.load(data_file)
-            trade = instantiate(tradedata)
-            return trade
-    except:
-        return None
+    with open('xcat.json') as data_file:
+        xcatdb = json.load(data_file)
+        sell = trades.Contract(xcatdb['sell'])
+        buy = trades.Contract(xcatdb['buy'])
+        trade = trades.Trade(sell, buy, commitment=xcatdb['commitment'])
+        return trade
 
 def erase_trade():
     with open('xcat.json', 'w') as outfile:

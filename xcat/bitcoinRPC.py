@@ -24,7 +24,8 @@ from xcat.zcashRPC import parse_script
 
 # SelectParams('testnet')
 SelectParams('regtest')
-bitcoind = bitcoin.rpc.Proxy()
+# TODO: Accurately read user and pw info
+bitcoind = bitcoin.rpc.Proxy(service_url="http://user:password@127.0.0.1:18332")
 FEE = 0.001*COIN
 
 

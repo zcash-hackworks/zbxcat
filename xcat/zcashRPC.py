@@ -20,7 +20,8 @@ from xcat.utils import *
 
 # SelectParams('testnet')
 SelectParams('regtest')
-zcashd = zcash.rpc.Proxy()
+# TODO: accurately read user and pw info
+zcashd = zcash.rpc.Proxy(service_url="http://user:password@127.0.0.1:18232")
 FEE = 0.001*COIN
 
 def validateaddress(addr):

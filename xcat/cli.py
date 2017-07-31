@@ -139,7 +139,10 @@ def main():
         # Save it to leveldb
         save_state(trade)
     elif command == "step2":
-        trade = get_trade()
+        # trade = get_trade()
+        tradeid = args.argument[0]
+        trade = db.get(tradeid)
+        print(trade)
         checkBuyStatus(trade)
     elif command == "step3":
         trade = get_trade()
