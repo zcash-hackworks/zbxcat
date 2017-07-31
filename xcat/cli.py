@@ -15,6 +15,7 @@ def save_state(trade, tradeid):
 def checkSellStatus(tradeid):
     trade = db.get(tradeid)
     if trade.buy.get_status() == 'funded':
+        input("Authorize retrieve secret:")
         secret = get_secret()
         print("SECRET found in checksellactions", secret)
         trade = seller_redeem_p2sh(trade, secret)
@@ -28,22 +29,24 @@ def checkSellStatus(tradeid):
 # TODO: function to calculate appropriate locktimes between chains
 def checkBuyStatus(tradeid):
     trade = db.get(tradeid)
-    if trade.sell.get_status() == 'funded' and trade.buy.get_status() != 'redeemed':
+    if trade.sell.get_status() == 'redeemed' and trade.buy.get_status() == 'redeemed':
+        print("This trade is complete, both sides redeemed.")
+    elif trade.sell.get_status() == 'funded' and trade.buy.get_status() != 'redeemed':
         print("One active trade available, fulfilling buyer contract...")
         # they should calculate redeemScript for themselves
         print("Trade commitment", trade.commitment)
         # TODO: which block to start computation from?
-        htlc = create_htlc(trade.buy.currency, trade.buy.fulfiller, trade.buy.initiator, trade.commitment, trade.buy.locktime)
-        buyer_p2sh = htlc['p2sh']
-        print("Buyer p2sh:", buyer_p2sh)
+        # htlc = create_htlc(trade.buy.currency, trade.buy.fulfiller, trade.buy.initiator, trade.commitment, trade.buy.locktime)
+        # buyer_p2sh = htlc['p2sh']
+        # print("Buyer p2sh:", buyer_p2sh)
         # If the two p2sh match...
-        if buyer_p2sh == trade.buy.p2sh:
-            fund_tx = fund_contract(trade.buy)
-            trade.buy.fund_tx = fund_tx
-            print("trade buy with redeemscript?", trade.buy.__dict__)
-            save_state(trade, tradeid)
-        else:
-            print("Compiled p2sh for htlc does not match what seller sent.")
+        # if buyer_p2sh == trade.buy.p2sh:
+        fund_tx = fund_contract(trade.buy)
+        trade.buy.fund_tx = fund_tx
+        print("trade buy with redeemscript?", trade.buy.__dict__)
+        save_state(trade, tradeid)
+        # else:
+        #     print("Compiled p2sh for htlc does not match what seller sent.")
     elif trade.buy.get_status() == 'redeemed':
         # TODO: secret parsing
         # secret = parse_secret(trade.buy.currency, trade.buy.redeem_tx)
@@ -56,7 +59,7 @@ def checkBuyStatus(tradeid):
 # Import a trade in hex, and save to db
 def importtrade(hexstr):
     trade = x2s(hexstr)
-    trade = instantiateTrade(ast.literal_eval(trade))
+    trade = db.instantiate(trade)
     save_state(trade)
 
 # Export a trade by its tradeid
@@ -67,9 +70,26 @@ def exporttrade(tradeid):
     print(trade)
     print(hexstr)
 
-def findtrade(key):
-    trade = db.get(key)
+def findtrade(tradeid):
+    trade = db.get(tradeid)
     print(trade)
+
+def checktrade(tradeid):
+    print("In checktrade")
+    trade = db.get(tradeid)
+    if find_role(trade.sell) == 'test':
+        input("Is this a test? Both buyer and seller addresses are yours, press 'enter' to test.")
+        checkBuyStatus(tradeid)
+        checkSellStatus(tradeid)
+        checkBuyStatus(tradeid)
+    elif find_role(trade.sell) == 'initiator':
+        print("You are the seller in this trade.")
+        role = 'seller'
+        checkSellStatus(tradeid)
+    else:
+        print("You are the buyer in this trade.")
+        role = 'buyer'
+        checkBuyStatus(tradeid)
 
 def newtrade(tradeid):
     erase_trade()
@@ -80,18 +100,15 @@ def newtrade(tradeid):
     # db.create(trade)
     save_state(trade, tradeid)
 
-def instantiateTrade(trade):
-    return Trade(buy=Contract(trade['buy']), sell=Contract(trade['sell']))
-
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
         description=textwrap.dedent('''\
                 == Trades ==
-                newtrade - create a new trade
-                checktrades - check for actions to be taken on existing trades
+                newtrade "tradeid" - create a new trade
+                checktrade "tradeid"- check for actions to be taken on an existing trade
                 importtrade "hexstr" - import an existing trade from a hex string
-                exporttrade - export the data of an existing trade as a hex string. Takes the tradeid as an argument
-                findtrade - find a trade by the txid of the currency being traded out of
+                exporttrade "tradeid" - export the data of an existing trade as a hex string. Takes the tradeid as an argument
+                findtrade "tradeid" - find a trade by the tradeid
 
                 '''))
     parser.add_argument("command", action="store", help="list commands")
@@ -113,15 +130,9 @@ def main():
         print("Finding trade")
         key = args.argument[0]
         findtrade(key)
-    elif command == 'checktrades':
-        trade = get_trade()
-        trade = instantiateTrade(trade)
-        if find_role(trade.sell) == 'initiator':
-            role = 'seller'
-            checkSellStatus(trade)
-        else:
-            role = 'buyer'
-            checkBuyStatus(trade)
+    elif command == 'checktrade':
+        tradeid = args.argument[0]
+        checktrade(tradeid)
     elif command == 'newtrade':
         print("in new trade")
         try:

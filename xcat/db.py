@@ -32,19 +32,16 @@ def get(txid):
 
 def instantiate(trade):
     if type(trade) == str:
-        print(type(trade))
         tradestr = json.loads(trade)
-        print(tradestr)
         trade = Trade(buy=Contract(tradestr['buy']), sell=Contract(tradestr['sell']), commitment=tradestr['commitment'])
-        print(trade)
         return trade
 
 
 
 # db.delete(b'hello')
-testtrade = get('test')
-testtrade = instantiate(testtrade)
-print(testtrade)
+# testtrade = get('test')
+# testtrade = instantiate(testtrade)
+# print(testtrade)
 
 # hexstr = get(txid)
 # print(x2s(hexstr))

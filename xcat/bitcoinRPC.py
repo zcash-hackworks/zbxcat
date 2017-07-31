@@ -74,6 +74,8 @@ def hashtimelockcontract(funder, redeemer, commitment, locktime):
 def fund_htlc(p2sh, amount):
     send_amount = float(amount) * COIN
     fund_txid = bitcoind.sendtoaddress(p2sh, send_amount)
+    # Import address at same time that you fund it
+    bitcoind.importaddress(p2sh, "", False)
     txid = b2x(lx(b2x(fund_txid)))
     return txid
 

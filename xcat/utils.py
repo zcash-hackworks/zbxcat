@@ -1,5 +1,7 @@
 import hashlib, json, random, binascii
 import xcat.trades as trades
+import xcat.bitcoinRPC as bitcoinRPC
+import xcat.zcashRPC as zcashRPC
 
 ############################################
 ########### Data conversion utils ##########
@@ -41,16 +43,18 @@ def jsonformat(trade):
 ############################################
 def find_role(contract):
     # Obviously when regtest created both addrs on same machine, role is both.
-    if parse_addrs(contract.initiator):
+    if is_myaddr(contract.initiator) and is_myaddr(contract.fulfiller):
+        return 'test'
+    elif is_myaddr(contract.initiator):
         return 'initiator'
     else:
         return 'fulfiller'
 
-def parse_addrs(address):
+def is_myaddr(address):
     if address[:1] == 'm':
-        status = bXcat.validateaddress(address)
+        status = bitcoinRPC.validateaddress(address)
     else:
-        status = zXcat.validateaddress(address)
+        status = zcashRPC.validateaddress(address)
     status = status['ismine']
     print("Address {0} is mine: {1}".format(address, status))
     return status
