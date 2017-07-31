@@ -69,7 +69,7 @@ def exporttrade(tradeid):
 
 def findtrade(key):
     trade = db.get(key)
-    print(x2s(b2x(trade)))
+    print(trade)
 
 def newtrade(tradeid):
     erase_trade()
@@ -112,7 +112,7 @@ def main():
     elif command == "findtrade":
         print("Finding trade")
         key = args.argument[0]
-        find_trade(key)
+        findtrade(key)
     elif command == 'checktrades':
         trade = get_trade()
         trade = instantiateTrade(trade)
@@ -133,13 +133,7 @@ def main():
     elif command == "daemon":
         #TODO: implement
         print("Run as daemon process")
-    # Ad hoc testing starts here
-    elif command == "step1":
-        erase_trade()
-        print("Creating new XCAT trade...")
-        trade = seller_init(Trade())
-        # Save it to leveldb
-        save_state(trade)
+    # Ad hoc testing of workflow starts here
     elif command == "step2":
         # trade = get_trade()
         tradeid = args.argument[0]

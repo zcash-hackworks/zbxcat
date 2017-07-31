@@ -7,18 +7,21 @@ class SimpleTestCase(unittest.TestCase):
         self.trade = mktrade()
         self.hexstr = cli.exporttrade('test')
 
-    def test_exporttrade(self):
-        self.assertTrue(int(self.hexstr, 16))
+    # def test_exporttrade(self):
+    #     self.assertTrue(int(self.hexstr, 16))
 
 class CliTest(SimpleTestCase):
-    def test_importtrade(self):
-        trade = cli.importtrade(self.hexstr, 'test')
+    # def test_importtrade(self):
+    #     trade = cli.importtrade(self.hexstr, 'test')
 
     def test_findtrade(self):
         trade = cli.findtrade('test')
 
-    # def test_newtrade(self):
-    #     cli.newtrade('test2')
+    def test_newtrade(self):
+        cli.newtrade('test2')
+        cli.checkBuyStatus('test2')
+        cli.checkSellStatus('test2')
+        cli.checkBuyStatus('test2')
 
 if __name__ == '__main__':
     unittest.main()
