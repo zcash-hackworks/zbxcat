@@ -1,11 +1,11 @@
 import json
 import os, sys
 from pprint import pprint
-import xcat.zcashRPC
-import xcat.bitcoinRPC
+import xcat.zcashRPC as zcashRPC
+import xcat.bitcoinRPC as bitcoinRPC
 from xcat.utils import *
 from xcat.trades import Contract, Trade
-import xcat.userInput
+import xcat.userInput as userInput
 
 def check_p2sh(currency, address):
     if currency == 'bitcoin':

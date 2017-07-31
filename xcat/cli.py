@@ -3,7 +3,7 @@ from xcat.utils import *
 import xcat.db as db
 import xcat.bitcoinRPC
 import xcat.zcashRPC
-import xcat.userInput
+import xcat.userInput as userInput
 from xcat.trades import *
 from xcat.protocol import *
 import ast
@@ -121,6 +121,7 @@ def main():
             role = 'buyer'
             checkBuyStatus(trade)
     elif command == 'newtrade':
+        print("in new trade")
         try:
             tradeid = args.argument[0]
             newtrade(tradeid)
