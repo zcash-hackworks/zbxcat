@@ -97,6 +97,7 @@ def parse_secret(chain, txid):
         secret = bitcoinRPC.parse_secret(txid)
     else:
         secret = zcashRPC.parse_secret(txid)
+    return secret
 
 ####  Main functions determining user flow from command line
 def buyer_redeem(trade):
@@ -161,6 +162,7 @@ def seller_init(trade):
     init_addrs = userInput.get_initiator_addresses()
     sell['initiator'] = init_addrs[sell_currency]
     buy['initiator'] = init_addrs[buy_currency]
+
     fulfill_addrs = userInput.get_fulfiller_addresses()
     sell['fulfiller'] = fulfill_addrs[sell_currency]
     buy['fulfiller'] = fulfill_addrs[buy_currency]

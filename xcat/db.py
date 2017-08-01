@@ -6,6 +6,8 @@ import json
 import ast
 from xcat.trades import *
 
+import xcat.bitcoinRPC as bitcoinRPC
+
 db = plyvel.DB('/tmp/testdb', create_if_missing=True)
 
 # Takes dict or obj, saves json str as bytes
@@ -42,6 +44,10 @@ def instantiate(trade):
 # testtrade = get('test')
 # testtrade = instantiate(testtrade)
 # print(testtrade)
+
+# addr = bitcoinRPC.new_bitcoin_addr()
+# print(str(addr))
+# print(b('thing'))
 
 # hexstr = get(txid)
 # print(x2s(hexstr))

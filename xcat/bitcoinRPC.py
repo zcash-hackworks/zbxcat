@@ -37,7 +37,9 @@ def parse_secret(txid):
     print("Decoded", decoded)
     # decoded = bitcoind.decoderawtransaction(raw)
     asm = decoded['vin'][0]['scriptSig']['asm'].split(" ")
-    print(asm[2])
+    secret = asm[2]
+    print("Found secret: ", secret)
+    return secret
 
 def get_keys(funder_address, redeemer_address):
     fundpubkey = CBitcoinAddress(funder_address)
@@ -68,14 +70,16 @@ def hashtimelockcontract(funder, redeemer, commitment, locktime):
     # Convert the P2SH scriptPubKey to a base58 Bitcoin address
     txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
     p2sh = str(txin_p2sh_address)
+    # Import address at same time you create
+    bitcoind.importaddress(p2sh, "", False)
     print("p2sh computed", p2sh)
     return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'redeemScript': b2x(redeemScript), 'redeemer': redeemer, 'funder': funder, 'locktime': locktime}
 
 def fund_htlc(p2sh, amount):
     send_amount = float(amount) * COIN
-    fund_txid = bitcoind.sendtoaddress(p2sh, send_amount)
     # Import address at same time that you fund it
     bitcoind.importaddress(p2sh, "", False)
+    fund_txid = bitcoind.sendtoaddress(p2sh, send_amount)
     txid = b2x(lx(b2x(fund_txid)))
     return txid
 
@@ -291,8 +295,7 @@ def find_transaction_to_address(p2sh):
 
 def new_bitcoin_addr():
     addr = bitcoind.getnewaddress()
-    print('new btc addr', addr.to_scriptPubKey)
-    return addr.to_scriptPubKey()
+    return str(addr)
 
 def generate(num):
     blocks = bitcoind.generate(num)

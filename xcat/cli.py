@@ -15,8 +15,7 @@ def save_state(trade, tradeid):
 def checkSellStatus(tradeid):
     trade = db.get(tradeid)
     if trade.buy.get_status() == 'funded':
-        input("Authorize retrieve secret:")
-        secret = get_secret()
+        secret = userInput.retrieve_password()
         print("SECRET found in checksellactions", secret)
         trade = seller_redeem_p2sh(trade, secret)
         print("TRADE SUCCESSFULLY REDEEMED", trade)
@@ -48,18 +47,20 @@ def checkBuyStatus(tradeid):
         # else:
         #     print("Compiled p2sh for htlc does not match what seller sent.")
     elif trade.buy.get_status() == 'redeemed':
-        # TODO: secret parsing
-        # secret = parse_secret(trade.buy.currency, trade.buy.redeem_tx)
-        secret = get_secret()
-        print("Found secret", secret)
-        txid = auto_redeem_p2sh(trade.sell, secret)
-        print("TXID after buyer redeem", txid)
-        print("XCAT trade complete!")
+        secret = parse_secret(trade.buy.currency, trade.buy.redeem_tx)
+        if secret != None:
+            print("Found secret", secret)
+            txid = auto_redeem_p2sh(trade.sell, secret)
+            print("TXID after buyer redeem", txid)
+            print("XCAT trade complete!")
+        else:
+            print("Secret not found in redeemtx")
 
 # Import a trade in hex, and save to db
 def importtrade(hexstr, tradeid):
     trade = x2s(hexstr)
     trade = db.instantiate(trade)
+    print(trade.toJSON())
     save_state(trade, tradeid)
 
 # Export a trade by its tradeid
@@ -72,7 +73,7 @@ def exporttrade(tradeid):
 
 def findtrade(tradeid):
     trade = db.get(tradeid)
-    print(trade)
+    print(trade.toJSON())
     return trade
 
 def checktrade(tradeid):
