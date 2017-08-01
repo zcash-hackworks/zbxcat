@@ -32,7 +32,7 @@ Funds sell p2sh. They can use the checktrade command to automatically take the n
 
 ### Buyer:
 
-Funds by p2sh. Also uses checktrade command locally.
+Funds buy p2sh, also by using checktrade command to automatically proceed.
 
 `xcat checktrade testtrade`
 
@@ -44,13 +44,13 @@ Redeems buyer p2sh.
 
 **At this stage, we need to manually export the trade again, because we haven't added the `walletnotify` functionality which will let the buyer determine what the seller's redeem tx was.**
 
-So seller exports trade again and sends to seller, so they have the seller's redeem_tx. (this is a temporary measure)
+So seller exports trade again and sends to buyer, so they will have the seller's redeem_tx. (this is a temporary measure)
 
 `xcat exportrade testtrade`
 
 ### Buyer:
 
-Imports exported trade.
+Imports trade hexstring received from seller.
 
 `xcat importtrade <hexstring> testtrade`
 
