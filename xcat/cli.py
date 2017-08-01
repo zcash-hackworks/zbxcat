@@ -91,9 +91,7 @@ def checkBuyStatus(tradeid):
         # else:
         #     print("Compiled p2sh for htlc does not match what seller sent.")
     elif status == 'sellerRedeemed':
-        redeem_tx = find_redeem_tx(trade.buy.currency, trade.buy.p2sh)
-        trade.buy.redeem_tx = redeem_tx
-        secret = parse_secret(trade.buy.currency, redeem_tx)
+        secret = parse_secret(trade.buy.currency, trade.buy.redeem_tx)
         if secret != None:
             print("Found secret", secret)
             txs = auto_redeem_p2sh(trade.sell, secret)

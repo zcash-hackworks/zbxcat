@@ -56,7 +56,7 @@ def is_myaddr(address):
     else:
         status = zcashRPC.validateaddress(address)
     status = status['ismine']
-    print("Address {0} is mine: {1}".format(address, status))
+    # print("Address {0} is mine: {1}".format(address, status))
     return status
 
 ############################################

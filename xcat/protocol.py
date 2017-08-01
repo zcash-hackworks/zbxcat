@@ -7,12 +7,6 @@ from xcat.utils import *
 from xcat.trades import Contract, Trade
 import xcat.userInput as userInput
 
-def find_redeem_tx (currency, p2sh):
-    if currency == 'bitcoin':
-        bitcoinRPC.find_transaction_to_address(p2sh)
-    else:
-        zcashRPC.find_transaction_to_address(p2sh)
-
 def import_addrs(trade):
     check_fund_status(trade.sell.currency, trade.sell.p2sh)
     check_fund_status(trade.buy.currency, trade.buy.p2sh)
@@ -192,7 +186,7 @@ def seller_init(trade):
     save_secret(secret)
     hash_of_secret = sha256(secret)
     # TODO: Implement locktimes and mock block passage of time
-    sell_locktime = 5
+    sell_locktime = 20
     buy_locktime = 10 # Must be more than first tx
     print("Creating pay-to-script-hash for sell contract...")
     create_sell_p2sh(trade, hash_of_secret, sell_locktime)
