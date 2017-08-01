@@ -151,7 +151,7 @@ def buyer_fulfill(trade):
     print_trade('buyer')
 
 def seller_init(trade):
-    # Get amounts
+    # TODO: pass in amounts, or get from cli. {"amounts": {"buy": {}, "sell": {}}}
     amounts = userInput.get_trade_amounts()
     sell = amounts['sell']
     buy = amounts['buy']

@@ -57,22 +57,23 @@ def checkBuyStatus(tradeid):
         print("XCAT trade complete!")
 
 # Import a trade in hex, and save to db
-def importtrade(hexstr):
+def importtrade(hexstr, tradeid):
     trade = x2s(hexstr)
     trade = db.instantiate(trade)
-    save_state(trade)
+    save_state(trade, tradeid)
 
 # Export a trade by its tradeid
 def exporttrade(tradeid):
     # trade = get_trade()
     trade  = db.get(tradeid)
-    hexstr = s2x(str(trade))
-    print(trade)
+    hexstr = s2x(trade.toJSON())
     print(hexstr)
+    return hexstr
 
 def findtrade(tradeid):
     trade = db.get(tradeid)
     print(trade)
+    return trade
 
 def checktrade(tradeid):
     print("In checktrade")
@@ -122,7 +123,8 @@ def main():
     command = args.command
     if command == 'importtrade':
         hexstr = args.argument[0]
-        importtrade(hexstr)
+        tradeid = args.argument[1]
+        importtrade(hexstr, tradeid)
     elif command == 'exporttrade':
         tradeid = args.argument[0]
         exporttrade(tradeid)
