@@ -1,20 +1,25 @@
 # Workflow for a new trade
 
 Install our code as a python package in editable mode. Installing relative to the directory containing `setup.py` should work.
+
 `pip install -e <directory that setup.py for xcat is in>`
 
 ### Seller:
 
 To initiate a new trade, seller creates a trade and names it.
+
 `xcat newtrade testtrade`
 
 After creating, they are prompted to export it as hex, to transfer info to the buyer.
+
 `xcat exporttrade testtrade`
+
 Copy the resulting hex string and send it to the buyer.
 
 ### Buyer:
 
-To examine trade, buyer imports it.
+To examine trade, buyer imports it
+.
 `xcat importttrade <hexstring> testtrade`
 
 If it looks ok, inform seller to proceed.
@@ -22,29 +27,35 @@ If it looks ok, inform seller to proceed.
 ### Seller:
 
 Funds sell p2sh. They can use the checktrade command to automatically take the next step in this trade.
+
 `xcat checktrade testtrade`
 
 ### Buyer:
 
 Funds by p2sh. Also uses checktrade command locally.
+
 `xcat checktrade testtrade`
 
 ### Seller:
 
 Redeems buyer p2sh.
+
 `xcat checktrade testtrade`
 
 **At this stage, we need to manually export the trade again, because we haven't added the `walletnotify` functionality which will let the buyer determine what the seller's redeem tx was.**
 
 So seller exports trade again and sends to seller, so they have the seller's redeem_tx. (this is a temporary measure)
+
 `xcat exportrade testtrade`
 
 ### Buyer:
 
 Imports exported trade.
+
 `xcat importtrade <hexstring> testtrade`
 
 Redeems seller p2sh.
+
 `xcat checktrade testtrade`
 
 Tx is done! Buyer or seller can check the trade again, but the status will indicate that it is complete.
