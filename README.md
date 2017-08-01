@@ -1,9 +1,10 @@
 # Workflow for a new trade
 
-Install our code as a python package in editable mode. Installing relative to the protocol directory should work.
-`pip install -e protocol/`
+Install our code as a python package in editable mode. Installing relative to the directory containing `setup.py` should work.
+`pip install -e <directory that setup.py for xcat is in>`
 
-Seller:
+### Seller:
+
 To initiate a new trade, seller creates a trade and names it.
 `xcat newtrade testtrade`
 
@@ -11,21 +12,25 @@ After creating, they are prompted to export it as hex, to transfer info to the b
 `xcat exporttrade testtrade`
 Copy the resulting hex string and send it to the buyer.
 
-Buyer:
+### Buyer:
+
 To examine trade, buyer imports it.
 `xcat importttrade <hexstring> testtrade`
 
 If it looks ok, inform seller to proceed.
 
-Seller:
+### Seller:
+
 Funds sell p2sh. They can use the checktrade command to automatically take the next step in this trade.
 `xcat checktrade testtrade`
 
-Buyer:
+### Buyer:
+
 Funds by p2sh. Also uses checktrade command locally.
 `xcat checktrade testtrade`
 
-Seller:
+### Seller:
+
 Redeems buyer p2sh.
 `xcat checktrade testtrade`
 
@@ -34,7 +39,8 @@ Redeems buyer p2sh.
 So seller exports trade again and sends to seller, so they have the seller's redeem_tx. (this is a temporary measure)
 `xcat exportrade testtrade`
 
-Buyer:
+### Buyer:
+
 Imports exported trade.
 `xcat importtrade <hexstring> testtrade`
 
