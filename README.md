@@ -18,8 +18,8 @@ Copy the resulting hex string and send it to the buyer.
 
 ### Buyer:
 
-To examine trade, buyer imports it
-.
+To examine trade, buyer imports it.
+
 `xcat importttrade <hexstring> testtrade`
 
 If it looks ok, inform seller to proceed.
