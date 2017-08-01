@@ -14,27 +14,71 @@ def save_state(trade, tradeid):
 
 def checkSellStatus(tradeid):
     trade = db.get(tradeid)
-    if trade.buy.get_status() == 'funded':
+    status = seller_check_status(trade)
+    print("In checkSellStatus", status)
+    # if trade.buy.get_status() == 'funded':
+    if status == 'initFund':
+        userInput.authorize_fund_sell(trade)
+        fund_tx = fund_sell_contract(trade)
+        print("Sent fund_tx", fund_tx)
+        trade.sell.fund_tx = fund_tx
+        save_state(trade, tradeid)
+    elif status == 'buyerFunded':
         secret = userInput.retrieve_password()
         print("SECRET found in checksellactions", secret)
-        trade = seller_redeem_p2sh(trade, secret)
+        txs = seller_redeem_p2sh(trade, secret)
+        print("TXS IN SELLER REDEEM BUYER TX", txs)
+        trade.buy.fund_tx = txs['fund_tx']
+        trade.buy.redeem_tx = txs['redeem_tx']
         print("TRADE SUCCESSFULLY REDEEMED", trade)
         save_state(trade, tradeid)
-    elif trade.buy.get_status() == 'empty':
+    # elif trade.buy.get_status() == 'empty':
+    elif status == 'sellerFunded':
         print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade.buy.currency))
-    elif trade.buy.get_status() == 'redeemed':
+    # elif trade.buy.get_status() == 'redeemed':
+    elif status == 'sellerRedeemed':
         print("You have already redeemed the p2sh on the second chain of this trade.")
+
+def buyer_check_status(trade):
+    sellState = check_fund_status(trade.sell.currency, trade.sell.p2sh)
+    buyState = check_fund_status(trade.buy.currency, trade.buy.p2sh)
+    if sellState == 'funded' and buyState == 'empty':
+        return 'sellerFunded' # step1
+    # TODO: Find funding txid. How does buyer get seller redeemed tx?
+    elif sellState == 'funded' and hasattr(trade.buy, 'fund_tx'):
+        return 'sellerRedeemed' # step3
+    elif sellState == 'funded' and buyState == 'funded':
+        return 'buyerFunded' # step2
+    elif sellState == 'empty' and buyState == 'empty':
+        return 'buyerRedeemed' # step4
+
+def seller_check_status(trade):
+    sellState = check_fund_status(trade.sell.currency, trade.sell.p2sh)
+    buyState = check_fund_status(trade.buy.currency, trade.buy.p2sh)
+    if sellState == 'funded' and buyState == 'empty':
+        return 'sellerFunded' # step1
+    elif sellState == 'funded' and hasattr(trade.buy, 'redeem_tx'):
+        return 'sellerRedeemed' # step3
+    # TODO: How does seller get buyer funded tx?
+    elif sellState == 'funded' and buyState == 'funded':
+        return 'buyerFunded' # step2
+    elif sellState == 'empty' and buyState == 'empty':
+        if hasattr(trade.buy, 'redeem_tx'):
+            return 'buyerRedeemed' # step4
+        else:
+            return 'initFund' # step0
 
 # TODO: function to calculate appropriate locktimes between chains
 def checkBuyStatus(tradeid):
     trade = db.get(tradeid)
-    if trade.sell.get_status() == 'redeemed' and trade.buy.get_status() == 'redeemed':
+    status = buyer_check_status(trade)
+    print("In checkBuyStatus", status)
+    if status == 'buyerRedeemed':
         print("This trade is complete, both sides redeemed.")
-    elif trade.sell.get_status() == 'funded' and trade.buy.get_status() != 'redeemed':
+    # elif trade.sell.get_status() == 'funded' and trade.buy.get_status() != 'redeemed':
+    elif status == 'sellerFunded':
         print("One active trade available, fulfilling buyer contract...")
-        # they should calculate redeemScript for themselves
         print("Trade commitment", trade.commitment)
-        # TODO: which block to start computation from?
         # htlc = create_htlc(trade.buy.currency, trade.buy.fulfiller, trade.buy.initiator, trade.commitment, trade.buy.locktime)
         # buyer_p2sh = htlc['p2sh']
         # print("Buyer p2sh:", buyer_p2sh)
@@ -46,12 +90,18 @@ def checkBuyStatus(tradeid):
         save_state(trade, tradeid)
         # else:
         #     print("Compiled p2sh for htlc does not match what seller sent.")
-    elif trade.buy.get_status() == 'redeemed':
-        secret = parse_secret(trade.buy.currency, trade.buy.redeem_tx)
+    elif status == 'sellerRedeemed':
+        redeem_tx = find_redeem_tx(trade.buy.currency, trade.buy.p2sh)
+        trade.buy.redeem_tx = redeem_tx
+        secret = parse_secret(trade.buy.currency, redeem_tx)
         if secret != None:
             print("Found secret", secret)
-            txid = auto_redeem_p2sh(trade.sell, secret)
-            print("TXID after buyer redeem", txid)
+            txs = auto_redeem_p2sh(trade.sell, secret)
+            print("TXS IN SELLER REDEEMED", txs)
+            # trade.sell.fund_tx = txs['fund_tx']
+            trade.sell.redeem_tx = txs['redeem_tx']
+            print("TXID after buyer redeem", trade.sell.redeem_tx)
+            save_state(trade, tradeid)
             print("XCAT trade complete!")
         else:
             print("Secret not found in redeemtx")
@@ -60,6 +110,7 @@ def checkBuyStatus(tradeid):
 def importtrade(hexstr, tradeid):
     trade = x2s(hexstr)
     trade = db.instantiate(trade)
+    import_addrs(trade)
     print(trade.toJSON())
     save_state(trade, tradeid)
 
@@ -98,8 +149,7 @@ def newtrade(tradeid):
     role = 'seller'
     print("Creating new XCAT trade...")
     trade = seller_init(Trade())
-    # Save it to leveldb
-    # db.create(trade)
+    print("Use 'xcat exporttrade <tradeid> to export the trade and sent to the buyer.'")
     save_state(trade, tradeid)
 
 def main():

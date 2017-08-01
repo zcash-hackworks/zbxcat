@@ -7,6 +7,16 @@ from xcat.utils import *
 from xcat.trades import Contract, Trade
 import xcat.userInput as userInput
 
+def find_redeem_tx (currency, p2sh):
+    if currency == 'bitcoin':
+        bitcoinRPC.find_transaction_to_address(p2sh)
+    else:
+        zcashRPC.find_transaction_to_address(p2sh)
+
+def import_addrs(trade):
+    check_fund_status(trade.sell.currency, trade.sell.p2sh)
+    check_fund_status(trade.buy.currency, trade.buy.p2sh)
+
 def check_p2sh(currency, address):
     if currency == 'bitcoin':
         print("Checking funds in Bitcoin p2sh")
@@ -14,6 +24,14 @@ def check_p2sh(currency, address):
     else:
         print("Checking funds in Zcash p2sh")
         return zcashRPC.check_funds(address)
+
+def check_fund_status(currency, address):
+    if currency == 'bitcoin':
+        print("Checking funds in Bitcoin p2sh")
+        return bitcoinRPC.get_fund_status(address)
+    else:
+        print("Checking funds in Zcash p2sh")
+        return zcashRPC.get_fund_status(address)
 
 def create_htlc(currency, funder, redeemer, commitment, locktime):
     print("Commitment in create_htlc", commitment)
@@ -129,11 +147,9 @@ def seller_redeem_p2sh(trade, secret):
         exit()
     else:
         # Seller redeems buyer's funded tx (contract in p2sh)
-        tx_type, txid = redeem_p2sh(trade.buy, secret)
-        print("Setting tx_type: txid", tx_type, txid)
-        setattr(trade.buy, tx_type, txid)
+        txs = redeem_p2sh(trade.buy, secret)
         print("You have redeemed {0} {1}!".format(buy.amount, buy.currency))
-    return trade
+        return txs
 
 def buyer_fulfill(trade):
     buy = trade.buy
@@ -180,11 +196,6 @@ def seller_init(trade):
     buy_locktime = 10 # Must be more than first tx
     print("Creating pay-to-script-hash for sell contract...")
     create_sell_p2sh(trade, hash_of_secret, sell_locktime)
-
-    userInput.authorize_fund_sell(trade)
-
-    txid = fund_sell_contract(trade)
-    print("Sent")
 
     create_buy_p2sh(trade, hash_of_secret, buy_locktime)
 

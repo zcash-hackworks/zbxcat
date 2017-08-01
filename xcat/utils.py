@@ -76,12 +76,12 @@ def generate_password():
 
 # caching the secret locally for now...
 def get_secret():
-    with open('secret.json') as data_file:
+    with open('xcat/secret.json') as data_file:
         for line in data_file:
                 return line.strip('\n')
 
 def save_secret(secret):
-    with open('secret.json', 'w+') as outfile:
+    with open('xcat/secret.json', 'w+') as outfile:
             outfile.write(secret)
 
 #############################################
@@ -90,11 +90,11 @@ def save_secret(secret):
 
 def save_trade(trade):
     print("Trade in save_trade", trade)
-    with open('xcat.json', 'w+') as outfile:
+    with open('xcat/xcat.json', 'w+') as outfile:
         json.dump(trade, outfile)
 
 def get_trade():
-    with open('xcat.json') as data_file:
+    with open('xcat/xcat.json') as data_file:
         xcatdb = json.load(data_file)
         sell = trades.Contract(xcatdb['sell'])
         buy = trades.Contract(xcatdb['buy'])

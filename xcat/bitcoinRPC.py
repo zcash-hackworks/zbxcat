@@ -83,12 +83,23 @@ def fund_htlc(p2sh, amount):
     txid = b2x(lx(b2x(fund_txid)))
     return txid
 
+# Following two functions are about the same
 def check_funds(p2sh):
     bitcoind.importaddress(p2sh, "", False)
     # Get amount in address
     amount = bitcoind.getreceivedbyaddress(p2sh, 0)
     amount = amount/COIN
     return amount
+
+def get_fund_status(p2sh):
+    bitcoind.importaddress(p2sh, "", False)
+    amount = bitcoind.getreceivedbyaddress(p2sh, 0)
+    amount = amount/COIN
+    print("Amount in bitcoin get_fund_status", amount, p2sh)
+    if amount > 0:
+        return 'funded'
+    else:
+        return 'empty'
 
 ## TODO: FIX search for p2sh in block
 def search_p2sh(block, p2sh):
@@ -182,8 +193,12 @@ def auto_redeem(contract, secret):
         VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("script verified, sending raw tx")
         txid = bitcoind.sendrawtransaction(tx)
-        print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
-        return  b2x(lx(b2x(txid)))
+        fund_tx = str(fundtx['outpoint'])
+        redeem_tx =  b2x(lx(b2x(txid)))
+        print("Returning fund_tx", fund_tx)
+        print("Txid of submitted redeem tx: ", redeem_tx)
+        print("TXID SUCCESSFULLY REDEEMED")
+        return  {"redeem_tx": redeem_tx, "fund_tx": fund_tx}
     else:
         print("No contract for this p2sh found in database", p2sh)
 
@@ -233,17 +248,23 @@ def redeem_contract(contract, secret):
             VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
             print("script verified, sending raw tx")
             txid = bitcoind.sendrawtransaction(tx)
-            print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
+            fund_tx = str(fundtx['outpoint'])
+            redeem_tx =  b2x(lx(b2x(txid)))
+            print("Returning fund_tx", fund_tx)
+            print("Txid of submitted redeem tx: ", redeem_tx)
             print("TXID SUCCESSFULLY REDEEMED")
-            return 'redeem_tx', b2x(lx(b2x(txid)))
+            return  {"redeem_tx": redeem_tx, "fund_tx": fund_tx}
         else:
             print("nLocktime exceeded, refunding")
             refundPubKey = find_refundAddr(contract)
             print('refundPubKey', refundPubKey)
             txid = bitcoind.sendtoaddress(refundPubKey, fundtx['amount'] - FEE)
-            print("Txid of refund tx:",  b2x(lx(b2x(txid))))
-            print("TXID SUCCESSFULLY REFUNDED")
-            return 'refund_tx', b2x(lx(b2x(txid)))
+            fund_tx = str(fundtx['outpoint'])
+            refund_tx =  b2x(lx(b2x(txid)))
+            print("Returning fund_tx", fund_tx)
+            print("Txid of submitted refund tx: ", refund_tx)
+            print("TXID SUCCESSFULLY REDEEMED")
+            return  {"refund_tx": refund_tx, "fund_tx": fund_tx}
     else:
         print("No contract for this p2sh found in database", p2sh)
 

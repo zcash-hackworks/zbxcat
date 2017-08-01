@@ -62,11 +62,15 @@ def get_initiator_addresses():
 def get_fulfiller_addresses():
     btc_addr = input("Enter the bitcoin address of the party you want to trade with: ")
     # btc_addr = bXcat.new_bitcoin_addr()
-    btc_addr = 'mgRG44X4PQC1ZCA4V654UZjJGJ3pxbApj2'
+    # btc_addr = 'mgRG44X4PQC1ZCA4V654UZjJGJ3pxbApj2' # testnet
+    # btc_addr = "mvc56qCEVj6p57xZ5URNC3v7qbatudHQ9b"
+    btc_addr = "mpFD3Knp5znDKAHyiYdXMGEYvxmShjdwSS"
     print(btc_addr)
     zec_addr = input("Enter the zcash address of the party you want to trade with: ")
     # zec_addr = zXcat.new_zcash_addr()
-    zec_addr = 'tmLZu7MdjNdA6vbPTNTwdsZo91LnnrVTYB5'
+    # zec_addr = 'tmLZu7MdjNdA6vbPTNTwdsZo91LnnrVTYB5' #testnet
+    # zec_addr = "tmTF7LMLjvEsGdcepWPUsh4vgJNrKMWwEyc"
+    zec_addr = "tmEGtCab8BJWq3fUa7TK4qhWuY9Ab7SHRh2"
     print(zec_addr)
     addresses = {'bitcoin': btc_addr, 'zcash': zec_addr}
     return addresses

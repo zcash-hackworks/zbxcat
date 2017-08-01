@@ -76,6 +76,8 @@ def fund_htlc(p2sh, amount):
     txid = b2x(lx(b2x(fund_txid)))
     return txid
 
+
+# Following two functions are about the same
 def check_funds(p2sh):
     zcashd.importaddress(p2sh, "", False)
     print("Imported address", p2sh)
@@ -84,6 +86,16 @@ def check_funds(p2sh):
     print("Amount in address", amount)
     amount = amount/COIN
     return amount
+
+def get_fund_status(p2sh):
+    zcashd.importaddress(p2sh, "", False)
+    amount = zcashd.getreceivedbyaddress(p2sh, 0)
+    amount = amount/COIN
+    print("Amount in zcash get_fund_status", amount, p2sh)
+    if amount > 0:
+        return 'funded'
+    else:
+        return 'empty'
 
 def get_tx_details(txid):
     fund_txinfo = zcashd.gettransaction(txid)
@@ -100,15 +112,6 @@ def find_transaction_to_address(p2sh):
             print("Found tx to p2sh", p2sh)
             print(tx)
             return tx
-
-# def get_tx_details(txid):
-#     # This method is problematic I haven't gotten the type conversions right
-#     print(bytearray.fromhex(txid))
-#     print(b2x(bytearray.fromhex(txid)))
-#     fund_txinfo = zcashd.gettransaction(bytearray.fromhex(txid))
-#     print(fund_txinfo)
-#
-#     return fund_txinfo['details'][0]
 
 def find_secret(p2sh):
     return parse_secret('4c25b5db9f3df48e48306891d8437c69308afa122f92416df1a3ba0d3604882f')
@@ -153,7 +156,6 @@ def auto_redeem(contract, secret):
         quit()
     fundtx = find_transaction_to_address(p2sh)
     amount = fundtx['amount'] / COIN
-    print("Found fundtx:", fundtx)
     p2sh = P2SHBitcoinAddress(p2sh)
     if fundtx['address'] == p2sh:
         print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
@@ -166,6 +168,7 @@ def auto_redeem(contract, secret):
             redeemPubKey = find_redeemAddr(contract)
             print('redeemPubKey', redeemPubKey)
             zec_redeemScript = CScript(x(contract.redeemScript))
+
             txin = CMutableTxIn(fundtx['outpoint'])
             txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
             # Create the unsigned raw transaction.
@@ -184,9 +187,12 @@ def auto_redeem(contract, secret):
             VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
             print("script verified, sending raw tx")
             txid = zcashd.sendrawtransaction(tx)
-            print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
+            redeem_tx = b2x(lx(b2x(txid)))
+            print("Txid of submitted redeem tx: ", redeem_tx)
+            fund_tx = str(fundtx['outpoint'])
+            print("Returning fund_tx", fund_tx)
             print("TXID SUCCESSFULLY REDEEMED")
-            return 'redeem_tx', b2x(lx(b2x(txid)))
+            return  {"redeem_tx": redeem_tx, "fund_tx": fund_tx}
         else:
             # if blockcount >= redeemblocknum:
             #     tx.nLockTime = redeemblocknum
@@ -194,9 +200,12 @@ def auto_redeem(contract, secret):
             refundPubKey = find_refundAddr(contract)
             print('refundPubKey', refundPubKey)
             txid = zcashd.sendtoaddress(refundPubKey, fundtx['amount'] - FEE)
-            print("Txid of refund tx:",  b2x(lx(b2x(txid))))
+            refund_tx = b2x(lx(b2x(txid)))
+            print("Txid of submitted refund tx: ", refund_tx)
+            fund_tx = str(fundtx['outpoint'])
+            print("Returning fund_tx", fund_tx)
             print("TXID SUCCESSFULLY REFUNDED")
-            return 'refund_tx', b2x(lx(b2x(txid)))
+            return  {"refund_tx": redeem_tx, "fund_tx": fund_tx}
     else:
         print("No contract for this p2sh found in database", p2sh)
 
@@ -224,9 +233,9 @@ def redeem_contract(contract, secret):
             # TODO: parse the script once, up front.
             redeemPubKey = find_redeemAddr(contract)
 
-
             print('redeemPubKey', redeemPubKey)
             zec_redeemScript = CScript(x(contract.redeemScript))
+
             txin = CMutableTxIn(fundtx['outpoint'])
             txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
             # Create the unsigned raw transaction.
@@ -245,17 +254,23 @@ def redeem_contract(contract, secret):
             VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
             print("script verified, sending raw tx")
             txid = zcashd.sendrawtransaction(tx)
-            print("Txid of submitted redeem tx: ", b2x(lx(b2x(txid))))
+            redeem_tx =  b2x(lx(b2x(txid)))
+            fund_tx = str(fundtx['outpoint'])
+            print("Returning fund_tx", fund_tx)
+            print("Txid of submitted redeem tx: ", redeem_tx)
             print("TXID SUCCESSFULLY REDEEMED")
-            return 'redeem_tx', b2x(lx(b2x(txid)))
+            return  {"redeem_tx": redeem_tx, "fund_tx": fund_tx}
         else:
             print("nLocktime exceeded, refunding")
             refundPubKey = find_refundAddr(contract)
             print('refundPubKey', refundPubKey)
             txid = zcashd.sendtoaddress(refundPubKey, fundtx['amount'] - FEE)
-            print("Txid of refund tx:",  b2x(lx(b2x(txid))))
-            print("TXID SUCCESSFULLY REFUNDED")
-            return 'refund_tx', b2x(lx(b2x(txid)))
+            refund_tx =  b2x(lx(b2x(txid)))
+            fund_tx = str(fundtx['outpoint'])
+            print("Returning fund_tx", fund_tx)
+            print("Txid of submitted refund tx: ", refund_tx)
+            print("TXID SUCCESSFULLY REDEEMED")
+            return  {"refund_tx": refund_tx, "fund_tx": fund_tx}
     else:
         print("No contract for this p2sh found in database", p2sh)
 
