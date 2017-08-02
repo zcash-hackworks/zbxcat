@@ -7,6 +7,14 @@ from xcat.utils import *
 from xcat.trades import Contract, Trade
 import xcat.userInput as userInput
 
+def find_secret_from_fundtx(currency, p2sh, fundtx):
+    print("Fund tx in protocol.py", fundtx)
+    if currency == 'bitcoin':
+        secret = bitcoinRPC.find_secret(p2sh, fundtx)
+    else:
+        secret = zcashRPC.find_secret(p2sh, fundtx)
+    return secret
+
 def import_addrs(trade):
     check_fund_status(trade.sell.currency, trade.sell.p2sh)
     check_fund_status(trade.buy.currency, trade.buy.p2sh)
@@ -40,6 +48,7 @@ def fund_htlc(currency, p2sh, amount):
         txid = bitcoinRPC.fund_htlc(p2sh, amount)
     else:
         txid = zcashRPC.fund_htlc(p2sh, amount)
+    print("fund_htlc txid", txid )
     return txid
 #
 # def fund_buy_contract(trade):
@@ -51,6 +60,7 @@ def fund_htlc(currency, p2sh, amount):
 
 def fund_contract(contract):
     txid = fund_htlc(contract.currency, contract.p2sh, contract.amount)
+    print("TXID coming back from fund_contract", txid)
     return txid
 
 def fund_sell_contract(trade):
@@ -86,15 +96,6 @@ def create_buy_p2sh(trade, commitment, locktime):
     print("Now contact the buyer and tell them to send funds to this p2sh: ", trade.buy.p2sh)
 
     save(trade)
-
-def auto_redeem_p2sh(contract, secret):
-    currency = contract.currency
-    if currency == 'bitcoin':
-        res = bitcoinRPC.auto_redeem(contract, secret)
-    else:
-        res = zcashRPC.auto_redeem(contract, secret)
-    return res
-
 
 def redeem_p2sh(contract, secret):
     currency = contract.currency
