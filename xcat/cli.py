@@ -7,6 +7,7 @@ import xcat.userInput as userInput
 from xcat.trades import *
 from xcat.protocol import *
 import ast
+import subprocess
 
 def save_state(trade, tradeid):
     save(trade)
@@ -107,20 +108,38 @@ def checkBuyStatus(tradeid):
             print("Secret not found in redeemtx")
 
 # Import a trade in hex, and save to db
-def importtrade(hexstr, tradeid):
+def importtrade(tradeid, hexstr=''):
     trade = x2s(hexstr)
     trade = db.instantiate(trade)
     import_addrs(trade)
     print(trade.toJSON())
     save_state(trade, tradeid)
 
+def wormhole_importtrade():
+    res = subprocess.call('wormhole receive', shell=True)
+    if res == 0:
+        tradeid = input("Enter filename of received trade data to import (printed on line above): ")
+        with open(tradeid) as infile:
+            hexstr = infile.readline().strip()
+        importtrade(tradeid, hexstr)
+        print("Successfully imported trade using magic-wormhole")
+        os.remove(tradeid)
+    else:
+        print("Importing trade using magic-wormhole failed.")
+
 # Export a trade by its tradeid
-def exporttrade(tradeid):
-    # trade = get_trade()
+def exporttrade(tradeid, wormhole=False):
     trade  = db.get(tradeid)
     hexstr = s2x(trade.toJSON())
-    print(hexstr)
-    return hexstr
+    if wormhole:
+        tradefile = os.path.join(root_dir, '.tmp/{0}'.format(tradeid))
+        with open(tradefile, '+w') as outfile:
+            outfile.write(hexstr)
+        print("Exporting trade to buyer using magic wormhole.")
+        subprocess.call('wormhole', 'send', tradefile)
+    else:
+        print(hexstr)
+        return hexstr
 
 def findtrade(tradeid):
     trade = db.get(tradeid)
@@ -153,6 +172,7 @@ def newtrade(tradeid):
     save_state(trade, tradeid)
 
 def main():
+    root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
         description=textwrap.dedent('''\
                 == Trades ==
@@ -164,7 +184,8 @@ def main():
 
                 '''))
     parser.add_argument("command", action="store", help="list commands")
-    parser.add_argument("argument", action="store", nargs="*", help="add an argument")
+    parser.add_argument("arguments", action="store", nargs="*", help="add arguments")
+    parser.add_argument("-w", "--wormhole", action="store_true", help="Transfer trade data through magic-wormhole")
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     # TODO: function to view available trades
     # TODO: function to tell if tradeid already exists for newtrade
@@ -173,12 +194,18 @@ def main():
     # how to hold state of role
     command = args.command
     if command == 'importtrade':
-        hexstr = args.argument[0]
-        tradeid = args.argument[1]
-        importtrade(hexstr, tradeid)
+        if args.wormhole:
+            wormhole_importtrade()
+        else:
+            if len(args.argument) != 2:
+                print("Usage: importtrade [tradeid] [hexstring]")
+                exit()
+            tradeid = args.argument[0]
+            hexstr = args.argument[1]
+            importtrade(tradeid, hexstr)
     elif command == 'exporttrade':
         tradeid = args.argument[0]
-        exporttrade(tradeid)
+        exporttrade(tradeid, args.wormhole)
     elif command == "findtrade":
         print("Finding trade")
         key = args.argument[0]
@@ -208,6 +235,7 @@ def main():
     elif command == "step3":
         tradeid = args.argument[0]
         checkSellStatus(tradeid)
+    # TODO: When trade finishes, delete wormhole file in tmp dir.
     elif command == "step4":
         tradeid = args.argument[0]
         checkBuyStatus(tradeid)
