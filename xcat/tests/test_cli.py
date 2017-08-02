@@ -19,6 +19,7 @@ class CliTest(SimpleTestCase):
 
     def test_newtrade(self):
         cli.newtrade('test2')
+        cli.newtrade('test2')
         cli.checkBuyStatus('test2')
         cli.checkSellStatus('test2')
         cli.checkBuyStatus('test2')

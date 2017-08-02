@@ -28,7 +28,6 @@ def checkSellStatus(tradeid):
         print("SECRET found in checksellactions", secret)
         txs = seller_redeem_p2sh(trade, secret)
         print("TXS IN SELLER REDEEM BUYER TX", txs)
-        trade.buy.fund_tx = txs['fund_tx']
         trade.buy.redeem_tx = txs['redeem_tx']
         print("TRADE SUCCESSFULLY REDEEMED", trade)
         save_state(trade, tradeid)
@@ -85,16 +84,19 @@ def checkBuyStatus(tradeid):
         # If the two p2sh match...
         # if buyer_p2sh == trade.buy.p2sh:
         fund_tx = fund_contract(trade.buy)
+        print("Fund tx coming back in cli", fund_tx)
         trade.buy.fund_tx = fund_tx
-        print("trade buy with redeemscript?", trade.buy.__dict__)
         save_state(trade, tradeid)
         # else:
         #     print("Compiled p2sh for htlc does not match what seller sent.")
     elif status == 'sellerRedeemed':
-        secret = parse_secret(trade.buy.currency, trade.buy.redeem_tx)
+        print("FUND TX CLI", trade.buy.fund_tx)
+        secret = find_secret_from_fundtx(trade.buy.currency, trade.buy.p2sh, trade.buy.fund_tx)
+        print("Secret in cli", secret)
+        # secret = parse_secret(trade.buy.currency, trade.buy.redeem_tx)
         if secret != None:
             print("Found secret", secret)
-            txs = auto_redeem_p2sh(trade.sell, secret)
+            txs = redeem_p2sh(trade.sell, secret)
             print("TXS IN SELLER REDEEMED", txs)
             # trade.sell.fund_tx = txs['fund_tx']
             trade.sell.redeem_tx = txs['redeem_tx']
@@ -196,6 +198,9 @@ def main():
         #TODO: implement
         print("Run as daemon process")
     # Ad hoc testing of workflow starts here
+    elif command == "step1":
+        tradeid = args.argument[0]
+        checkSellStatus(tradeid)
     elif command == "step2":
         # trade = get_trade()
         tradeid = args.argument[0]
