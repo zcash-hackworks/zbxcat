@@ -6,6 +6,7 @@ import xcat.bitcoinRPC as bitcoinRPC
 from xcat.utils import *
 from xcat.trades import Contract, Trade
 import xcat.userInput as userInput
+import xcat.db as db
 
 def find_secret_from_fundtx(currency, p2sh, fundtx):
     print("Fund tx in protocol.py", fundtx)
@@ -162,7 +163,8 @@ def buyer_fulfill(trade):
         print("Please wait for the seller to remove your funds from escrow to complete the trade.")
     print_trade('buyer')
 
-def seller_init(trade):
+def seller_init(tradeid):
+    trade = Trade()
     # TODO: pass in amounts, or get from cli. {"amounts": {"buy": {}, "sell": {}}}
     amounts = userInput.get_trade_amounts()
     sell = amounts['sell']
@@ -183,8 +185,10 @@ def seller_init(trade):
     print(trade.sell.__dict__)
     print(trade.buy.__dict__)
 
-    secret = userInput.create_password()
-    save_secret(secret)
+    secret = generate_password()
+    db.save_secret(tradeid, secret)
+    print("\nGenerated a secret preimage to lock funds. This will only be stored locally: ", secret)
+
     hash_of_secret = sha256(secret)
     # TODO: Implement locktimes and mock block passage of time
     sell_locktime = 20

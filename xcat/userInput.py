@@ -1,4 +1,5 @@
 from xcat.utils import *
+from xcat.db import *
 
 def enter_trade_id():
     tradeid = input("Enter a unique identifier for this trade: ")
@@ -25,23 +26,6 @@ def get_trade_amounts():
     amounts['sell'] = sell
     amounts['buy'] = buy
     return amounts
-
-def create_password():
-    secret = input("Initiating trade: Create a password to place the funds in escrow: ")
-    # TODO: hash and store secret only locally.
-    if secret == '':
-        secret = generate_password()
-    print('Remember your password:', secret)
-    # Saving secret locally for now
-    save_secret(secret)
-    return secret
-
-def retrieve_password():
-    secret = input("Enter the secret you used to lock the funds in order to redeem:")
-    if secret == '':
-        secret = get_secret()
-    print(secret)
-    return secret
 
 def authorize_fund_sell(htlcTrade):
     print('To complete your sell, send {0} {1} to this p2sh: {2}'.format(htlcTrade.sell.amount, htlcTrade.sell.currency, htlcTrade.sell.p2sh))
