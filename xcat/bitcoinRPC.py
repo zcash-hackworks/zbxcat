@@ -20,7 +20,8 @@ from xcat.zcashRPC import parse_script
 # SelectParams('testnet')
 SelectParams('regtest')
 # TODO: Accurately read user and pw info
-bitcoind = bitcoin.rpc.Proxy(service_url="http://user:password@127.0.0.1:18332")
+# bitcoind = bitcoin.rpc.Proxy(service_url="http://user:password@127.0.0.1:18332")
+bitcoind = bitcoin.rpc.Proxy()
 FEE = 0.001*COIN
 
 def validateaddress(addr):
