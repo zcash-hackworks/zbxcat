@@ -168,13 +168,13 @@ def buyer_fulfill(trade):
     print_trade('buyer')
 
 def seller_init(tradeid, **kwargs):
-    print(*kwargs)
-    if kwargs['network'] == 'regtest':
-        init_addrs = REGTEST_INIT_ADDRS
-        fulfill_addrs = REGTEST_FULFILL_ADDRS
-    elif kwargs['network'] == 'testnet':
-        init_addrs = TESTNET_INIT_ADDRS
-        fulfill_addrs = TESTNET_FULFILL_ADDRS
+    conf = kwargs['conf']
+    if conf.upper() == 'REGTEST':
+        init_addrs = REGTEST['initiator']
+        fulfill_addrs = REGTEST['fulfiller']
+    elif conf.upper() == 'TESTNET':
+        init_addrs = TESTNET['initiator']
+        fulfill_addrs = TESTNET['fulfiller']
     else:
         init_addrs = userInput.get_initiator_addresses()
         fulfill_addrs = userInput.get_fulfiller_addresses()

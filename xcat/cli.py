@@ -177,8 +177,8 @@ def main():
     parser.add_argument("command", action="store", help="list commands")
     parser.add_argument("arguments", action="store", nargs="*", help="add arguments")
     parser.add_argument("-w", "--wormhole", action="store_true", help="Transfer trade data through magic-wormhole")
-    parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in beta.")
     parser.add_argument("-c", "--conf", action="store", help="Use default trade data in conf file.")
+    parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in beta.")
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     # TODO: function to view available trades
     # TODO: function to tell if tradeid already exists for newtrade
@@ -189,8 +189,7 @@ def main():
         if args.wormhole:
             wormhole_importtrade()
         else:
-            if len(args.arguments) != 2:
-                throw("Usage: importtrade [tradeid] [hexstring]")
+            if len(args.arguments) != 2: throw("Usage: importtrade [tradeid] [hexstring]")
             tradeid = args.arguments[0]
             hexstr = args.arguments[1]
             importtrade(tradeid, hexstr)
@@ -205,8 +204,7 @@ def main():
         tradeid = args.arguments[0]
         checktrade(tradeid)
     elif command == 'newtrade':
-        if len(args.arguments) < 1:
-            throw("Usage: newtrade [tradeid]")
+        if len(args.arguments) < 1: throw("Usage: newtrade [tradeid]")
         tradeid = args.arguments[0]
         print("network, conf", args.network, args.conf)
         newtrade(tradeid, network=args.network, conf=args.conf)
@@ -218,7 +216,6 @@ def main():
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
     elif command == "step2":
-        # trade = get_trade()
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
     elif command == "step3":
