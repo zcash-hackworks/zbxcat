@@ -1,12 +1,9 @@
 import argparse, textwrap
 from xcat.utils import *
 import xcat.db as db
-import xcat.bitcoinRPC
-import xcat.zcashRPC
 import xcat.userInput as userInput
 from xcat.trades import *
 from xcat.protocol import *
-import ast
 import subprocess
 
 def save_state(trade, tradeid):
@@ -17,22 +14,22 @@ def checkSellStatus(tradeid):
     trade = db.get(tradeid)
     status = seller_check_status(trade)
     print("In checkSellStatus", status)
-    # if trade.buy.get_status() == 'funded':
-    if status == 'initFund':
+    if status == 'init':
         userInput.authorize_fund_sell(trade)
         fund_tx = fund_sell_contract(trade)
         print("Sent fund_tx", fund_tx)
         trade.sell.fund_tx = fund_tx
         save_state(trade, tradeid)
     elif status == 'buyerFunded':
-        secret = userInput.retrieve_password()
+        secret = db.get_secret(tradeid)
         print("SECRET found in checksellactions", secret)
         txs = seller_redeem_p2sh(trade, secret)
         print("TXS IN SELLER REDEEM BUYER TX", txs)
         trade.buy.redeem_tx = txs['redeem_tx']
         print("TRADE SUCCESSFULLY REDEEMED", trade)
         save_state(trade, tradeid)
-    # elif trade.buy.get_status() == 'empty':
+        # Remove from db? Or just from temporary file storage
+        cleanup(tradeid)
     elif status == 'sellerFunded':
         print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade.buy.currency))
     # elif trade.buy.get_status() == 'redeemed':
@@ -50,7 +47,10 @@ def buyer_check_status(trade):
     elif sellState == 'funded' and buyState == 'funded':
         return 'buyerFunded' # step2
     elif sellState == 'empty' and buyState == 'empty':
-        return 'buyerRedeemed' # step4
+        if hasattr(trade.sell, 'redeem_tx'):
+            return 'buyerRedeemed' # step4
+        else:
+            return 'init'
 
 def seller_check_status(trade):
     sellState = check_fund_status(trade.sell.currency, trade.sell.p2sh)
@@ -66,40 +66,32 @@ def seller_check_status(trade):
         if hasattr(trade.buy, 'redeem_tx'):
             return 'buyerRedeemed' # step4
         else:
-            return 'initFund' # step0
+            return 'init' # step0
 
-# TODO: function to calculate appropriate locktimes between chains
 def checkBuyStatus(tradeid):
     trade = db.get(tradeid)
     status = buyer_check_status(trade)
     print("In checkBuyStatus", status)
-    if status == 'buyerRedeemed':
+    if status == 'init':
+        print("Trade has not yet started, waiting for seller to fund the sell p2sh.")
+    elif status == 'buyerRedeemed':
         print("This trade is complete, both sides redeemed.")
-    # elif trade.sell.get_status() == 'funded' and trade.buy.get_status() != 'redeemed':
     elif status == 'sellerFunded':
         print("One active trade available, fulfilling buyer contract...")
         print("Trade commitment", trade.commitment)
-        # htlc = create_htlc(trade.buy.currency, trade.buy.fulfiller, trade.buy.initiator, trade.commitment, trade.buy.locktime)
-        # buyer_p2sh = htlc['p2sh']
-        # print("Buyer p2sh:", buyer_p2sh)
-        # If the two p2sh match...
-        # if buyer_p2sh == trade.buy.p2sh:
+        # if verify_p2sh(trade):
         fund_tx = fund_contract(trade.buy)
-        print("Fund tx coming back in cli", fund_tx)
+        print("\nBuyer's funding tx: ", fund_tx)
         trade.buy.fund_tx = fund_tx
         save_state(trade, tradeid)
-        # else:
-        #     print("Compiled p2sh for htlc does not match what seller sent.")
     elif status == 'sellerRedeemed':
         print("FUND TX CLI", trade.buy.fund_tx)
         secret = find_secret_from_fundtx(trade.buy.currency, trade.buy.p2sh, trade.buy.fund_tx)
         print("Secret in cli", secret)
-        # secret = parse_secret(trade.buy.currency, trade.buy.redeem_tx)
         if secret != None:
             print("Found secret", secret)
             txs = redeem_p2sh(trade.sell, secret)
             print("TXS IN SELLER REDEEMED", txs)
-            # trade.sell.fund_tx = txs['fund_tx']
             trade.sell.redeem_tx = txs['redeem_tx']
             print("TXID after buyer redeem", trade.sell.redeem_tx)
             save_state(trade, tradeid)
@@ -132,11 +124,12 @@ def exporttrade(tradeid, wormhole=False):
     trade  = db.get(tradeid)
     hexstr = s2x(trade.toJSON())
     if wormhole:
-        tradefile = os.path.join(root_dir, '.tmp/{0}'.format(tradeid))
+        tradefile = os.path.join(ROOT_DIR, '.tmp/{0}'.format(tradeid))
+        print(tradefile)
         with open(tradefile, '+w') as outfile:
             outfile.write(hexstr)
         print("Exporting trade to buyer using magic wormhole.")
-        subprocess.call('wormhole', 'send', tradefile)
+        subprocess.call('wormhole send {0}'.format(tradefile), shell=True)
     else:
         print(hexstr)
         return hexstr
@@ -167,12 +160,11 @@ def newtrade(tradeid):
     erase_trade()
     role = 'seller'
     print("Creating new XCAT trade...")
-    trade = seller_init(Trade())
+    trade = seller_init(tradeid)
     print("Use 'xcat exporttrade <tradeid> to export the trade and sent to the buyer.'")
     save_state(trade, tradeid)
 
 def main():
-    root_dir = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
         description=textwrap.dedent('''\
                 == Trades ==
@@ -197,26 +189,26 @@ def main():
         if args.wormhole:
             wormhole_importtrade()
         else:
-            if len(args.argument) != 2:
+            if len(args.arguments) != 2:
                 print("Usage: importtrade [tradeid] [hexstring]")
                 exit()
-            tradeid = args.argument[0]
-            hexstr = args.argument[1]
+            tradeid = args.arguments[0]
+            hexstr = args.arguments[1]
             importtrade(tradeid, hexstr)
     elif command == 'exporttrade':
-        tradeid = args.argument[0]
+        tradeid = args.arguments[0]
         exporttrade(tradeid, args.wormhole)
     elif command == "findtrade":
         print("Finding trade")
-        key = args.argument[0]
+        key = args.arguments[0]
         findtrade(key)
     elif command == 'checktrade':
-        tradeid = args.argument[0]
+        tradeid = args.arguments[0]
         checktrade(tradeid)
     elif command == 'newtrade':
         print("in new trade")
         try:
-            tradeid = args.argument[0]
+            tradeid = args.arguments[0]
             newtrade(tradeid)
         except:
             tradeid = userInput.enter_trade_id()
@@ -226,16 +218,16 @@ def main():
         print("Run as daemon process")
     # Ad hoc testing of workflow starts here
     elif command == "step1":
-        tradeid = args.argument[0]
+        tradeid = args.arguments[0]
         checkSellStatus(tradeid)
     elif command == "step2":
         # trade = get_trade()
-        tradeid = args.argument[0]
+        tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
     elif command == "step3":
-        tradeid = args.argument[0]
+        tradeid = args.arguments[0]
         checkSellStatus(tradeid)
     # TODO: When trade finishes, delete wormhole file in tmp dir.
     elif command == "step4":
-        tradeid = args.argument[0]
+        tradeid = args.arguments[0]
         checkBuyStatus(tradeid)

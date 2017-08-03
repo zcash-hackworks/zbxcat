@@ -8,7 +8,8 @@ from xcat.trades import *
 
 import xcat.bitcoinRPC as bitcoinRPC
 
-db = plyvel.DB('/tmp/testdb', create_if_missing=True)
+db = plyvel.DB('/tmp/xcatDB', create_if_missing=True)
+preimageDB = plyvel.DB('/tmp/preimageDB', create_if_missing=True)
 
 # Takes dict or obj, saves json str as bytes
 def create(trade, tradeid):
@@ -26,8 +27,8 @@ def createByFundtx(trade):
     txid = jt['sell']['fund_tx']
     db.put(b(txid), b(trade))
 
-def get(txid):
-    rawtrade = db.get(b(txid))
+def get(tradeid):
+    rawtrade = db.get(b(tradeid))
     tradestr = str(rawtrade, 'utf-8')
     trade = instantiate(tradestr)
     return trade
@@ -38,7 +39,18 @@ def instantiate(trade):
         trade = Trade(buy=Contract(tradestr['buy']), sell=Contract(tradestr['sell']), commitment=tradestr['commitment'])
         return trade
 
+#############################################
+###### Preimages stored by tradeid ##########
+#############################################
 
+# Stores secret locally in key/value store by tradeid
+def save_secret(tradeid, secret):
+    res = preimageDB.put(b(tradeid), b(secret))
+
+def get_secret(tradeid):
+    secret = preimageDB.get(b(tradeid))
+    secret = str(secret, 'utf-8')
+    return secret
 
 # db.delete(b'hello')
 # testtrade = get('test')

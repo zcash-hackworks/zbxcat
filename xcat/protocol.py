@@ -6,6 +6,8 @@ import xcat.bitcoinRPC as bitcoinRPC
 from xcat.utils import *
 from xcat.trades import Contract, Trade
 import xcat.userInput as userInput
+import xcat.db as db
+from xcatconf import *
 
 def find_secret_from_fundtx(currency, p2sh, fundtx):
     print("Fund tx in protocol.py", fundtx)
@@ -35,6 +37,16 @@ def check_fund_status(currency, address):
         print("Checking funds in Zcash p2sh")
         return zcashRPC.get_fund_status(address)
 
+# TODO: function to calculate appropriate locktimes between chains
+# def verify_p2sh(trade):
+    # htlc = create_htlc(trade.buy.currency, trade.buy.fulfiller, trade.buy.initiator, trade.commitment, trade.buy.locktime)
+    # buyer_p2sh = htlc['p2sh']
+    # print("Buyer p2sh:", buyer_p2sh)
+    # If the two p2sh match...
+    # if buyer_p2sh == trade.buy.p2sh:
+    # else:
+    #     print("Compiled p2sh for htlc does not match what seller sent.")
+
 def create_htlc(currency, funder, redeemer, commitment, locktime):
     print("Commitment in create_htlc", commitment)
     if currency == 'bitcoin':
@@ -48,15 +60,8 @@ def fund_htlc(currency, p2sh, amount):
         txid = bitcoinRPC.fund_htlc(p2sh, amount)
     else:
         txid = zcashRPC.fund_htlc(p2sh, amount)
-    print("fund_htlc txid", txid )
+    print("Fund_htlc txid", txid )
     return txid
-#
-# def fund_buy_contract(trade):
-#     buy = trade.buy
-#     txid = fund_htlc(buy.currency, buy.p2sh, buy.amount)
-#     setattr(trade.buy, 'fund_tx', txid)
-#     save(trade)
-#     return txid
 
 def fund_contract(contract):
     txid = fund_htlc(contract.currency, contract.p2sh, contract.amount)
@@ -162,7 +167,8 @@ def buyer_fulfill(trade):
         print("Please wait for the seller to remove your funds from escrow to complete the trade.")
     print_trade('buyer')
 
-def seller_init(trade):
+def seller_init(tradeid):
+    trade = Trade()
     # TODO: pass in amounts, or get from cli. {"amounts": {"buy": {}, "sell": {}}}
     amounts = userInput.get_trade_amounts()
     sell = amounts['sell']
@@ -183,8 +189,10 @@ def seller_init(trade):
     print(trade.sell.__dict__)
     print(trade.buy.__dict__)
 
-    secret = userInput.create_password()
-    save_secret(secret)
+    secret = generate_password()
+    db.save_secret(tradeid, secret)
+    print("\nGenerated a secret preimage to lock funds. This will only be stored locally: ", secret)
+
     hash_of_secret = sha256(secret)
     # TODO: Implement locktimes and mock block passage of time
     sell_locktime = 20

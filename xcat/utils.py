@@ -2,6 +2,9 @@ import hashlib, json, random, binascii
 import xcat.trades as trades
 import xcat.bitcoinRPC as bitcoinRPC
 import xcat.zcashRPC as zcashRPC
+import os
+
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 ############################################
 ########### Data conversion utils ##########
@@ -63,38 +66,30 @@ def is_myaddr(address):
 ########### Preimage utils #################
 ############################################
 
+def generate_password():
+    s = "1234567890abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    passlen = 32
+    p =  "".join(random.sample(s,passlen))
+    return p
+
 def sha256(secret):
     preimage = secret.encode('utf8')
     h = hashlib.sha256(preimage).digest()
     return h
 
-def generate_password():
-    s = "abcdefghijklmnopqrstuvwxyz01234567890ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    passlen = 8
-    p =  "".join(random.sample(s,passlen))
-    return p
-
-# caching the secret locally for now...
-def get_secret():
-    with open('xcat/secret.json') as data_file:
-        for line in data_file:
-                return line.strip('\n')
-
-def save_secret(secret):
-    with open('xcat/secret.json', 'w+') as outfile:
-            outfile.write(secret)
-
 #############################################
 #########  xcat.json temp file  #############
 #############################################
 
+xcatjson = os.path.join(ROOT_DIR, '.tmp/xcat.json')
+
 def save_trade(trade):
     print("Trade in save_trade", trade)
-    with open('xcat/xcat.json', 'w+') as outfile:
+    with open(xcatjson, 'w+') as outfile:
         json.dump(trade, outfile)
 
 def get_trade():
-    with open('xcat/xcat.json') as data_file:
+    with open(xcatjson) as data_file:
         xcatdb = json.load(data_file)
         sell = trades.Contract(xcatdb['sell'])
         buy = trades.Contract(xcatdb['buy'])
@@ -102,7 +97,7 @@ def get_trade():
         return trade
 
 def erase_trade():
-    with open('xcat.json', 'w') as outfile:
+    with open(xcatjson, 'w') as outfile:
         outfile.write('')
 
 def save(trade):
@@ -113,3 +108,10 @@ def save(trade):
     'commitment': trade.commitment
     }
     save_trade(trade)
+
+# Remove tmp files when trade is complete
+def cleanup(tradeid):
+    try:
+        os.remove(os.path.join(ROOT_DIR, '.tmp/{0}'.format(tradeid)))
+    except:
+        pass
