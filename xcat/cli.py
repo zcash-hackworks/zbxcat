@@ -156,12 +156,11 @@ def checktrade(tradeid):
         role = 'buyer'
         checkBuyStatus(tradeid)
 
-def newtrade(tradeid):
-    erase_trade()
-    role = 'seller'
+def newtrade(tradeid, **kwargs):
     print("Creating new XCAT trade...")
-    trade = seller_init(tradeid)
-    print("Use 'xcat exporttrade <tradeid> to export the trade and sent to the buyer.'")
+    erase_trade()
+    trade = seller_init(tradeid, **kwargs)
+    print("Use 'xcat exporttrade [tradeid] to export the trade and sent to the buyer.'")
     save_state(trade, tradeid)
 
 def main():
@@ -178,20 +177,20 @@ def main():
     parser.add_argument("command", action="store", help="list commands")
     parser.add_argument("arguments", action="store", nargs="*", help="add arguments")
     parser.add_argument("-w", "--wormhole", action="store_true", help="Transfer trade data through magic-wormhole")
+    parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in beta.")
+    parser.add_argument("-c", "--conf", action="store", help="Use default trade data in conf file.")
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     # TODO: function to view available trades
     # TODO: function to tell if tradeid already exists for newtrade
     args = parser.parse_args()
-
-    # how to hold state of role
+    print(args)
     command = args.command
     if command == 'importtrade':
         if args.wormhole:
             wormhole_importtrade()
         else:
             if len(args.arguments) != 2:
-                print("Usage: importtrade [tradeid] [hexstring]")
-                exit()
+                throw("Usage: importtrade [tradeid] [hexstring]")
             tradeid = args.arguments[0]
             hexstr = args.arguments[1]
             importtrade(tradeid, hexstr)
@@ -206,13 +205,11 @@ def main():
         tradeid = args.arguments[0]
         checktrade(tradeid)
     elif command == 'newtrade':
-        print("in new trade")
-        try:
-            tradeid = args.arguments[0]
-            newtrade(tradeid)
-        except:
-            tradeid = userInput.enter_trade_id()
-            newtrade(tradeid)
+        if len(args.arguments) < 1:
+            throw("Usage: newtrade [tradeid]")
+        tradeid = args.arguments[0]
+        print("network, conf", args.network, args.conf)
+        newtrade(tradeid, network=args.network, conf=args.conf)
     elif command == "daemon":
         #TODO: implement
         print("Run as daemon process")
@@ -227,7 +224,6 @@ def main():
     elif command == "step3":
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
-    # TODO: When trade finishes, delete wormhole file in tmp dir.
     elif command == "step4":
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)

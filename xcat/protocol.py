@@ -167,22 +167,30 @@ def buyer_fulfill(trade):
         print("Please wait for the seller to remove your funds from escrow to complete the trade.")
     print_trade('buyer')
 
-def seller_init(tradeid):
+def seller_init(tradeid, **kwargs):
+    print(*kwargs)
+    if kwargs['network'] == 'regtest':
+        init_addrs = REGTEST_INIT_ADDRS
+        fulfill_addrs = REGTEST_FULFILL_ADDRS
+    elif kwargs['network'] == 'testnet':
+        init_addrs = TESTNET_INIT_ADDRS
+        fulfill_addrs = TESTNET_FULFILL_ADDRS
+    else:
+        init_addrs = userInput.get_initiator_addresses()
+        fulfill_addrs = userInput.get_fulfiller_addresses()
+
     trade = Trade()
-    # TODO: pass in amounts, or get from cli. {"amounts": {"buy": {}, "sell": {}}}
     amounts = userInput.get_trade_amounts()
+
     sell = amounts['sell']
     buy = amounts['buy']
     sell_currency = sell['currency']
     buy_currency = buy['currency']
-    # Get addresses
-    init_addrs = userInput.get_initiator_addresses()
     sell['initiator'] = init_addrs[sell_currency]
     buy['initiator'] = init_addrs[buy_currency]
-
-    fulfill_addrs = userInput.get_fulfiller_addresses()
     sell['fulfiller'] = fulfill_addrs[sell_currency]
     buy['fulfiller'] = fulfill_addrs[buy_currency]
+
     # initializing contract classes with addresses, currencies, and amounts
     trade.sell = Contract(sell)
     trade.buy = Contract(buy)
