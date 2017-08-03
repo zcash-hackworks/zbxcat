@@ -92,7 +92,6 @@ def throw(err):
 xcatjson = os.path.join(ROOT_DIR, '.tmp/xcat.json')
 
 def save_trade(trade):
-    print("Trade in save_trade", trade)
     with open(xcatjson, 'w+') as outfile:
         json.dump(trade, outfile)
 
