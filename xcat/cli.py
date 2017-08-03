@@ -1,12 +1,9 @@
 import argparse, textwrap
 from xcat.utils import *
 import xcat.db as db
-import xcat.bitcoinRPC
-import xcat.zcashRPC
 import xcat.userInput as userInput
 from xcat.trades import *
 from xcat.protocol import *
-import ast
 import subprocess
 
 def save_state(trade, tradeid):
@@ -17,7 +14,6 @@ def checkSellStatus(tradeid):
     trade = db.get(tradeid)
     status = seller_check_status(trade)
     print("In checkSellStatus", status)
-    # if trade.buy.get_status() == 'funded':
     if status == 'init':
         userInput.authorize_fund_sell(trade)
         fund_tx = fund_sell_contract(trade)
@@ -32,7 +28,8 @@ def checkSellStatus(tradeid):
         trade.buy.redeem_tx = txs['redeem_tx']
         print("TRADE SUCCESSFULLY REDEEMED", trade)
         save_state(trade, tradeid)
-    # elif trade.buy.get_status() == 'empty':
+        # Remove from db? Or just from temporary file storage
+        cleanup(tradeid)
     elif status == 'sellerFunded':
         print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade.buy.currency))
     # elif trade.buy.get_status() == 'redeemed':
@@ -71,7 +68,6 @@ def seller_check_status(trade):
         else:
             return 'init' # step0
 
-# TODO: function to calculate appropriate locktimes between chains
 def checkBuyStatus(tradeid):
     trade = db.get(tradeid)
     status = buyer_check_status(trade)
@@ -80,31 +76,22 @@ def checkBuyStatus(tradeid):
         print("Trade has not yet started, waiting for seller to fund the sell p2sh.")
     elif status == 'buyerRedeemed':
         print("This trade is complete, both sides redeemed.")
-    # elif trade.sell.get_status() == 'funded' and trade.buy.get_status() != 'redeemed':
     elif status == 'sellerFunded':
         print("One active trade available, fulfilling buyer contract...")
         print("Trade commitment", trade.commitment)
-        # htlc = create_htlc(trade.buy.currency, trade.buy.fulfiller, trade.buy.initiator, trade.commitment, trade.buy.locktime)
-        # buyer_p2sh = htlc['p2sh']
-        # print("Buyer p2sh:", buyer_p2sh)
-        # If the two p2sh match...
-        # if buyer_p2sh == trade.buy.p2sh:
+        # if verify_p2sh(trade):
         fund_tx = fund_contract(trade.buy)
-        print("Fund tx coming back in cli", fund_tx)
+        print("\nBuyer's funding tx: ", fund_tx)
         trade.buy.fund_tx = fund_tx
         save_state(trade, tradeid)
-        # else:
-        #     print("Compiled p2sh for htlc does not match what seller sent.")
     elif status == 'sellerRedeemed':
         print("FUND TX CLI", trade.buy.fund_tx)
         secret = find_secret_from_fundtx(trade.buy.currency, trade.buy.p2sh, trade.buy.fund_tx)
         print("Secret in cli", secret)
-        # secret = parse_secret(trade.buy.currency, trade.buy.redeem_tx)
         if secret != None:
             print("Found secret", secret)
             txs = redeem_p2sh(trade.sell, secret)
             print("TXS IN SELLER REDEEMED", txs)
-            # trade.sell.fund_tx = txs['fund_tx']
             trade.sell.redeem_tx = txs['redeem_tx']
             print("TXID after buyer redeem", trade.sell.redeem_tx)
             save_state(trade, tradeid)

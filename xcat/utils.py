@@ -108,3 +108,10 @@ def save(trade):
     'commitment': trade.commitment
     }
     save_trade(trade)
+
+# Remove tmp files when trade is complete
+def cleanup(tradeid):
+    try:
+        os.remove(os.path.join(ROOT_DIR, '.tmp/{0}'.format(tradeid)))
+    except:
+        pass
