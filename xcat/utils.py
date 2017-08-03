@@ -77,6 +77,14 @@ def sha256(secret):
     h = hashlib.sha256(preimage).digest()
     return h
 
+############################################
+######## Error handling for CLI ############
+############################################
+
+def throw(err):
+    print(err)
+    exit()
+
 #############################################
 #########  xcat.json temp file  #############
 #############################################
@@ -84,7 +92,6 @@ def sha256(secret):
 xcatjson = os.path.join(ROOT_DIR, '.tmp/xcat.json')
 
 def save_trade(trade):
-    print("Trade in save_trade", trade)
     with open(xcatjson, 'w+') as outfile:
         json.dump(trade, outfile)
 

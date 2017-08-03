@@ -10,7 +10,6 @@ import xcat.db as db
 from xcatconf import *
 
 def find_secret_from_fundtx(currency, p2sh, fundtx):
-    print("Fund tx in protocol.py", fundtx)
     if currency == 'bitcoin':
         secret = bitcoinRPC.find_secret(p2sh, fundtx)
     else:
@@ -48,7 +47,6 @@ def check_fund_status(currency, address):
     #     print("Compiled p2sh for htlc does not match what seller sent.")
 
 def create_htlc(currency, funder, redeemer, commitment, locktime):
-    print("Commitment in create_htlc", commitment)
     if currency == 'bitcoin':
         sell_p2sh = bitcoinRPC.hashtimelockcontract(funder, redeemer, commitment, locktime)
     else:
@@ -60,12 +58,10 @@ def fund_htlc(currency, p2sh, amount):
         txid = bitcoinRPC.fund_htlc(p2sh, amount)
     else:
         txid = zcashRPC.fund_htlc(p2sh, amount)
-    print("Fund_htlc txid", txid )
     return txid
 
 def fund_contract(contract):
     txid = fund_htlc(contract.currency, contract.p2sh, contract.amount)
-    print("TXID coming back from fund_contract", txid)
     return txid
 
 def fund_sell_contract(trade):
@@ -89,8 +85,7 @@ def create_sell_p2sh(trade, commitment, locktime):
 def create_buy_p2sh(trade, commitment, locktime):
     ## CREATE BUY CONTRACT
     buy = trade.buy
-    print("Now creating buy contract on the {0} blockchain where you will wait for the buyer to send funds...".format(buy.currency))
-    print("HTLC DETAILS", buy.currency, buy.fulfiller, buy.initiator, commitment, locktime)
+    print("\nNow creating buy contract on the {0} blockchain where you will wait for the buyer to send funds...".format(buy.currency))
     buy_contract = create_htlc(buy.currency, buy.fulfiller, buy.initiator, commitment, locktime)
     print("Buy contract", buy_contract)
 
@@ -98,7 +93,7 @@ def create_buy_p2sh(trade, commitment, locktime):
     setattr(trade.buy, 'redeemScript', buy_contract['redeemScript'])
     setattr(trade.buy, 'redeemblocknum', buy_contract['redeemblocknum'])
     setattr(trade.buy, 'locktime', buy_contract['locktime'])
-    print("Now contact the buyer and tell them to send funds to this p2sh: ", trade.buy.p2sh)
+    print("\nNow contact the buyer and tell them to send funds to this p2sh: {0}\n".format(trade.buy.p2sh))
 
     save(trade)
 
@@ -167,22 +162,31 @@ def buyer_fulfill(trade):
         print("Please wait for the seller to remove your funds from escrow to complete the trade.")
     print_trade('buyer')
 
-def seller_init(tradeid):
+def seller_init(tradeid, **kwargs):
+    if kwargs['conf']:
+        conf = kwargs['conf'].upper()
+        if conf.upper() == 'REGTEST':
+            init_addrs = REGTEST['initiator']
+            fulfill_addrs = REGTEST['fulfiller']
+        elif conf.upper() == 'TESTNET':
+            init_addrs = TESTNET['initiator']
+            fulfill_addrs = TESTNET['fulfiller']
+    else:
+        init_addrs = userInput.get_initiator_addresses()
+        fulfill_addrs = userInput.get_fulfiller_addresses()
+
     trade = Trade()
-    # TODO: pass in amounts, or get from cli. {"amounts": {"buy": {}, "sell": {}}}
     amounts = userInput.get_trade_amounts()
+
     sell = amounts['sell']
     buy = amounts['buy']
     sell_currency = sell['currency']
     buy_currency = buy['currency']
-    # Get addresses
-    init_addrs = userInput.get_initiator_addresses()
     sell['initiator'] = init_addrs[sell_currency]
     buy['initiator'] = init_addrs[buy_currency]
-
-    fulfill_addrs = userInput.get_fulfiller_addresses()
     sell['fulfiller'] = fulfill_addrs[sell_currency]
     buy['fulfiller'] = fulfill_addrs[buy_currency]
+
     # initializing contract classes with addresses, currencies, and amounts
     trade.sell = Contract(sell)
     trade.buy = Contract(buy)

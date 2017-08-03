@@ -8,9 +8,9 @@ setup(
     entry_points = {
     "console_scripts": ['xcat = xcat.cli:main']
     },
-    description="Xcat is a package to facilitate cross-chain atomic transactions.",
+    description="Xcat is a package that creates cross-chain atomic transactions.",
     author="arcalinea and arielgabizon",
-    author_email="xcat@z.cash",
+    author_email="arcalinea@z.cash",
     license="MIT",
     url="http://github.com/zcash/xcat",
     packages=find_packages()

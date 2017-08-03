@@ -13,7 +13,7 @@ def save_state(trade, tradeid):
 def checkSellStatus(tradeid):
     trade = db.get(tradeid)
     status = seller_check_status(trade)
-    print("In checkSellStatus", status)
+    print("Trade status: {0}\n".format(status))
     if status == 'init':
         userInput.authorize_fund_sell(trade)
         fund_tx = fund_sell_contract(trade)
@@ -22,11 +22,9 @@ def checkSellStatus(tradeid):
         save_state(trade, tradeid)
     elif status == 'buyerFunded':
         secret = db.get_secret(tradeid)
-        print("SECRET found in checksellactions", secret)
+        print("Retrieved secret to redeem funds for {0}: {1}".format(tradeid, secret))
         txs = seller_redeem_p2sh(trade, secret)
-        print("TXS IN SELLER REDEEM BUYER TX", txs)
         trade.buy.redeem_tx = txs['redeem_tx']
-        print("TRADE SUCCESSFULLY REDEEMED", trade)
         save_state(trade, tradeid)
         # Remove from db? Or just from temporary file storage
         cleanup(tradeid)
@@ -71,7 +69,7 @@ def seller_check_status(trade):
 def checkBuyStatus(tradeid):
     trade = db.get(tradeid)
     status = buyer_check_status(trade)
-    print("In checkBuyStatus", status)
+    print("Trade status: {0}\n".format(status))
     if status == 'init':
         print("Trade has not yet started, waiting for seller to fund the sell p2sh.")
     elif status == 'buyerRedeemed':
@@ -81,19 +79,16 @@ def checkBuyStatus(tradeid):
         print("Trade commitment", trade.commitment)
         # if verify_p2sh(trade):
         fund_tx = fund_contract(trade.buy)
-        print("\nBuyer's funding tx: ", fund_tx)
+        print("\nYou sent this funding tx: ", fund_tx)
         trade.buy.fund_tx = fund_tx
         save_state(trade, tradeid)
     elif status == 'sellerRedeemed':
-        print("FUND TX CLI", trade.buy.fund_tx)
         secret = find_secret_from_fundtx(trade.buy.currency, trade.buy.p2sh, trade.buy.fund_tx)
-        print("Secret in cli", secret)
         if secret != None:
-            print("Found secret", secret)
+            print("Found secret on blockchain in seller's redeem tx: ", secret)
             txs = redeem_p2sh(trade.sell, secret)
-            print("TXS IN SELLER REDEEMED", txs)
             trade.sell.redeem_tx = txs['redeem_tx']
-            print("TXID after buyer redeem", trade.sell.redeem_tx)
+            print("Redeem txid: ", trade.sell.redeem_tx)
             save_state(trade, tradeid)
             print("XCAT trade complete!")
         else:
@@ -156,12 +151,11 @@ def checktrade(tradeid):
         role = 'buyer'
         checkBuyStatus(tradeid)
 
-def newtrade(tradeid):
-    erase_trade()
-    role = 'seller'
+def newtrade(tradeid, **kwargs):
     print("Creating new XCAT trade...")
-    trade = seller_init(tradeid)
-    print("Use 'xcat exporttrade <tradeid> to export the trade and sent to the buyer.'")
+    erase_trade()
+    trade = seller_init(tradeid, **kwargs)
+    print("\nUse 'xcat exporttrade [tradeid]' to export the trade and sent to the buyer.\n")
     save_state(trade, tradeid)
 
 def main():
@@ -178,20 +172,19 @@ def main():
     parser.add_argument("command", action="store", help="list commands")
     parser.add_argument("arguments", action="store", nargs="*", help="add arguments")
     parser.add_argument("-w", "--wormhole", action="store_true", help="Transfer trade data through magic-wormhole")
+    parser.add_argument("-c", "--conf", action="store", help="Use default trade data in conf file.")
+    parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in beta.")
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     # TODO: function to view available trades
     # TODO: function to tell if tradeid already exists for newtrade
     args = parser.parse_args()
 
-    # how to hold state of role
     command = args.command
     if command == 'importtrade':
         if args.wormhole:
             wormhole_importtrade()
         else:
-            if len(args.arguments) != 2:
-                print("Usage: importtrade [tradeid] [hexstring]")
-                exit()
+            if len(args.arguments) != 2: throw("Usage: importtrade [tradeid] [hexstring]")
             tradeid = args.arguments[0]
             hexstr = args.arguments[1]
             importtrade(tradeid, hexstr)
@@ -206,13 +199,9 @@ def main():
         tradeid = args.arguments[0]
         checktrade(tradeid)
     elif command == 'newtrade':
-        print("in new trade")
-        try:
-            tradeid = args.arguments[0]
-            newtrade(tradeid)
-        except:
-            tradeid = userInput.enter_trade_id()
-            newtrade(tradeid)
+        if len(args.arguments) < 1: throw("Usage: newtrade [tradeid]")
+        tradeid = args.arguments[0]
+        newtrade(tradeid, network=args.network, conf=args.conf)
     elif command == "daemon":
         #TODO: implement
         print("Run as daemon process")
@@ -221,13 +210,11 @@ def main():
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
     elif command == "step2":
-        # trade = get_trade()
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
     elif command == "step3":
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
-    # TODO: When trade finishes, delete wormhole file in tmp dir.
     elif command == "step4":
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)

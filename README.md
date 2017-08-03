@@ -50,11 +50,15 @@ Since this is beta software that is still under active development, we recommend
 
 We use the term "seller" for whoever initiates the trade, and "buyer" for whoever fulfills the other end.
 
+### Seller Setup:
+
+To start a trade using default addresses, edit the buyer and seller addresses for the chosen network in `xcatconf.py`. You will initiate the trade using these default addresses by passing in the variable through a `-conf` flag.
+
 ### Seller:
 
-To initiate a new trade, the seller enters all the necessary trade data and saves it under a tradeid. We will use the tradeid "testtrade" for this example. The amounts being traded will have to be agreed upon in advance, and the seller will need the buyer's destination addresses on both chains.
+To initiate a new trade, the seller enters all the necessary trade data and saves it under a tradeid. We will use the tradeid "testtrade" for this example. The amounts being traded will have to be agreed upon in advance, and the seller will need the buyer's destination addresses on both chains. The `-c` field will pass in the name of the network addresses set in `xcatconf.py`. (If addresses are not set, initiator addresses are generated on your computer, and you can enter the buyer's addresses on the command line.)
 
-`xcat newtrade testtrade`
+`xcat -c=regtest newtrade testtrade`
 
 After creating, the seller exports the trade data encoded as a hex string to transfer the terms of the trade to the buyer. They can send this hex string to the buyer through email or any other channel, but there is also built-in support to transfer the data directly between two computers through [magic-wormhole](https://github.com/warner/magic-wormhole).
 
