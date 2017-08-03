@@ -139,6 +139,7 @@ def checktrade(tradeid):
     trade = db.get(tradeid)
     if find_role(trade.sell) == 'test':
         input("Is this a test? Both buyer and seller addresses are yours, press 'enter' to test.")
+        checkSellStatus(tradeid)
         checkBuyStatus(tradeid)
         checkSellStatus(tradeid)
         checkBuyStatus(tradeid)
