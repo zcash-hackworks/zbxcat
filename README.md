@@ -20,16 +20,9 @@ git clone https://github.com/zcash/zbxcat.git
 pip install zbxcat
 ```
 
-To install dependencies, run:
+To install python-zcashlib from github:
 ```
-pip install -r requirements.txt
-```
-
-You'll have to clone the repository to install python-zcashlib.
-
-```
-git clone https://github.com/arcalinea/python-zcashlib.git
-pip install <path to python-zcashlib>
+easy_install http://github.com/arcalinea/python-zcashlib/tarball/master
 ```
 
 Run Zcash and Bitcoin daemons locally, on whichever network you want to trade on (recommended: testnet, regtest).
