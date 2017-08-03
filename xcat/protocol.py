@@ -7,7 +7,7 @@ from xcat.utils import *
 from xcat.trades import Contract, Trade
 import xcat.userInput as userInput
 import xcat.db as db
-from xcatconf import *
+from xcat.xcatconf import *
 
 def find_secret_from_fundtx(currency, p2sh, fundtx):
     if currency == 'bitcoin':

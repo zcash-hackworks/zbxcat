@@ -89,7 +89,10 @@ def throw(err):
 #########  xcat.json temp file  #############
 #############################################
 
-xcatjson = os.path.join(ROOT_DIR, '.tmp/xcat.json')
+tmp_dir = os.path.join(ROOT_DIR, '.tmp')
+if not os.path.exists(tmp_dir):
+    os.makedirs(tmp_dir)
+xcatjson = os.path.join(tmp_dir, 'xcat.json')
 
 def save_trade(trade):
     with open(xcatjson, 'w+') as outfile:
@@ -104,8 +107,11 @@ def get_trade():
         return trade
 
 def erase_trade():
-    with open(xcatjson, 'w') as outfile:
-        outfile.write('')
+    try:
+        with open(xcatjson, 'w') as outfile:
+            outfile.write('')
+    except:
+        pass
 
 def save(trade):
     print("Saving trade")

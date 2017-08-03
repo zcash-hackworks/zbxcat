@@ -13,5 +13,7 @@ setup(
     author_email="arcalinea@z.cash",
     license="MIT",
     url="http://github.com/zcash/xcat",
+    install_requires=['python-bitcoinlib', 'plyvel'],
+    dependency_links=['http://github.com/arcalinea/python-zcashlib/tarball/master'],
     packages=find_packages()
 )
