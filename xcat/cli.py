@@ -190,13 +190,16 @@ def main():
             hexstr = args.arguments[1]
             importtrade(tradeid, hexstr)
     elif command == 'exporttrade':
+        if len(args.arguments) < 1: throw("Usage: exporttrade [tradeid]")
         tradeid = args.arguments[0]
         exporttrade(tradeid, args.wormhole)
     elif command == "findtrade":
+        if len(args.arguments) < 1: throw("Usage: findtrade [tradeid]")
         print("Finding trade")
         key = args.arguments[0]
         findtrade(key)
     elif command == 'checktrade':
+        if len(args.arguments) < 1: throw("Usage: checktrade [tradeid]")
         tradeid = args.arguments[0]
         checktrade(tradeid)
     elif command == 'newtrade':
