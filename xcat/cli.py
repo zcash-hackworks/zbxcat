@@ -159,6 +159,12 @@ def newtrade(tradeid, **kwargs):
     print("\nUse 'xcat exporttrade [tradeid]' to export the trade and sent to the buyer.\n")
     save_state(trade, tradeid)
 
+def listtrades():
+    print("Trades")
+    trades = db.dump()
+    for trade in trades:
+        print("{0}: {1}".format(trade[0], trade[1]))
+
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
         description=textwrap.dedent('''\
@@ -202,12 +208,14 @@ def main():
         if len(args.arguments) < 1: throw("Usage: checktrade [tradeid]")
         tradeid = args.arguments[0]
         checktrade(tradeid)
+    elif command == 'listtrades':
+        listtrades()
     elif command == 'newtrade':
         if len(args.arguments) < 1: throw("Usage: newtrade [tradeid]")
         tradeid = args.arguments[0]
         newtrade(tradeid, network=args.network, conf=args.conf)
     elif command == "daemon":
-        #TODO: implement
+        #TODO: not implemented
         print("Run as daemon process")
     # Ad hoc testing of workflow starts here
     elif command == "step1":

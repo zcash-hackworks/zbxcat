@@ -52,6 +52,14 @@ def get_secret(tradeid):
     secret = str(secret, 'utf-8')
     return secret
 
+def dump():
+    results = []
+    with db.iterator() as it:
+        for k, v in it:
+            j = json.loads(x2s(b2x(v)))
+            results.append((str(k, 'utf-8'), j))
+    return results
+
 # db.delete(b'hello')
 # testtrade = get('test')
 # testtrade = instantiate(testtrade)
