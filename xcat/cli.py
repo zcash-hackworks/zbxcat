@@ -155,9 +155,12 @@ def checktrade(tradeid):
 def newtrade(tradeid, **kwargs):
     print("Creating new XCAT trade...")
     erase_trade()
-    trade = seller_init(tradeid, **kwargs)
+    tradeid, trade= initialize_trade(tradeid, conf=kwargs['conf'])
+    print("Trade", trade)
+    trade = seller_init(tradeid, trade)
     print("\nUse 'xcat exporttrade [tradeid]' to export the trade and sent to the buyer.\n")
     save_state(trade, tradeid)
+    return trade
 
 def listtrades():
     print("Trades")
@@ -213,7 +216,11 @@ def main():
     elif command == 'newtrade':
         if len(args.arguments) < 1: throw("Usage: newtrade [tradeid]")
         tradeid = args.arguments[0]
-        newtrade(tradeid, network=args.network, conf=args.conf)
+        print("Args.conf", args.conf)
+        if args.conf == None:
+            newtrade(tradeid, network=args.network, conf='cli')
+        else:
+            newtrade(tradeid, network=args.network, conf=args.conf)
     elif command == "daemon":
         #TODO: not implemented
         print("Run as daemon process")
