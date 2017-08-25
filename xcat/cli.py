@@ -143,6 +143,15 @@ def findtrade(tradeid):
     print(trade.toJSON())
     return trade
 
+def find_role(contract):
+    # When regtest created both addrs on same machine, role is both.
+    if is_myaddr(contract.initiator) and is_myaddr(contract.fulfiller):
+        return 'test'
+    elif is_myaddr(contract.initiator):
+        return 'initiator'
+    else:
+        return 'fulfiller'
+
 def checktrade(tradeid):
     print("In checktrade")
     trade = db.get(tradeid)

@@ -40,18 +40,6 @@ def jsonformat(trade):
     }
 
 ############################################
-#### Role detection utils ####
-############################################
-def find_role(contract):
-    # Obviously when regtest created both addrs on same machine, role is both.
-    if is_myaddr(contract.initiator) and is_myaddr(contract.fulfiller):
-        return 'test'
-    elif is_myaddr(contract.initiator):
-        return 'initiator'
-    else:
-        return 'fulfiller'
-
-############################################
 ########### Preimage utils #################
 ############################################
 
