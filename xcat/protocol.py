@@ -164,7 +164,6 @@ def buyer_fulfill(trade):
 
 def initialize_trade(tradeid, **kwargs):
     trade = Trade()
-    print("kwargs", kwargs)
     conf = kwargs['conf']
     if conf == 'cli':
         init_addrs = userInput.get_initiator_addresses()
