@@ -1,13 +1,25 @@
 import json
 import os, sys
 from pprint import pprint
-import xcat.zcashRPC as zcashRPC
-import xcat.bitcoinRPC as bitcoinRPC
 from xcat.utils import *
 from xcat.trades import Contract, Trade
 import xcat.userInput as userInput
 import xcat.db as db
 from xcat.xcatconf import *
+from xcat.bitcoinRPC import bitcoinProxy
+from xcat.zcashRPC import zcashProxy
+
+bitcoinRPC = bitcoinProxy()
+zcashRPC = zcashProxy()
+
+def is_myaddr(address):
+    if address[:1] == 'm':
+        status = bitcoinRPC.validateaddress(address)
+    else:
+        status = zcashRPC.validateaddress(address)
+    status = status['ismine']
+    # print("Address {0} is mine: {1}".format(address, status))
+    return status
 
 def find_secret_from_fundtx(currency, p2sh, fundtx):
     if currency == 'bitcoin':

@@ -24,7 +24,12 @@ def checkSellStatus(tradeid):
         secret = db.get_secret(tradeid)
         print("Retrieved secret to redeem funds for {0}: {1}".format(tradeid, secret))
         txs = seller_redeem_p2sh(trade, secret)
-        trade.buy.redeem_tx = txs['redeem_tx']
+        if 'redeem_tx' in txs:
+            trade.buy.redeem_tx = txs['redeem_tx']
+            print("Redeem tx: ", txs['redeem_tx'])
+        elif 'refund_tx' in txs:
+            trade.buy.redeem_tx = txs['refund_tx']
+            print("Refund tx: ", txs['refund_tx'])
         save_state(trade, tradeid)
         # Remove from db? Or just from temporary file storage
         cleanup(tradeid)
@@ -87,8 +92,12 @@ def checkBuyStatus(tradeid):
         if secret != None:
             print("Found secret on blockchain in seller's redeem tx: ", secret)
             txs = redeem_p2sh(trade.sell, secret)
-            trade.sell.redeem_tx = txs['redeem_tx']
-            print("Redeem txid: ", trade.sell.redeem_tx)
+            if 'redeem_tx' in txs:
+                trade.sell.redeem_tx = txs['redeem_tx']
+                print("Redeem txid: ", trade.sell.redeem_tx)
+            elif 'refund_tx' in txs:
+                trade.sell.redeem_tx = txs['refund_tx']
+                print("Refund tx: ", txs['refund_tx'])
             save_state(trade, tradeid)
             print("XCAT trade complete!")
         else:
@@ -133,6 +142,15 @@ def findtrade(tradeid):
     trade = db.get(tradeid)
     print(trade.toJSON())
     return trade
+
+def find_role(contract):
+    # When regtest created both addrs on same machine, role is both.
+    if is_myaddr(contract.initiator) and is_myaddr(contract.fulfiller):
+        return 'test'
+    elif is_myaddr(contract.initiator):
+        return 'initiator'
+    else:
+        return 'fulfiller'
 
 def checktrade(tradeid):
     print("In checktrade")
@@ -183,7 +201,7 @@ def main():
     parser.add_argument("arguments", action="store", nargs="*", help="add arguments")
     parser.add_argument("-w", "--wormhole", action="store_true", help="Transfer trade data through magic-wormhole")
     parser.add_argument("-c", "--conf", action="store", help="Use default trade data in conf file.")
-    parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in beta.")
+    parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in alpha.")
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     args = parser.parse_args()
 
