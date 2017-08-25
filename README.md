@@ -43,7 +43,7 @@ rpcpassword=password
 
 You can try this on regtest on one computer, or on testnet across two computers.
 
-Since this is beta software that is still under active development, we recommend that you do not trade more than you can afford to lose on mainnet.
+Since this is still under active development, we recommend that you do not trade more than you can afford to lose on mainnet.
 
 We use the term "seller" for whoever initiates the trade, and "buyer" for whoever fulfills the other end.
 
