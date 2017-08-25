@@ -216,7 +216,6 @@ def main():
     elif command == 'newtrade':
         if len(args.arguments) < 1: throw("Usage: newtrade [tradeid]")
         tradeid = args.arguments[0]
-        print("Args.conf", args.conf)
         if args.conf == None:
             newtrade(tradeid, network=args.network, conf='cli')
         else:
