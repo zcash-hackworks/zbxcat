@@ -22,7 +22,7 @@ from xcat.utils import *
 SelectParams('regtest')
 # TODO: accurately read user and pw info
 # zcashd = zcash.rpc.Proxy(service_url="http://user:password@127.0.0.1:18232")
-zcashd = zcash.rpc.Proxy()
+zcashd = zcash.rpc.Proxy(timeout=90)
 FEE = 0.001*COIN
 
 def x2s(hexstring):
@@ -35,8 +35,6 @@ def validateaddress(addr):
 def get_keys(funder_address, redeemer_address):
     fundpubkey = CBitcoinAddress(funder_address)
     redeempubkey = CBitcoinAddress(redeemer_address)
-    # fundpubkey = zcashd.getnewaddress()
-    # redeempubkey = zcashd.getnewaddress()
     return fundpubkey, redeempubkey
 
 def privkey(address):
@@ -220,7 +218,7 @@ def find_recipient(contract):
     initiator = CBitcoinAddress(contract.initiator)
     fulfiller = CBitcoinAddress(contract.fulfiller)
     print("Initiator", b2x(initiator))
-    print("Fulfiler", b2x(fulfiller))
+    print("Fulfiller", b2x(fulfiller))
     print('pubkey', pubkey)
     redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
     print('redeemPubkey', redeemPubkey)
