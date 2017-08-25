@@ -36,25 +36,21 @@ def authorize_fund_sell(htlcTrade):
 def get_initiator_addresses():
     btc_addr = input("Enter your bitcoin address or press enter to generate one: ")
     btc_addr = bitcoinRPC.new_bitcoin_addr()
-    # btc_addr = 'mgRG44X4PQC1ZCA4V654UZjJGJ3pxbApj2'
     print(btc_addr)
     zec_addr = input("Enter your zcash address or press enter to generate one: ")
     zec_addr = zcashRPC.new_zcash_addr()
-    # zec_addr = 'tmLZu7MdjNdA6vbPTNTwdsZo91LnnrVTYB5'
     print(zec_addr)
     addresses = {'bitcoin': btc_addr, 'zcash': zec_addr}
     return addresses
 
 def get_fulfiller_addresses():
     btc_addr = input("Enter the bitcoin address of the party you want to trade with: ")
-    # btc_addr = bXcat.new_bitcoin_addr()
     if btc_addr == '':
         btc_addr = "mvc56qCEVj6p57xZ5URNC3v7qbatudHQ9b" # regtest
     print(btc_addr)
     zec_addr = input("Enter the zcash address of the party you want to trade with: ")
     if zec_addr == '':
         zec_addr = "tmTF7LMLjvEsGdcepWPUsh4vgJNrKMWwEyc" # regtest
-    # zec_addr = zXcat.new_zcash_addr()
     print(zec_addr)
     addresses = {'bitcoin': btc_addr, 'zcash': zec_addr}
     return addresses
