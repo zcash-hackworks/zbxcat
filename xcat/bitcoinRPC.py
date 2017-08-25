@@ -15,13 +15,11 @@ from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2PKHBitcoinAddress
 
 from xcat.utils import *
-from xcat.zcashRPC import parse_script
 
 FEE = 0.001*COIN
 
-
 class bitcoinProxy():
-    def __init__(self, network='testnet', timeout=900):
+    def __init__(self, network='regtest', timeout=900):
         self.network = network
         self.timeout = timeout
 
@@ -143,17 +141,17 @@ class bitcoinProxy():
 
     def redeem_contract(self, contract, secret):
         print("Parsing script for redeem_contract...")
-        scriptarray = parse_script(contract.redeemScript)
+        scriptarray = self.parse_script(contract.redeemScript)
         redeemblocknum = scriptarray[8]
         redeemPubKey = P2PKHBitcoinAddress.from_bytes(x(scriptarray[6]))
         refundPubKey = P2PKHBitcoinAddress.from_bytes(x(scriptarray[13]))
         p2sh = contract.p2sh
         #checking there are funds in the address
-        amount = check_funds(p2sh)
+        amount = self.check_funds(p2sh)
         if(amount == 0):
             print("address ", p2sh, " not funded")
             quit()
-        fundtx = find_transaction_to_address(p2sh)
+        fundtx = self.find_transaction_to_address(p2sh)
         amount = fundtx['amount'] / COIN
         # print("Found fund_tx: ", fundtx)
         p2sh = P2SHBitcoinAddress(p2sh)
@@ -194,6 +192,11 @@ class bitcoinProxy():
                 return  {"refund_tx": refund_tx, "fund_tx": fund_tx}
         else:
             print("No contract for this p2sh found in database", p2sh)
+
+    def parse_script(self, script_hex):
+        redeemScript = self.bitcoind.call('decodescript', script_hex)
+        scriptarray = redeemScript['asm'].split(' ')
+        return scriptarray
 
     def find_redeemblocknum(self, contract):
         scriptarray = parse_script(contract.redeemScript)

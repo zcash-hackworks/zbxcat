@@ -1,6 +1,7 @@
 from xcat.utils import *
 from xcat.db import *
 from xcat.bitcoinRPC import bitcoinProxy
+from xcat.zcashRPC import zcashProxy
 
 def enter_trade_id():
     tradeid = input("Enter a unique identifier for this trade: ")
@@ -36,6 +37,7 @@ def authorize_fund_sell(htlcTrade):
 
 def get_initiator_addresses():
     bitcoinRPC = bitcoinProxy()
+    zcashRPC = zcashProxy()
     btc_addr = input("Enter your bitcoin address or press enter to generate one: ")
     btc_addr = bitcoinRPC.new_bitcoin_addr()
     print(btc_addr)

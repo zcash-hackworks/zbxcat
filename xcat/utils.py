@@ -1,7 +1,5 @@
 import hashlib, json, random, binascii
 import xcat.trades as trades
-import xcat.bitcoinRPC as bitcoinRPC
-import xcat.zcashRPC as zcashRPC
 import os
 
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -52,15 +50,6 @@ def find_role(contract):
         return 'initiator'
     else:
         return 'fulfiller'
-
-def is_myaddr(address):
-    if address[:1] == 'm':
-        status = bitcoinRPC.validateaddress(address)
-    else:
-        status = zcashRPC.validateaddress(address)
-    status = status['ismine']
-    # print("Address {0} is mine: {1}".format(address, status))
-    return status
 
 ############################################
 ########### Preimage utils #################
