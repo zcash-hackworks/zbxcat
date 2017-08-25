@@ -1,8 +1,12 @@
 # ZBXCAT
 
+**NOTE: Experimental software, use at your own risk, PR's welcome :)**
+
 A work-in-progress for Zcash Bitcoin Cross-Chain Atomic Transactions
 
 Bitcoin scripts use python-bitcoinlib, and Zcash scripts use python-zcashlib (a Zcash fork of python-bitcoinlib).
+
+Currently defaults to using testnet.
 
 ## Setup
 
@@ -53,11 +57,13 @@ To initiate a new trade, the seller enters all the necessary trade data and save
 
 `xcat -c=regtest newtrade testtrade`
 
-After creating, the seller exports the trade data encoded as a hex string to transfer the terms of the trade to the buyer. They can send this hex string to the buyer through email or any other channel, but there is also built-in support to transfer the data directly between two computers through [magic-wormhole](https://github.com/warner/magic-wormhole).
+After creating, the seller exports the trade data encoded as a hex string to transfer the terms of the trade to the buyer. They can send this hex string to the buyer through email or any other channel.
 
 A standard export. Returns a long hex string which the seller sends to the buyer.
 
 `xcat exporttrade testtrade`
+
+There is also built-in support to transfer the data directly between two computers through [magic-wormhole](https://github.com/warner/magic-wormhole), which you will have to have installed locally on your computer. Available for download through pip or the apt repository.
 
 An export using magic-wormhole, which uses a short passphrase the seller must communicate to the buyer.
 
