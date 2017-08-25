@@ -162,21 +162,19 @@ def buyer_fulfill(trade):
         print("Please wait for the seller to remove your funds from escrow to complete the trade.")
     print_trade('buyer')
 
-def seller_init(tradeid, **kwargs):
-    if kwargs['conf']:
-        conf = kwargs['conf'].upper()
-        if conf.upper() == 'REGTEST':
-            init_addrs = REGTEST['initiator']
-            fulfill_addrs = REGTEST['fulfiller']
-        elif conf.upper() == 'TESTNET':
-            init_addrs = TESTNET['initiator']
-            fulfill_addrs = TESTNET['fulfiller']
-    else:
+def initialize_trade(tradeid, **kwargs):
+    trade = Trade()
+    print("kwargs", kwargs)
+    conf = kwargs['conf']
+    if conf == 'cli':
         init_addrs = userInput.get_initiator_addresses()
         fulfill_addrs = userInput.get_fulfiller_addresses()
-
-    trade = Trade()
-    amounts = userInput.get_trade_amounts()
+        amounts = userInput.get_trade_amounts()
+        print("AMOUNTS", amounts)
+    else:
+        init_addrs = ADDRS[conf]['initiator']
+        fulfill_addrs = ADDRS[conf]['fulfiller']
+        amounts = ADDRS[conf]['amounts']
 
     sell = amounts['sell']
     buy = amounts['buy']
@@ -192,7 +190,10 @@ def seller_init(tradeid, **kwargs):
     trade.buy = Contract(buy)
     print(trade.sell.__dict__)
     print(trade.buy.__dict__)
+    return tradeid, trade
 
+
+def seller_init(tradeid, trade):
     secret = generate_password()
     db.save_secret(tradeid, secret)
     print("\nGenerated a secret preimage to lock funds. This will only be stored locally: ", secret)
@@ -202,8 +203,9 @@ def seller_init(tradeid, **kwargs):
     sell_locktime = 20
     buy_locktime = 10 # Must be more than first tx
     print("Creating pay-to-script-hash for sell contract...")
-    create_sell_p2sh(trade, hash_of_secret, sell_locktime)
 
+    # create the p2sh addrs
+    create_sell_p2sh(trade, hash_of_secret, sell_locktime)
     create_buy_p2sh(trade, hash_of_secret, buy_locktime)
 
     trade.commitment = b2x(hash_of_secret)
