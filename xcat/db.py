@@ -11,6 +11,10 @@ import xcat.bitcoinRPC as bitcoinRPC
 db = plyvel.DB('/tmp/xcatDB', create_if_missing=True)
 preimageDB = plyvel.DB('/tmp/preimageDB', create_if_missing=True)
 
+#############################################
+######## Trades stored by tradeid ###########
+#############################################
+
 # Takes dict or obj, saves json str as bytes
 def create(trade, tradeid):
     if type(trade) == dict:
@@ -52,6 +56,11 @@ def get_secret(tradeid):
     secret = str(secret, 'utf-8')
     return secret
 
+
+#############################################
+########## Dump or view db entries ##########
+#############################################
+
 def dump():
     results = []
     with db.iterator() as it:
@@ -59,18 +68,6 @@ def dump():
             j = json.loads(x2s(b2x(v)))
             results.append((str(k, 'utf-8'), j))
     return results
-
-# db.delete(b'hello')
-# testtrade = get('test')
-# testtrade = instantiate(testtrade)
-# print(testtrade)
-
-# addr = bitcoinRPC.new_bitcoin_addr()
-# print(str(addr))
-# print(b('thing'))
-
-# hexstr = get(txid)
-# print(x2s(hexstr))
 
 def print_entries():
     it = db.iterator()
@@ -80,9 +77,3 @@ def print_entries():
             print("Key:", k)
             print('val: ', j)
             # print('sell: ', j['sell'])
-
-# print_entries()
-# txid = '1171aeda64eff388b3568fa4675d0ca78852911109bbe42e0ef11ad6bf1b159e'
-# entry = db.get(b(txid))
-# print(entry)
-# print(it.next())
