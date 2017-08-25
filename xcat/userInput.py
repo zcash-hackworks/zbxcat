@@ -16,10 +16,12 @@ def get_trade_amounts():
         buy_currency = 'bitcoin'
     print(sell_currency)
     sell_amt = input("How much {0} do you want to sell? ".format(sell_currency))
-    sell_amt = 0.01
+    if sell_amt == '':
+        sell_amt = 0.01
     print(sell_amt)
     buy_amt = input("How much {0} do you want to receive in exchange? ".format(buy_currency))
-    buy_amt = 0.02
+    if buy_amt == '':
+        buy_amt = 0.02
     print(buy_amt)
     sell = {'currency': sell_currency, 'amount': sell_amt}
     buy = {'currency': buy_currency, 'amount': buy_amt}
