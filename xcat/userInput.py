@@ -46,17 +46,13 @@ def get_initiator_addresses():
 def get_fulfiller_addresses():
     btc_addr = input("Enter the bitcoin address of the party you want to trade with: ")
     # btc_addr = bXcat.new_bitcoin_addr()
-    # btc_addr = 'mgRG44X4PQC1ZCA4V654UZjJGJ3pxbApj2' # testnet
-    btc_addr = "mvc56qCEVj6p57xZ5URNC3v7qbatudHQ9b" # regtest
-    # btc_addr = "mpFD3Knp5znDKAHyiYdXMGEYvxmShjdwSS" # server
-    # btc_addr = 'mtRrCpixF7EvScmoeym3iY9dQeaMFyNGS2' # ariel
+    if btc_addr == '':
+        btc_addr = "mvc56qCEVj6p57xZ5URNC3v7qbatudHQ9b" # regtest
     print(btc_addr)
     zec_addr = input("Enter the zcash address of the party you want to trade with: ")
+    if zec_addr == '':
+        zec_addr = "tmTF7LMLjvEsGdcepWPUsh4vgJNrKMWwEyc" # regtest
     # zec_addr = zXcat.new_zcash_addr()
-    # zec_addr = 'tmLZu7MdjNdA6vbPTNTwdsZo91LnnrVTYB5' #testnet
-    zec_addr = "tmTF7LMLjvEsGdcepWPUsh4vgJNrKMWwEyc" # regtest
-    # zec_addr = "tmEGtCab8BJWq3fUa7TK4qhWuY9Ab7SHRh2" #server
-    # zec_addr = 'tmYak55ijTBrx83oBnp9RHmqPZSp1uTnA61' # ariel
     print(zec_addr)
     addresses = {'bitcoin': btc_addr, 'zcash': zec_addr}
     return addresses
