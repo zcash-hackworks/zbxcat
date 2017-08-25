@@ -1,4 +1,3 @@
 *.pyc
 xcat.egg-info/
 .tmp/
-xcat/secret.json
