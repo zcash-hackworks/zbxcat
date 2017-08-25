@@ -114,7 +114,7 @@ def erase_trade():
         pass
 
 def save(trade):
-    print("Saving trade")
+    # print("Saving trade")
     trade = {
     'sell': trade.sell.__dict__,
     'buy': trade.buy.__dict__,

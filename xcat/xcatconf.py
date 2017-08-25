@@ -1,4 +1,4 @@
-# Replace these with your own addresses
+# Replace these with your own addresses and trade amts to pass info in through config flag
 ADDRS = {
     'regtest': {
         "initiator": {
@@ -17,8 +17,9 @@ ADDRS = {
             "zcash": "tmTF7LMLjvEsGdcepWPUsh4vgJNrKMWwEyc"
         },
         "fulfiller": {
-            "bitcoin": "mgRG44X4PQC1ZCA4V654UZjJGJ3pxbApj2",
-            "zcash": "tmLZu7MdjNdA6vbPTNTwdsZo91LnnrVTYB5"
-        }
+            "bitcoin": "mm2smEJjRN4xoijEfpb5XvYd8e3EYWezom",
+            "zcash": "tmPwPdceaJAHQn7UiRCVnJ5tXBXHVqWMkis"
+        },
+        "amounts": {'buy': {'currency': 'zcash', 'amount': 0.02}, 'sell': {'currency': 'bitcoin', 'amount': 0.01}}
     }
 }

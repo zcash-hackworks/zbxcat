@@ -30,7 +30,6 @@ def checkSellStatus(tradeid):
         cleanup(tradeid)
     elif status == 'sellerFunded':
         print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade.buy.currency))
-    # elif trade.buy.get_status() == 'redeemed':
     elif status == 'sellerRedeemed':
         print("You have already redeemed the p2sh on the second chain of this trade.")
 
@@ -186,8 +185,6 @@ def main():
     parser.add_argument("-c", "--conf", action="store", help="Use default trade data in conf file.")
     parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in beta.")
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
-    # TODO: function to view available trades
-    # TODO: function to tell if tradeid already exists for newtrade
     args = parser.parse_args()
 
     command = args.command
@@ -214,6 +211,7 @@ def main():
         checktrade(tradeid)
     elif command == 'listtrades':
         listtrades()
+    # TODO: function to tell if tradeid already exists for newtrade
     elif command == 'newtrade':
         if len(args.arguments) < 1: throw("Usage: newtrade [tradeid]")
         tradeid = args.arguments[0]
