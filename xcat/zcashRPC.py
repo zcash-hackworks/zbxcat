@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
 
-# Based on spend-p2sh-txout.py from python-bitcoinlib.
-# Copyright (C) 2017 The Zcash developers
-
 import sys
 if sys.version_info.major < 3:
     sys.stderr.write('Sorry, Python 3.x required by this example.\n')
