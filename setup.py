@@ -10,7 +10,7 @@ setup(
     },
     description="Xcat is a package that creates cross-chain atomic transactions.",
     author="arcalinea and arielgabizon",
-    author_email="arcalinea@z.cash",
+    author_email="info@z.cash",
     license="MIT",
     url="http://github.com/zcash/xcat",
     install_requires=['python-bitcoinlib', 'plyvel'],
