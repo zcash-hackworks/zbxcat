@@ -18,11 +18,9 @@ from zcash.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2
 
 from xcat.utils import *
 
-# SelectParams('testnet')
-SelectParams('regtest')
-# TODO: accurately read user and pw info
-# zcashd = zcash.rpc.Proxy(service_url="http://user:password@127.0.0.1:18232")
-zcashd = zcash.rpc.Proxy(timeout=90)
+SelectParams('testnet')
+# SelectParams('regtest')
+zcashd = zcash.rpc.Proxy(timeout=900)
 FEE = 0.001*COIN
 
 def x2s(hexstring):

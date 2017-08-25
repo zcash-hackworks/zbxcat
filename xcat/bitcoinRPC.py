@@ -17,11 +17,10 @@ from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, 
 from xcat.utils import *
 from xcat.zcashRPC import parse_script
 
-# SelectParams('testnet')
-SelectParams('regtest')
+SelectParams('testnet')
+# SelectParams('regtest')
 # TODO: Accurately read user and pw info
-# bitcoind = bitcoin.rpc.Proxy(service_url="http://user:password@127.0.0.1:18332")
-bitcoind = bitcoin.rpc.Proxy(timeout=90)
+bitcoind = bitcoin.rpc.Proxy(timeout=900)
 FEE = 0.001*COIN
 
 def validateaddress(addr):
