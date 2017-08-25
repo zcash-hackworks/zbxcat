@@ -76,6 +76,7 @@ def checkBuyStatus(tradeid):
         print("This trade is complete, both sides redeemed.")
     elif status == 'sellerFunded':
         print("One active trade available, fulfilling buyer contract...")
+        input("Type 'enter' to allow this program to send funds on your behalf.")
         print("Trade commitment", trade.commitment)
         # if verify_p2sh(trade):
         fund_tx = fund_contract(trade.buy)
