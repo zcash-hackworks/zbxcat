@@ -6,8 +6,6 @@ import json
 import ast
 from xcat.trades import *
 
-import xcat.bitcoinRPC as bitcoinRPC
-
 db = plyvel.DB('/tmp/xcatDB', create_if_missing=True)
 preimageDB = plyvel.DB('/tmp/preimageDB', create_if_missing=True)
 
