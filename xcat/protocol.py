@@ -13,7 +13,7 @@ bitcoinRPC = bitcoinProxy()
 zcashRPC = zcashProxy()
 
 def is_myaddr(address):
-    if address[:1] == 'm':
+    if address[:1] is 'm' or address[:1] is '1':
         status = bitcoinRPC.validateaddress(address)
     else:
         status = zcashRPC.validateaddress(address)
@@ -21,11 +21,16 @@ def is_myaddr(address):
     # print("Address {0} is mine: {1}".format(address, status))
     return status
 
+addr = '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2'
+print("Is myaddr", is_myaddr(addr))
+
 def find_secret_from_fundtx(currency, p2sh, fundtx):
-    if currency == 'bitcoin':
+    if currency is 'bitcoin':
         secret = bitcoinRPC.find_secret(p2sh, fundtx)
-    else:
+    else if currency is 'zcash':
         secret = zcashRPC.find_secret(p2sh, fundtx)
+    else:
+        raise ValueError("Currency not recognized: ", currency)
     return secret
 
 def import_addrs(trade):
@@ -33,20 +38,24 @@ def import_addrs(trade):
     check_fund_status(trade.buy.currency, trade.buy.p2sh)
 
 def check_p2sh(currency, address):
-    if currency == 'bitcoin':
+    if currency is 'bitcoin':
         print("Checking funds in Bitcoin p2sh")
         return bitcoinRPC.check_funds(address)
-    else:
+    else if currency is 'zcash':
         print("Checking funds in Zcash p2sh")
         return zcashRPC.check_funds(address)
+    else:
+        raise ValueError("Currency not recognized: ", currency)
 
 def check_fund_status(currency, address):
-    if currency == 'bitcoin':
+    if currency is 'bitcoin':
         print("Checking funds in Bitcoin p2sh")
         return bitcoinRPC.get_fund_status(address)
-    else:
+    else if currency is 'zcash':
         print("Checking funds in Zcash p2sh")
         return zcashRPC.get_fund_status(address)
+    else:
+        raise ValueError("Currency not recognized: ", currency)
 
 # TODO: function to calculate appropriate locktimes between chains
 # def verify_p2sh(trade):
@@ -59,18 +68,41 @@ def check_fund_status(currency, address):
     #     print("Compiled p2sh for htlc does not match what seller sent.")
 
 def create_htlc(currency, funder, redeemer, commitment, locktime):
-    if currency == 'bitcoin':
+    if currency is 'bitcoin':
         sell_p2sh = bitcoinRPC.hashtimelockcontract(funder, redeemer, commitment, locktime)
-    else:
+    else if currency is 'zcash':
         sell_p2sh = zcashRPC.hashtimelockcontract(funder, redeemer, commitment, locktime)
+    else:
+        raise ValueError("Currency not recognized: ", currency)
     return sell_p2sh
 
 def fund_htlc(currency, p2sh, amount):
-    if currency == 'bitcoin':
+    if currency is 'bitcoin':
         txid = bitcoinRPC.fund_htlc(p2sh, amount)
-    else:
+    else if currency is 'zcash':
         txid = zcashRPC.fund_htlc(p2sh, amount)
+    else:
+        raise ValueError("Currency not recognized: ", currency)
     return txid
+
+def redeem_p2sh(contract, secret):
+    currency = contract.currency
+    if currency is 'bitcoin':
+        res = bitcoinRPC.redeem_contract(contract, secret)
+    else if currency is 'zcash':
+        res = zcashRPC.redeem_contract(contract, secret)
+    else:
+        raise ValueError("Currency not recognized: ", currency)
+    return res
+
+def parse_secret(currency, txid):
+    if currency is 'bitcoin':
+        secret = bitcoinRPC.parse_secret(txid)
+    else if currency is 'zcash':
+        secret = zcashRPC.parse_secret(txid)
+    else:
+        raise ValueError("Currency not recognized: ", currency)
+    return secret
 
 def fund_contract(contract):
     txid = fund_htlc(contract.currency, contract.p2sh, contract.amount)
@@ -108,21 +140,6 @@ def create_buy_p2sh(trade, commitment, locktime):
     print("\nNow contact the buyer and tell them to send funds to this p2sh: {0}\n".format(trade.buy.p2sh))
 
     save(trade)
-
-def redeem_p2sh(contract, secret):
-    currency = contract.currency
-    if currency == 'bitcoin':
-        res = bitcoinRPC.redeem_contract(contract, secret)
-    else:
-        res = zcashRPC.redeem_contract(contract, secret)
-    return res
-
-def parse_secret(chain, txid):
-    if chain == 'bitcoin':
-        secret = bitcoinRPC.parse_secret(txid)
-    else:
-        secret = zcashRPC.parse_secret(txid)
-    return secret
 
 ####  Main functions determining user flow from command line
 def buyer_redeem(trade):
