@@ -27,9 +27,11 @@ def checkSellStatus(tradeid):
         if 'redeem_tx' in txs:
             trade.buy.redeem_tx = txs['redeem_tx']
             print("Redeem tx: ", txs['redeem_tx'])
-        elif 'refund_tx' in txs:
+        if 'refund_tx' in txs:
             trade.buy.redeem_tx = txs['refund_tx']
-            print("Refund tx: ", txs['refund_tx'])
+            print("Buyer refund tx: ", txs['refund_tx'])
+            txs = refund_contract(trade.sell) # Refund to seller
+            print("Your refund txid: ", txs['refund_tx'])
         save_state(trade, tradeid)
         cleanup(tradeid)
     elif status == 'sellerFunded':
@@ -44,7 +46,6 @@ def buyer_check_status(trade):
         return 'sellerFunded' # step1
     # TODO: Find funding txid. How does buyer get seller redeemed tx?
     elif sellState == 'funded' and hasattr(trade.buy, 'fund_tx'):
-        print("Seller redeemed")
         return 'sellerRedeemed' # step3
     elif sellState == 'funded' and buyState == 'funded':
         return 'buyerFunded' # step2
@@ -101,6 +102,7 @@ def checkBuyStatus(tradeid):
             save_state(trade, tradeid)
             print("XCAT trade complete!")
         else:
+            # Search if tx has been refunded from p2sh
             print("Secret not found in redeemtx")
 
 # Import a trade in hex, and save to db
@@ -264,5 +266,6 @@ def main():
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
     elif command == "step4":
+        generate(1)
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)

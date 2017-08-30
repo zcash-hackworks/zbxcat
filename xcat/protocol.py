@@ -101,6 +101,16 @@ def redeem_p2sh(contract, secret):
         raise ValueError("Currency not recognized: ", currency)
     return res
 
+def refund_contract(contract):
+    currency = contract.currency
+    if currency == 'bitcoin':
+        res = bitcoinRPC.refund(contract)
+    elif currency == 'zcash':
+        res = zcashRPC.refund(contract)
+    else:
+        raise ValueError("Currency not recognized: ", currency)
+    return res
+
 def parse_secret(currency, txid):
     if currency == 'bitcoin':
         secret = bitcoinRPC.parse_secret(txid)
@@ -171,7 +181,6 @@ def buyer_redeem(trade):
 def seller_redeem_p2sh(trade, secret):
     buy = trade.buy
     userInput.authorize_seller_redeem(buy)
-
     if trade.sell.get_status() == 'redeemed':
         print("You already redeemed the funds and acquired {0} {1}".format(buy.amount, buy.currency))
         exit()
@@ -225,7 +234,6 @@ def initialize_trade(tradeid, **kwargs):
     print(trade.sell.__dict__)
     print(trade.buy.__dict__)
     return tradeid, trade
-
 
 def seller_init(tradeid, trade, network):
     secret = generate_password()
