@@ -15,11 +15,15 @@ from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2PKHBitcoinAddress
 
 from xcat.utils import *
+import logging
 
 FEE = 0.001*COIN
 
 class bitcoinProxy():
     def __init__(self, network='regtest', timeout=900):
+        if network is not 'testnet' and network is not 'mainnet':
+            network='regtest'
+        logging.debug("NETWORK in proxy: {0}".format(network))
         self.network = network
         self.timeout = timeout
 

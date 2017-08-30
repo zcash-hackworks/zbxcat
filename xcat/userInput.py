@@ -2,6 +2,7 @@ from xcat.utils import *
 from xcat.db import *
 from xcat.bitcoinRPC import bitcoinProxy
 from xcat.zcashRPC import zcashProxy
+from xcat.xcatconf import *
 
 def enter_trade_id():
     tradeid = input("Enter a unique identifier for this trade: ")

@@ -17,9 +17,11 @@ ADDRS = {
             "zcash": "tmTF7LMLjvEsGdcepWPUsh4vgJNrKMWwEyc"
         },
         "fulfiller": {
-            "bitcoin": "mm2smEJjRN4xoijEfpb5XvYd8e3EYWezom",
-            "zcash": "tmPwPdceaJAHQn7UiRCVnJ5tXBXHVqWMkis"
+            "bitcoin": "mn2boR7rYq9DaAWWrVN5MazHKFyf7UhdyU",
+            "zcash": "tmErB22A1G74aq32aAh5AoqgQSJsAAAdT2p"
         },
         "amounts": {'buy': {'currency': 'zcash', 'amount': 0.02}, 'sell': {'currency': 'bitcoin', 'amount': 0.01}}
     }
 }
+
+NETWORK = 'testnet'

@@ -8,26 +8,32 @@ import xcat.db as db
 from xcat.xcatconf import *
 from xcat.bitcoinRPC import bitcoinProxy
 from xcat.zcashRPC import zcashProxy
+import logging
 
 bitcoinRPC = bitcoinProxy()
 zcashRPC = zcashProxy()
 
+def generate(num):
+    bitcoinRPC.generate(num)
+    zcashRPC.generate(num)
+
 def is_myaddr(address):
-    if address[:1] is 'm' or address[:1] is '1':
+    # Handle different network prefixes
+    if address[:1] == 'm':
         status = bitcoinRPC.validateaddress(address)
     else:
         status = zcashRPC.validateaddress(address)
-    status = status['ismine']
-    # print("Address {0} is mine: {1}".format(address, status))
+    logging.debug("Address status: ", status)
+    if status['isvalid'] is False:
+        raise ValueError("Invalid address: %s" % address)
+    elif 'ismine' in status:
+        status = status['ismine']
     return status
 
-addr = '1BvBMSEYstWetqTFn5Au4m4GFg7xJaNVN2'
-print("Is myaddr", is_myaddr(addr))
-
 def find_secret_from_fundtx(currency, p2sh, fundtx):
-    if currency is 'bitcoin':
+    if currency == 'bitcoin':
         secret = bitcoinRPC.find_secret(p2sh, fundtx)
-    else if currency is 'zcash':
+    elif currency == 'zcash':
         secret = zcashRPC.find_secret(p2sh, fundtx)
     else:
         raise ValueError("Currency not recognized: ", currency)
@@ -38,20 +44,20 @@ def import_addrs(trade):
     check_fund_status(trade.buy.currency, trade.buy.p2sh)
 
 def check_p2sh(currency, address):
-    if currency is 'bitcoin':
+    if currency == 'bitcoin':
         print("Checking funds in Bitcoin p2sh")
         return bitcoinRPC.check_funds(address)
-    else if currency is 'zcash':
+    elif currency == 'zcash':
         print("Checking funds in Zcash p2sh")
         return zcashRPC.check_funds(address)
     else:
         raise ValueError("Currency not recognized: ", currency)
 
 def check_fund_status(currency, address):
-    if currency is 'bitcoin':
+    if currency == 'bitcoin':
         print("Checking funds in Bitcoin p2sh")
         return bitcoinRPC.get_fund_status(address)
-    else if currency is 'zcash':
+    elif currency == 'zcash':
         print("Checking funds in Zcash p2sh")
         return zcashRPC.get_fund_status(address)
     else:
@@ -68,18 +74,18 @@ def check_fund_status(currency, address):
     #     print("Compiled p2sh for htlc does not match what seller sent.")
 
 def create_htlc(currency, funder, redeemer, commitment, locktime):
-    if currency is 'bitcoin':
+    if currency == 'bitcoin':
         sell_p2sh = bitcoinRPC.hashtimelockcontract(funder, redeemer, commitment, locktime)
-    else if currency is 'zcash':
+    elif currency == 'zcash':
         sell_p2sh = zcashRPC.hashtimelockcontract(funder, redeemer, commitment, locktime)
     else:
         raise ValueError("Currency not recognized: ", currency)
     return sell_p2sh
 
 def fund_htlc(currency, p2sh, amount):
-    if currency is 'bitcoin':
+    if currency == 'bitcoin':
         txid = bitcoinRPC.fund_htlc(p2sh, amount)
-    else if currency is 'zcash':
+    elif currency == 'zcash':
         txid = zcashRPC.fund_htlc(p2sh, amount)
     else:
         raise ValueError("Currency not recognized: ", currency)
@@ -87,18 +93,18 @@ def fund_htlc(currency, p2sh, amount):
 
 def redeem_p2sh(contract, secret):
     currency = contract.currency
-    if currency is 'bitcoin':
+    if currency == 'bitcoin':
         res = bitcoinRPC.redeem_contract(contract, secret)
-    else if currency is 'zcash':
+    elif currency == 'zcash':
         res = zcashRPC.redeem_contract(contract, secret)
     else:
         raise ValueError("Currency not recognized: ", currency)
     return res
 
 def parse_secret(currency, txid):
-    if currency is 'bitcoin':
+    if currency == 'bitcoin':
         secret = bitcoinRPC.parse_secret(txid)
-    else if currency is 'zcash':
+    elif currency == 'zcash':
         secret = zcashRPC.parse_secret(txid)
     else:
         raise ValueError("Currency not recognized: ", currency)
@@ -221,10 +227,10 @@ def initialize_trade(tradeid, **kwargs):
     return tradeid, trade
 
 
-def seller_init(tradeid, trade):
+def seller_init(tradeid, trade, network):
     secret = generate_password()
     db.save_secret(tradeid, secret)
-    print("\nGenerated a secret preimage to lock funds. This will only be stored locally: ", secret)
+    print("Generated a secret preimage to lock funds. This will only be stored locally: {0}".format(secret))
 
     hash_of_secret = sha256(secret)
     # TODO: Implement locktimes and mock block passage of time
@@ -237,5 +243,5 @@ def seller_init(tradeid, trade):
     create_buy_p2sh(trade, hash_of_secret, buy_locktime)
 
     trade.commitment = b2x(hash_of_secret)
-    print("TRADE after seller init", trade.toJSON())
+    print("TRADE after seller init: {0}".format(trade.toJSON()))
     return trade
