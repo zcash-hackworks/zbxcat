@@ -12,6 +12,7 @@ from zcash.core import b2x, lx, x, b2lx, COIN, COutPoint, CMutableTxOut, CMutabl
 from zcash.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
 from zcash.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from zcash.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2PKHBitcoinAddress
+import logging
 
 from xcat.utils import x2s
 
@@ -107,9 +108,16 @@ class zcashProxy():
             if('txid' in decoded['vin'][0]):
                 sendid = decoded['vin'][0]['txid']
                 if (sendid == fundtx_input ):
-                    print("Found funding tx: ", sendid)
-                    return self.parse_secret(lx(tx['txid']))
-        print("Redeem transaction with secret not found")
+                    print("Found funding zcash tx: ", sendid)
+                    res = self.parse_secret(lx(tx['txid']))
+                    secret = res[0]
+                    redeemPubkey = res[1]
+                    if secret is None:
+                        print("Secret not found")
+                        res = self.validateaddress(redeemPubkey)
+                        if res['ismine']:
+                            print("Funding tx already refunded. Sent to your address {0}".format(redeemPubkey))
+        logging.debug("Redeem transaction with secret not found")
         return
 
     def parse_secret(self, txid):
@@ -118,9 +126,13 @@ class zcashProxy():
         scriptSig = decoded['vin'][0]['scriptSig']
         asm = scriptSig['asm'].split(" ")
         pubkey = asm[1]
-        secret = x2s(asm[2])
+        try:
+            secret = x2s(asm[2])
+        except:
+            secret = None
         redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
-        return secret
+        print("redeemPubkey: ", redeemPubkey)
+        return secret, redeemPubkey
 
     def redeem_contract(self, contract, secret):
         # How to find redeemScript and redeemblocknum from blockchain?
