@@ -1,14 +1,17 @@
-import argparse, textwrap
-from xcat.utils import *
+import argparse
+import textwrap
+import subprocess
 import xcat.db as db
 import xcat.userInput as userInput
+from xcat.protocol import Protocol
 from xcat.trades import *
-from xcat.protocol import *
-import subprocess
+from xcat.utils import *
+
 
 def save_state(trade, tradeid):
     save(trade)
     db.create(trade, tradeid)
+
 
 def checkSellStatus(tradeid):
     trade = db.get(tradeid)
@@ -16,14 +19,14 @@ def checkSellStatus(tradeid):
     print("Trade status: {0}\n".format(status))
     if status == 'init':
         userInput.authorize_fund_sell(trade)
-        fund_tx = fund_sell_contract(trade)
+        fund_tx = protocol.fund_sell_contract(trade)
         print("Sent fund_tx", fund_tx)
         trade.sell.fund_tx = fund_tx
         save_state(trade, tradeid)
     elif status == 'buyerFunded':
         secret = db.get_secret(tradeid)
         print("Retrieved secret to redeem funds for {0}: {1}".format(tradeid, secret))
-        txs = seller_redeem_p2sh(trade, secret)
+        txs = protocol.seller_redeem_p2sh(trade, secret)
         if 'redeem_tx' in txs:
             trade.buy.redeem_tx = txs['redeem_tx']
             print("Redeem tx: ", txs['redeem_tx'])
@@ -38,9 +41,10 @@ def checkSellStatus(tradeid):
     elif status == 'sellerRedeemed':
         print("You have already redeemed the p2sh on the second chain of this trade.")
 
+
 def buyer_check_status(trade):
-    sellState = check_fund_status(trade.sell.currency, trade.sell.p2sh)
-    buyState = check_fund_status(trade.buy.currency, trade.buy.p2sh)
+    sellState = protocol.check_fund_status(trade.sell.currency, trade.sell.p2sh)
+    buyState = protocol.check_fund_status(trade.buy.currency, trade.buy.p2sh)
     if sellState == 'funded' and buyState == 'empty':
         return 'sellerFunded' # step1
     # TODO: Find funding txid. How does buyer get seller redeemed tx?
@@ -54,9 +58,10 @@ def buyer_check_status(trade):
         else:
             return 'init'
 
+
 def seller_check_status(trade):
-    sellState = check_fund_status(trade.sell.currency, trade.sell.p2sh)
-    buyState = check_fund_status(trade.buy.currency, trade.buy.p2sh)
+    sellState = protocol.check_fund_status(trade.sell.currency, trade.sell.p2sh)
+    buyState = protocol.check_fund_status(trade.buy.currency, trade.buy.p2sh)
     if sellState == 'funded' and buyState == 'empty':
         return 'sellerFunded' # step1
     elif sellState == 'funded' and hasattr(trade.buy, 'redeem_tx'):
@@ -69,6 +74,7 @@ def seller_check_status(trade):
             return 'buyerRedeemed' # step4
         else:
             return 'init' # step0
+
 
 def checkBuyStatus(tradeid):
     trade = db.get(tradeid)
@@ -83,15 +89,17 @@ def checkBuyStatus(tradeid):
         input("Type 'enter' to allow this program to send funds on your behalf.")
         print("Trade commitment", trade.commitment)
         # if verify_p2sh(trade):
-        fund_tx = fund_contract(trade.buy)
+        fund_tx = protocol.fund_contract(trade.buy)
         print("\nYou sent this funding tx: ", fund_tx)
         trade.buy.fund_tx = fund_tx
         save_state(trade, tradeid)
     elif status == 'sellerRedeemed':
-        secret = find_secret_from_fundtx(trade.buy.currency, trade.buy.p2sh, trade.buy.fund_tx)
+        secret = protocol.find_secret_from_fundtx(trade.buy.currency,
+                                                  trade.buy.p2sh,
+                                                  trade.buy.fund_tx)
         if secret != None:
             print("Found secret on blockchain in seller's redeem tx: ", secret)
-            txs = redeem_p2sh(trade.sell, secret)
+            txs = protocol.redeem_p2sh(trade.sell, secret)
             if 'redeem_tx' in txs:
                 trade.sell.redeem_tx = txs['redeem_tx']
                 print("Redeem txid: ", trade.sell.redeem_tx)
@@ -103,13 +111,15 @@ def checkBuyStatus(tradeid):
         else:
             print("Secret not found in redeemtx")
 
+
 # Import a trade in hex, and save to db
 def importtrade(tradeid, hexstr=''):
     trade = x2s(hexstr)
     trade = db.instantiate(trade)
-    import_addrs(trade)
+    protocol.import_addrs(trade)
     print(trade.toJSON())
     save_state(trade, tradeid)
+
 
 def wormhole_importtrade():
     res = subprocess.call('wormhole receive', shell=True)
@@ -123,9 +133,10 @@ def wormhole_importtrade():
     else:
         print("Importing trade using magic-wormhole failed.")
 
+
 # Export a trade by its tradeid
 def exporttrade(tradeid, wormhole=False):
-    trade  = db.get(tradeid)
+    trade = db.get(tradeid)
     hexstr = s2x(trade.toJSON())
     if wormhole:
         tradefile = os.path.join(ROOT_DIR, '.tmp/{0}'.format(tradeid))
@@ -138,19 +149,23 @@ def exporttrade(tradeid, wormhole=False):
         print(hexstr)
         return hexstr
 
+
 def findtrade(tradeid):
     trade = db.get(tradeid)
     print(trade.toJSON())
     return trade
 
+
 def find_role(contract):
     # When regtest created both addrs on same machine, role is both.
-    if is_myaddr(contract.initiator) and is_myaddr(contract.fulfiller):
-        return 'test'
-    elif is_myaddr(contract.initiator):
-        return 'initiator'
+    if protocol.is_myaddr(contract.initiator):
+        if protocol.is_myaddr(contract.fulfiller):
+            return 'test'
+        else:
+            return 'initiator'
     else:
         return 'fulfiller'
+
 
 def checktrade(tradeid):
     print("In checktrade")
@@ -170,21 +185,24 @@ def checktrade(tradeid):
         role = 'buyer'
         checkBuyStatus(tradeid)
 
+
 def newtrade(tradeid, **kwargs):
     print("Creating new XCAT trade...")
     erase_trade()
-    tradeid, trade= initialize_trade(tradeid, conf=kwargs['conf'])
+    tradeid, trade = protocol.initialize_trade(tradeid, conf=kwargs['conf'])
     print("Trade", trade)
-    trade = seller_init(tradeid, trade)
+    trade = protocol.seller_init(tradeid, trade)
     print("\nUse 'xcat exporttrade [tradeid]' to export the trade and sent to the buyer.\n")
     save_state(trade, tradeid)
     return trade
+
 
 def listtrades():
     print("Trades")
     trades = db.dump()
     for trade in trades:
         print("{0}: {1}".format(trade[0], trade[1]))
+
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,

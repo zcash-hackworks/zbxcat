@@ -1,10 +1,10 @@
 import plyvel
-from xcat.utils import *
-import binascii
-import sys
 import json
-import ast
+# import binascii
+# import sys
+# import ast
 from xcat.trades import *
+from xcat.utils import *
 
 db = plyvel.DB('/tmp/xcatDB', create_if_missing=True)
 preimageDB = plyvel.DB('/tmp/preimageDB', create_if_missing=True)
@@ -12,6 +12,7 @@ preimageDB = plyvel.DB('/tmp/preimageDB', create_if_missing=True)
 #############################################
 ######## Trades stored by tradeid ###########
 #############################################
+
 
 # Takes dict or obj, saves json str as bytes
 def create(trade, tradeid):
@@ -21,6 +22,7 @@ def create(trade, tradeid):
         trade = trade.toJSON()
     db.put(b(tradeid), b(trade))
 
+
 #  Uses the funding txid as the key to save trade
 def createByFundtx(trade):
     trade = trade.toJSON()
@@ -29,11 +31,13 @@ def createByFundtx(trade):
     txid = jt['sell']['fund_tx']
     db.put(b(txid), b(trade))
 
+
 def get(tradeid):
     rawtrade = db.get(b(tradeid))
     tradestr = str(rawtrade, 'utf-8')
     trade = instantiate(tradestr)
     return trade
+
 
 def instantiate(trade):
     if type(trade) == str:
@@ -45,9 +49,11 @@ def instantiate(trade):
 ###### Preimages stored by tradeid ##########
 #############################################
 
+
 # Stores secret locally in key/value store by tradeid
 def save_secret(tradeid, secret):
     res = preimageDB.put(b(tradeid), b(secret))
+
 
 def get_secret(tradeid):
     secret = preimageDB.get(b(tradeid))
@@ -66,6 +72,7 @@ def dump():
             j = json.loads(x2s(b2x(v)))
             results.append((str(k, 'utf-8'), j))
     return results
+
 
 def print_entries():
     it = db.iterator()
