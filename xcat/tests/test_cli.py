@@ -15,6 +15,7 @@ class SimpleTestCase(unittest.TestCase):
     def test_importtrade(self):
         trade = cli.importtrade('test', self.__class__.hexstr)
 
+
 class CliTest(SimpleTestCase):
     def test_findtrade(self):
         trade = cli.findtrade('test')
