@@ -1,2 +1,2 @@
 git+https://github.com/arcalinea/python-zcashlib.git#egg=zcash
-bitcoin
+python-bitcoinlib
