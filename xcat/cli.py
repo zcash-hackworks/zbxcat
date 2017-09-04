@@ -14,6 +14,7 @@ def save_state(trade, tradeid):
 
 
 def checkSellStatus(tradeid):
+    protocol = Protocol()
     trade = db.get(tradeid)
     status = seller_check_status(trade)
     print("Trade status: {0}\n".format(status))
@@ -25,7 +26,8 @@ def checkSellStatus(tradeid):
         save_state(trade, tradeid)
     elif status == 'buyerFunded':
         secret = db.get_secret(tradeid)
-        print("Retrieved secret to redeem funds for {0}: {1}".format(tradeid, secret))
+        print("Retrieved secret to redeem funds for "
+              "{0}: {1}".format(tradeid, secret))
         txs = protocol.seller_redeem_p2sh(trade, secret)
         if 'redeem_tx' in txs:
             trade.buy.redeem_tx = txs['redeem_tx']
@@ -43,6 +45,7 @@ def checkSellStatus(tradeid):
 
 
 def buyer_check_status(trade):
+    protocol = Protocol()
     sellState = protocol.check_fund_status(trade.sell.currency, trade.sell.p2sh)
     buyState = protocol.check_fund_status(trade.buy.currency, trade.buy.p2sh)
     if sellState == 'funded' and buyState == 'empty':
@@ -60,6 +63,7 @@ def buyer_check_status(trade):
 
 
 def seller_check_status(trade):
+    protocol = Protocol()
     sellState = protocol.check_fund_status(trade.sell.currency, trade.sell.p2sh)
     buyState = protocol.check_fund_status(trade.buy.currency, trade.buy.p2sh)
     if sellState == 'funded' and buyState == 'empty':
@@ -77,6 +81,7 @@ def seller_check_status(trade):
 
 
 def checkBuyStatus(tradeid):
+    protocol = Protocol()
     trade = db.get(tradeid)
     status = buyer_check_status(trade)
     print("Trade status: {0}\n".format(status))
@@ -114,6 +119,7 @@ def checkBuyStatus(tradeid):
 
 # Import a trade in hex, and save to db
 def importtrade(tradeid, hexstr=''):
+    protocol = Protocol()
     trade = x2s(hexstr)
     trade = db.instantiate(trade)
     protocol.import_addrs(trade)
@@ -157,6 +163,7 @@ def findtrade(tradeid):
 
 
 def find_role(contract):
+    protocol = Protocol()
     # When regtest created both addrs on same machine, role is both.
     if protocol.is_myaddr(contract.initiator):
         if protocol.is_myaddr(contract.fulfiller):
@@ -187,6 +194,7 @@ def checktrade(tradeid):
 
 
 def newtrade(tradeid, **kwargs):
+    protocol = Protocol()
     print("Creating new XCAT trade...")
     erase_trade()
     tradeid, trade = protocol.initialize_trade(tradeid, conf=kwargs['conf'])
