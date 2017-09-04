@@ -1,15 +1,15 @@
 import argparse
 import textwrap
 import subprocess
+import os
 import xcat.db as db
 import xcat.userInput as userInput
+import xcat.utils as utils
 from xcat.protocol import Protocol
-from xcat.trades import *
-from xcat.utils import *
 
 
 def save_state(trade, tradeid):
-    save(trade)
+    utils.save(trade)
     db.create(trade, tradeid)
 
 
@@ -37,47 +37,54 @@ def checkSellStatus(tradeid):
             print("Refund tx: ", txs['refund_tx'])
         save_state(trade, tradeid)
         # Remove from db? Or just from temporary file storage
-        cleanup(tradeid)
+        utils.cleanup(tradeid)
     elif status == 'sellerFunded':
-        print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade.buy.currency))
+        print("Buyer has not yet funded the contract where you offered to "
+              "buy {0}, please wait for them to complete "
+              "their part.".format(trade.buy.currency))
     elif status == 'sellerRedeemed':
-        print("You have already redeemed the p2sh on the second chain of this trade.")
+        print("You have already redeemed the p2sh on the second chain of "
+              "this trade.")
 
 
 def buyer_check_status(trade):
     protocol = Protocol()
-    sellState = protocol.check_fund_status(trade.sell.currency, trade.sell.p2sh)
-    buyState = protocol.check_fund_status(trade.buy.currency, trade.buy.p2sh)
+    sellState = protocol.check_fund_status(
+        trade.sell.currency, trade.sell.p2sh)
+    buyState = protocol.check_fund_status(
+        trade.buy.currency, trade.buy.p2sh)
     if sellState == 'funded' and buyState == 'empty':
-        return 'sellerFunded' # step1
+        return 'sellerFunded'  # step1
     # TODO: Find funding txid. How does buyer get seller redeemed tx?
     elif sellState == 'funded' and hasattr(trade.buy, 'fund_tx'):
-        return 'sellerRedeemed' # step3
+        return 'sellerRedeemed'  # step3
     elif sellState == 'funded' and buyState == 'funded':
-        return 'buyerFunded' # step2
+        return 'buyerFunded'  # step2
     elif sellState == 'empty' and buyState == 'empty':
         if hasattr(trade.sell, 'redeem_tx'):
-            return 'buyerRedeemed' # step4
+            return 'buyerRedeemed'  # step4
         else:
             return 'init'
 
 
 def seller_check_status(trade):
     protocol = Protocol()
-    sellState = protocol.check_fund_status(trade.sell.currency, trade.sell.p2sh)
-    buyState = protocol.check_fund_status(trade.buy.currency, trade.buy.p2sh)
+    sellState = protocol.check_fund_status(
+        trade.sell.currency, trade.sell.p2sh)
+    buyState = protocol.check_fund_status(
+        trade.buy.currency, trade.buy.p2sh)
     if sellState == 'funded' and buyState == 'empty':
-        return 'sellerFunded' # step1
+        return 'sellerFunded'  # step1
     elif sellState == 'funded' and hasattr(trade.buy, 'redeem_tx'):
-        return 'sellerRedeemed' # step3
+        return 'sellerRedeemed'  # step3
     # TODO: How does seller get buyer funded tx?
     elif sellState == 'funded' and buyState == 'funded':
-        return 'buyerFunded' # step2
+        return 'buyerFunded'  # step2
     elif sellState == 'empty' and buyState == 'empty':
         if hasattr(trade.buy, 'redeem_tx'):
-            return 'buyerRedeemed' # step4
+            return 'buyerRedeemed'  # step4
         else:
-            return 'init' # step0
+            return 'init'  # step0
 
 
 def checkBuyStatus(tradeid):
@@ -86,12 +93,14 @@ def checkBuyStatus(tradeid):
     status = buyer_check_status(trade)
     print("Trade status: {0}\n".format(status))
     if status == 'init':
-        print("Trade has not yet started, waiting for seller to fund the sell p2sh.")
+        print("Trade has not yet started, waiting for seller to fund the "
+              "sell p2sh.")
     elif status == 'buyerRedeemed':
         print("This trade is complete, both sides redeemed.")
     elif status == 'sellerFunded':
         print("One active trade available, fulfilling buyer contract...")
-        input("Type 'enter' to allow this program to send funds on your behalf.")
+        input("Type 'enter' to allow this program to send funds on your "
+              "behalf.")
         print("Trade commitment", trade.commitment)
         # if verify_p2sh(trade):
         fund_tx = protocol.fund_contract(trade.buy)
@@ -102,7 +111,7 @@ def checkBuyStatus(tradeid):
         secret = protocol.find_secret_from_fundtx(trade.buy.currency,
                                                   trade.buy.p2sh,
                                                   trade.buy.fund_tx)
-        if secret != None:
+        if secret is not None:
             print("Found secret on blockchain in seller's redeem tx: ", secret)
             txs = protocol.redeem_p2sh(trade.sell, secret)
             if 'redeem_tx' in txs:
@@ -120,7 +129,7 @@ def checkBuyStatus(tradeid):
 # Import a trade in hex, and save to db
 def importtrade(tradeid, hexstr=''):
     protocol = Protocol()
-    trade = x2s(hexstr)
+    trade = utils.x2s(hexstr)
     trade = db.instantiate(trade)
     protocol.import_addrs(trade)
     print(trade.toJSON())
@@ -130,7 +139,8 @@ def importtrade(tradeid, hexstr=''):
 def wormhole_importtrade():
     res = subprocess.call('wormhole receive', shell=True)
     if res == 0:
-        tradeid = input("Enter filename of received trade data to import (printed on line above): ")
+        tradeid = input("Enter filename of received trade data to import "
+                        "(printed on line above): ")
         with open(tradeid) as infile:
             hexstr = infile.readline().strip()
         importtrade(tradeid, hexstr)
@@ -143,9 +153,9 @@ def wormhole_importtrade():
 # Export a trade by its tradeid
 def exporttrade(tradeid, wormhole=False):
     trade = db.get(tradeid)
-    hexstr = s2x(trade.toJSON())
+    hexstr = utils.s2x(trade.toJSON())
     if wormhole:
-        tradefile = os.path.join(ROOT_DIR, '.tmp/{0}'.format(tradeid))
+        tradefile = os.path.join(utils.ROOT_DIR, '.tmp/{0}'.format(tradeid))
         print(tradefile)
         with open(tradefile, '+w') as outfile:
             outfile.write(hexstr)
@@ -178,42 +188,45 @@ def checktrade(tradeid):
     print("In checktrade")
     trade = db.get(tradeid)
     if find_role(trade.sell) == 'test':
-        input("Is this a test? Both buyer and seller addresses are yours, press 'enter' to test.")
+        input("Is this a test? Both buyer and seller addresses are yours, "
+              "press 'enter' to test.")
         checkSellStatus(tradeid)
         checkBuyStatus(tradeid)
         checkSellStatus(tradeid)
         checkBuyStatus(tradeid)
     elif find_role(trade.sell) == 'initiator':
         print("You are the seller in this trade.")
-        role = 'seller'
+        # role = 'seller'
         checkSellStatus(tradeid)
     else:
         print("You are the buyer in this trade.")
-        role = 'buyer'
+        # role = 'buyer'
         checkBuyStatus(tradeid)
 
 
 def newtrade(tradeid, **kwargs):
     protocol = Protocol()
     print("Creating new XCAT trade...")
-    erase_trade()
+    utils.erase_trade()
     tradeid, trade = protocol.initialize_trade(tradeid, conf=kwargs['conf'])
     print("Trade", trade)
     trade = protocol.seller_init(tradeid, trade)
-    print("\nUse 'xcat exporttrade [tradeid]' to export the trade and sent to the buyer.\n")
+    print("\nUse 'xcat exporttrade [tradeid]' to export the trade and sent "
+          "to the buyer.\n")
     save_state(trade, tradeid)
     return trade
 
 
 def listtrades():
     print("Trades")
-    trades = db.dump()
-    for trade in trades:
+    trade_list = db.dump()
+    for trade in trade_list:
         print("{0}: {1}".format(trade[0], trade[1]))
 
 
 def main():
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawTextHelpFormatter,
         description=textwrap.dedent('''\
                 == Trades ==
                 newtrade "tradeid" - create a new trade
@@ -223,12 +236,25 @@ def main():
                 findtrade "tradeid" - find a trade by the tradeid
 
                 '''))
-    parser.add_argument("command", action="store", help="list commands")
-    parser.add_argument("arguments", action="store", nargs="*", help="add arguments")
-    parser.add_argument("-w", "--wormhole", action="store_true", help="Transfer trade data through magic-wormhole")
-    parser.add_argument("-c", "--conf", action="store", help="Use default trade data in conf file.")
-    parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in alpha.")
-    # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
+
+    parser.add_argument(
+        "command", action="store", help="list commands")
+    parser.add_argument(
+        "arguments", action="store", nargs="*", help="add arguments")
+    parser.add_argument(
+        "-w", "--wormhole", action="store_true",
+        help="Transfer trade data through magic-wormhole")
+    parser.add_argument(
+        "-c", "--conf", action="store",
+        help="Use default trade data in conf file.")
+    parser.add_argument(
+        "-n", "--network", action="store",
+        help=("Set network to regtest or mainnet. "
+              "Defaults to testnet while in alpha."))
+    # parser.add_argument(
+    #   "--daemon", "-d", action="store_true",
+    #   help="Run as daemon process")
+
     args = parser.parse_args()
 
     command = args.command
@@ -236,35 +262,40 @@ def main():
         if args.wormhole:
             wormhole_importtrade()
         else:
-            if len(args.arguments) != 2: throw("Usage: importtrade [tradeid] [hexstring]")
+            if len(args.arguments) != 2:
+                utils.throw("Usage: importtrade [tradeid] [hexstring]")
             tradeid = args.arguments[0]
             hexstr = args.arguments[1]
             importtrade(tradeid, hexstr)
     elif command == 'exporttrade':
-        if len(args.arguments) < 1: throw("Usage: exporttrade [tradeid]")
+        if len(args.arguments) < 1:
+            utils.throw("Usage: exporttrade [tradeid]")
         tradeid = args.arguments[0]
         exporttrade(tradeid, args.wormhole)
     elif command == "findtrade":
-        if len(args.arguments) < 1: throw("Usage: findtrade [tradeid]")
+        if len(args.arguments) < 1:
+            utils.throw("Usage: findtrade [tradeid]")
         print("Finding trade")
         key = args.arguments[0]
         findtrade(key)
     elif command == 'checktrade':
-        if len(args.arguments) < 1: throw("Usage: checktrade [tradeid]")
+        if len(args.arguments) < 1:
+            utils.throw("Usage: checktrade [tradeid]")
         tradeid = args.arguments[0]
         checktrade(tradeid)
     elif command == 'listtrades':
         listtrades()
     # TODO: function to tell if tradeid already exists for newtrade
     elif command == 'newtrade':
-        if len(args.arguments) < 1: throw("Usage: newtrade [tradeid]")
+        if len(args.arguments) < 1:
+            utils.throw("Usage: newtrade [tradeid]")
         tradeid = args.arguments[0]
-        if args.conf == None:
+        if args.conf is None:
             newtrade(tradeid, network=args.network, conf='cli')
         else:
             newtrade(tradeid, network=args.network, conf=args.conf)
     elif command == "daemon":
-        #TODO: not implemented
+        # TODO: not implemented
         print("Run as daemon process")
     # Ad hoc testing of workflow starts here
     elif command == "step1":
