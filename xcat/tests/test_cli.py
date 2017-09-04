@@ -4,6 +4,7 @@ import xcat.db as db
 from xcat.tests.utils import mktrade
 from xcat.trades import Trade, Contract
 
+
 class SimpleTestCase(unittest.TestCase):
     def setUp(self):
         self.trade = mktrade()
@@ -47,6 +48,7 @@ class CliTest(SimpleTestCase):
     #     trade = db.get('new')
     #     status = cli.buyer_check_status(trade)
     #     self.assertEqual(status, 'sellerFunded')
+
 
 if __name__ == '__main__':
     unittest.main()
