@@ -36,11 +36,11 @@ class TestCLI(unittest.TestCase):
 
     @mock.patch('xcat.cli.Protocol')
     def test_find_role_test(self, mock_protocol):
-        mock_protocol().is_myaddr.return_value = True
+        mock_protocol().is_myaddr = lambda k: k == 'me'
 
         test_contract = mock.MagicMock()
-        test_contract.initiator = 'test initiator'
-        test_contract.fulfiller = 'test fulfiller'
+        test_contract.initiator = 'me'
+        test_contract.fulfiller = 'me'
 
         res = cli.find_role(test_contract)
 
@@ -48,11 +48,27 @@ class TestCLI(unittest.TestCase):
 
     @mock.patch('xcat.cli.Protocol')
     def test_find_role_initiator(self, mock_protocol):
-        pass
+        mock_protocol().is_myaddr = lambda k: k == 'me'
+
+        test_contract = mock.MagicMock()
+        test_contract.initiator = 'me'
+        test_contract.fulfiller = 'you'
+
+        res = cli.find_role(test_contract)
+
+        self.assertEqual(res, 'initiator')
 
     @mock.patch('xcat.cli.Protocol')
     def test_find_role_fulfiller(self, mock_protocol):
-        pass
+        mock_protocol().is_myaddr = lambda k: k == 'me'
+
+        test_contract = mock.MagicMock()
+        test_contract.initiator = 'you'
+        test_contract.fulfiller = 'me'
+
+        res = cli.find_role(test_contract)
+
+        self.assertEqual(res, 'fulfiller')
 
     def test_checktrade(self):
         pass
