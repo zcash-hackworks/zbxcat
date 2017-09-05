@@ -70,6 +70,21 @@ class TestCLI(unittest.TestCase):
 
         self.assertEqual(res, 'fulfiller')
 
+    @mock.patch('xcat.cli.Protocol')
+    def test_find_role_error(self, mock_protocol):
+        mock_protocol().is_myaddr = lambda k: k == 'me'
+
+        test_contract = mock.MagicMock()
+        test_contract.initiator = 'you'
+        test_contract.fulfiller = 'you'
+
+        with self.assertRaises(ValueError) as context:
+            cli.find_role(test_contract)
+
+        self.assertTrue(
+            'You are not a participant in this contract.'
+            in str(context.exception))
+
     def test_checktrade(self):
         pass
 

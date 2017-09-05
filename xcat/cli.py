@@ -181,7 +181,10 @@ def find_role(contract):
         else:
             return 'initiator'
     else:
-        return 'fulfiller'
+        if protocol.is_myaddr(contract.fulfiller):
+            return 'fulfiller'
+        else:
+            raise ValueError('You are not a participant in this contract.')
 
 
 def checktrade(tradeid):
