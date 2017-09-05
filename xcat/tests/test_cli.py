@@ -1,8 +1,8 @@
 import unittest
 import unittest.mock as mock
 import xcat.cli as cli
-from xcat.tests.utils import test_trade
-from xcat.trades import Trade
+# from xcat.tests.utils import test_trade
+# from xcat.trades import Trade
 
 
 class TestCLI(unittest.TestCase):
@@ -34,7 +34,24 @@ class TestCLI(unittest.TestCase):
     def test_findtrade(self):
         pass
 
-    def test_find_role(self):
+    @mock.patch('xcat.cli.Protocol')
+    def test_find_role_test(self, mock_protocol):
+        mock_protocol().is_myaddr.return_value = True
+
+        test_contract = mock.MagicMock()
+        test_contract.initiator = 'test initiator'
+        test_contract.fulfiller = 'test fulfiller'
+
+        res = cli.find_role(test_contract)
+
+        self.assertEqual(res, 'test')
+
+    @mock.patch('xcat.cli.Protocol')
+    def test_find_role_initiator(self, mock_protocol):
+        pass
+
+    @mock.patch('xcat.cli.Protocol')
+    def test_find_role_fulfiller(self, mock_protocol):
         pass
 
     def test_checktrade(self):
