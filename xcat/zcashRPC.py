@@ -105,20 +105,38 @@ class zcashProxy():
         for tx in txs:
             raw = self.zcashd.gettransaction(lx(tx['txid']))['hex']
             decoded = self.zcashd.decoderawtransaction(raw)
+            # print("TXINFO", decoded['vin'][0])
             if('txid' in decoded['vin'][0]):
                 sendid = decoded['vin'][0]['txid']
                 if (sendid == fundtx_input ):
-                    print("Found funding zcash tx: ", sendid)
-                    res = self.parse_secret(lx(tx['txid']))
-                    secret = res[0]
-                    redeemPubkey = res[1]
-                    if secret is None:
-                        print("Secret not found")
-                        res = self.validateaddress(redeemPubkey)
-                        if res['ismine']:
-                            print("Funding tx already refunded. Sent to your address {0}".format(redeemPubkey))
-        logging.debug("Redeem transaction with secret not found")
+                    print("Found funding tx: ", sendid)
+                    return self.parse_secret(lx(tx['txid']))
+        print("Redeem transaction with secret not found")
         return
+
+    # def find_secret(self, p2sh, fundtx_input):
+    #     print("In find secret zcashrpc")
+    #     txs = self.zcashd.call('listtransactions', "*", 200, 0, True)
+    #     for tx in txs:
+    #         if tx['address'] == p2sh: # Only check txs involving imported p2sh
+    #             raw = self.zcashd.gettransaction(lx(tx['txid']))['hex']
+    #             decoded = self.zcashd.decoderawtransaction(raw)
+    #             print('decoded', decoded)
+    #             if('txid' in decoded['vin'][0]):
+    #                 sendid = decoded['vin'][0]['txid']
+    #                 print("sendid", sendid)
+    #                 if (sendid == fundtx_input ):
+    #                     print("Found funding zcash tx: ", sendid)
+    #                     res = self.parse_secret(lx(tx['txid']))
+    #                     secret = res[0]
+    #                     redeemPubkey = res[1]
+    #                     if secret is None:
+    #                         print("Secret not found")
+    #                         res = self.validateaddress(redeemPubkey)
+    #                         if res['ismine']:
+    #                             print("Funding tx already refunded. Sent to your address {0}".format(redeemPubkey))
+    #     logging.debug("Redeem transaction with secret not found")
+    #     return
 
     def parse_secret(self, txid):
         raw = self.zcashd.gettransaction(txid, True)['hex']
@@ -130,9 +148,9 @@ class zcashProxy():
             secret = x2s(asm[2])
         except:
             secret = None
-        redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
-        print("redeemPubkey: ", redeemPubkey)
-        return secret, redeemPubkey
+        self.redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
+        print("redeemPubkey: ", self.redeemPubkey)
+        return secret
 
     def redeem_contract(self, contract, secret):
         # How to find redeemScript and redeemblocknum from blockchain?

@@ -10,7 +10,7 @@ import bitcoin.rpc
 from bitcoin import SelectParams
 from bitcoin.core import b2x, lx, b2lx, x, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160, CTransaction
 from bitcoin.base58 import decode
-from bitcoin.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
+from bitcoin.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE, OP_FALSE
 from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2PKHBitcoinAddress
 
@@ -147,7 +147,7 @@ class bitcoinProxy():
         print("Parsing script for redeem_contract...")
         scriptarray = self.parse_script(contract.redeemScript)
         redeemblocknum = scriptarray[8]
-        redeemPubKey = P2PKHBitcoinAddress.from_bytes(x(scriptarray[6]))
+        self.redeemPubKey = P2PKHBitcoinAddress.from_bytes(x(scriptarray[6]))
         refundPubKey = P2PKHBitcoinAddress.from_bytes(x(scriptarray[13]))
         p2sh = contract.p2sh
         #checking there are funds in the address
@@ -172,22 +172,23 @@ class bitcoinProxy():
         else:
             print("No contract for this p2sh found in database", p2sh)
 
-    def redeem(self, contract):
-        print('redeemPubKey', redeemPubKey)
-        zec_redeemScript = CScript(x(contract.redeemScript))
+    def redeem(self, contract, fundtx, secret):
+        print('redeemPubKey', self.redeemPubKey)
+        # TODO: Compare with script on blockchain?
+        redeemScript = CScript(x(contract.redeemScript))
         txin = CMutableTxIn(fundtx['outpoint'])
-        txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
+        txout = CMutableTxOut(fundtx['amount'] - FEE, self.redeemPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
-        sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
+        sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
         # TODO: protect privkey better, separate signing from rawtx creation
-        privkey = self.bitcoind.dumpprivkey(redeemPubKey)
+        privkey = self.bitcoind.dumpprivkey(self.redeemPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
         preimage = secret.encode('utf-8')
-        txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, zec_redeemScript])
+        txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, redeemScript])
 
         # print("txin.scriptSig", b2x(txin.scriptSig))
-        txin_scriptPubKey = zec_redeemScript.to_p2sh_scriptPubKey()
+        txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
         print('Raw redeem transaction hex: ', b2x(tx.serialize()))
         VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("Script verified, sending raw transaction...")
@@ -198,11 +199,32 @@ class bitcoinProxy():
 
     def refund(self, contract):
         fundtx = self.find_transaction_to_address(contract.p2sh)
-        # Refund self on other chain
+        print("Fund tx found in refund: ", fundtx)
         refundPubKey = self.find_refundAddr(contract)
-        logging.debug('refundPubKey: {0}'.format(refundPubKey))
-        txid = self.bitcoind.sendtoaddress(refundPubKey, fundtx['amount'] - FEE)
-        refund_tx = b2x(lx(b2x(txid)))
+        print('refundPubKey: {0}'.format(refundPubKey))
+
+        redeemScript = CScript(x(contract.redeemScript))
+        txin = CMutableTxIn(fundtx['outpoint'])
+        txout = CMutableTxOut(fundtx['amount'] - FEE, refundPubKey.to_scriptPubKey())
+        # Create the unsigned raw transaction.
+        tx = CMutableTransaction([txin], [txout])
+        tx.nLockTime = 2430
+        sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
+        privkey = self.bitcoind.dumpprivkey(refundPubKey)
+        sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
+        # Sign without secret
+        # OP_IF, OP_SHA256, commitment, OP_EQUALVERIFY,OP_DUP, OP_HASH160, redeemerAddr,
+        # OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160, funderAddr,
+        # OP_ENDIF,
+        # OP_EQUALVERIFY, OP_CHECKSIG
+        txin.scriptSig = CScript([sig, privkey.pub, OP_FALSE, redeemScript])
+        # txin.nSequence = 2185
+        txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
+        print('Raw redeem transaction hex: {0}'.format(b2x(tx.serialize())))
+        res = VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+        print("Script verified, sending raw transaction... (NOT)", res)
+        txid = self.bitcoind.sendrawtransaction(tx)
+        refund_tx =  b2x(lx(b2x(txid)))
         fund_tx = str(fundtx['outpoint'])
         return {"refund_tx": refund_tx, "fund_tx": fund_tx}
 

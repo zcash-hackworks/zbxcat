@@ -262,10 +262,10 @@ def main():
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
     elif command == "step3":
-        generate(11)
+        generate(31)
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
     elif command == "step4":
-        generate(1)
+        # generate(1)
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
