@@ -205,11 +205,28 @@ class zcashProxy():
 
     def refund(self, contract):
         fundtx = self.find_transaction_to_address(contract.p2sh)
-        # Refund self on other chain
+        print("Fund tx found in refund: ", fundtx)
         refundPubKey = self.find_refundAddr(contract)
-        print('refundPubKey: ', refundPubKey)
-        txid = self.zcashd.sendtoaddress(refundPubKey, fundtx['amount'] - FEE)
-        refund_tx = b2x(lx(b2x(txid)))
+        print('refundPubKey: {0}'.format(refundPubKey))
+
+        redeemScript = CScript(x(contract.redeemScript))
+        txin = CMutableTxIn(fundtx['outpoint'])
+        txout = CMutableTxOut(fundtx['amount'] - FEE, refundPubKey.to_scriptPubKey())
+        # Create the unsigned raw transaction.
+        tx = CMutableTransaction([txin], [txout])
+        tx.nLockTime = 2430
+        sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
+        privkey = self.zcashd.dumpprivkey(refundPubKey)
+        sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
+        # Sign without secret
+        txin.scriptSig = CScript([sig, privkey.pub, OP_FALSE, redeemScript])
+        # txin.nSequence = 2185
+        txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
+        print('Raw redeem transaction hex: {0}'.format(b2x(tx.serialize())))
+        res = VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+        print("Script verified, sending raw transaction... (NOT)", res)
+        txid = self.zcashd.sendrawtransaction(tx)
+        refund_tx =  b2x(lx(b2x(txid)))
         fund_tx = str(fundtx['outpoint'])
         return {"refund_tx": refund_tx, "fund_tx": fund_tx}
 
