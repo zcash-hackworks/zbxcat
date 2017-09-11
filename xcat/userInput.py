@@ -11,12 +11,14 @@ def enter_trade_id():
 def get_trade_amounts():
     amounts = {}
     sell_currency = input("Which currency would you like to trade out of (bitcoin or zcash)? ")
-    if sell_currency == '':
+    if sell_currency == '' or sell_currency == 'bitcoin' :
         sell_currency = 'bitcoin'
-    if sell_currency == 'bitcoin':
         buy_currency = 'zcash'
-    else:
+    elif sell_currency == 'zcash':
+        sell_currency = 'zcash'
         buy_currency = 'bitcoin'
+    else:
+        raise ValueError('Mistyped or unspported cryptocurrency pair')
     print(sell_currency)
     sell_amt = input("How much {0} do you want to sell? ".format(sell_currency))
     if sell_amt == '':
