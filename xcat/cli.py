@@ -32,9 +32,11 @@ def checkSellStatus(tradeid):
         if 'redeem_tx' in txs:
             trade.buy.redeem_tx = txs['redeem_tx']
             print("Redeem tx: ", txs['redeem_tx'])
-        elif 'refund_tx' in txs:
+        if 'refund_tx' in txs:
             trade.buy.redeem_tx = txs['refund_tx']
-            print("Refund tx: ", txs['refund_tx'])
+            print("Buyer refund tx: ", txs['refund_tx'])
+            txs = refund_contract(trade.sell) # Refund to seller
+            print("Your refund txid: ", txs['refund_tx'])
         save_state(trade, tradeid)
         # Remove from db? Or just from temporary file storage
         utils.cleanup(tradeid)
@@ -123,6 +125,7 @@ def checkBuyStatus(tradeid):
             save_state(trade, tradeid)
             print("XCAT trade complete!")
         else:
+            # Search if tx has been refunded from p2sh
             print("Secret not found in redeemtx")
 
 
@@ -211,9 +214,12 @@ def newtrade(tradeid, **kwargs):
     protocol = Protocol()
     print("Creating new XCAT trade...")
     utils.erase_trade()
-    tradeid, trade = protocol.initialize_trade(tradeid, conf=kwargs['conf'])
-    print("Trade", trade)
-    trade = protocol.seller_init(tradeid, trade)
+    tradeid, trade = protocol.initialize_trade(
+        tradeid,
+        conf=kwargs['conf'],
+        network=kwargs['network'])
+    print("New trade created: {0}".format(trade))
+    trade = protocol.seller_init(tradeid, trade, network=kwargs['network'])
     print("\nUse 'xcat exporttrade [tradeid]' to export the trade and sent "
           "to the buyer.\n")
     save_state(trade, tradeid)
@@ -260,6 +266,17 @@ def main():
 
     args = parser.parse_args()
 
+    if args.debug:
+        numeric_level = getattr(logging, 'DEBUG', None)
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=numeric_level)
+    else:
+        logging.basicConfig(format='%(levelname)s: %(message)s', level='INFO')
+
+    if args.network:
+        NETWORK = args.network
+    else:
+        NETWORK = 'testnet'
+
     command = args.command
     if command == 'importtrade':
         if args.wormhole:
@@ -294,9 +311,9 @@ def main():
             utils.throw("Usage: newtrade [tradeid]")
         tradeid = args.arguments[0]
         if args.conf is None:
-            newtrade(tradeid, network=args.network, conf='cli')
+            newtrade(tradeid, network=NETWORK, conf='cli')
         else:
-            newtrade(tradeid, network=args.network, conf=args.conf)
+            newtrade(tradeid, network=NETWORK, conf=args.conf)
     elif command == "daemon":
         # TODO: not implemented
         print("Run as daemon process")
@@ -308,8 +325,10 @@ def main():
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
     elif command == "step3":
+        protocol.generate(31)
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
     elif command == "step4":
+        # generate(1)
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
