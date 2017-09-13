@@ -36,7 +36,8 @@ class DB():
         trade = self.instantiate(tradestr)
         return trade
 
-    def instantiate(self, trade):
+    @staticmethod
+    def instantiate(trade):
         if type(trade) == str:
             tradestr = json.loads(trade)
             trade = Trade(
