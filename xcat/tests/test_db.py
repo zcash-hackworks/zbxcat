@@ -1,6 +1,6 @@
 import unittest
 import xcat.trades as trades
-import xcat.database as db
+import xcat.db as db
 
 
 class DatabaseTest(unittest.TestCase):
