@@ -2,6 +2,7 @@ import argparse
 import textwrap
 import subprocess
 import os
+import logging
 import xcat.db as db
 import xcat.userInput as userInput
 import xcat.utils as utils
@@ -35,7 +36,7 @@ def checkSellStatus(tradeid):
         if 'refund_tx' in txs:
             trade.buy.redeem_tx = txs['refund_tx']
             print("Buyer refund tx: ", txs['refund_tx'])
-            txs = refund_contract(trade.sell) # Refund to seller
+            txs = protocol.refund_contract(trade.sell)  # Refund to seller
             print("Your refund txid: ", txs['refund_tx'])
         save_state(trade, tradeid)
         # Remove from db? Or just from temporary file storage
@@ -266,18 +267,21 @@ def main():
 
     args = parser.parse_args()
 
-    if args.debug:
+    if hasattr(args, 'debug'):
         numeric_level = getattr(logging, 'DEBUG', None)
-        logging.basicConfig(format='%(levelname)s: %(message)s', level=numeric_level)
+        logging.basicConfig(format='%(levelname)s: %(message)s',
+                            level=numeric_level)
     else:
-        logging.basicConfig(format='%(levelname)s: %(message)s', level='INFO')
+        logging.basicConfig(format='%(levelname)s: %(message)s',
+                            level='INFO')
 
-    if args.network:
+    if hasattr(args, 'network'):
         NETWORK = args.network
     else:
         NETWORK = 'testnet'
 
     command = args.command
+
     if command == 'importtrade':
         if args.wormhole:
             wormhole_importtrade()
@@ -287,25 +291,31 @@ def main():
             tradeid = args.arguments[0]
             hexstr = args.arguments[1]
             importtrade(tradeid, hexstr)
+
     elif command == 'exporttrade':
         if len(args.arguments) < 1:
             utils.throw("Usage: exporttrade [tradeid]")
         tradeid = args.arguments[0]
         exporttrade(tradeid, args.wormhole)
+
     elif command == "findtrade":
         if len(args.arguments) < 1:
             utils.throw("Usage: findtrade [tradeid]")
         print("Finding trade")
         key = args.arguments[0]
         findtrade(key)
+
     elif command == 'checktrade':
         if len(args.arguments) < 1:
             utils.throw("Usage: checktrade [tradeid]")
         tradeid = args.arguments[0]
         checktrade(tradeid)
+
     elif command == 'listtrades':
         listtrades()
+
     # TODO: function to tell if tradeid already exists for newtrade
+
     elif command == 'newtrade':
         if len(args.arguments) < 1:
             utils.throw("Usage: newtrade [tradeid]")
@@ -314,20 +324,27 @@ def main():
             newtrade(tradeid, network=NETWORK, conf='cli')
         else:
             newtrade(tradeid, network=NETWORK, conf=args.conf)
+
     elif command == "daemon":
         # TODO: not implemented
         print("Run as daemon process")
+
     # Ad hoc testing of workflow starts here
+
     elif command == "step1":
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
+
     elif command == "step2":
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
+
     elif command == "step3":
+        protocol = Protocol()
         protocol.generate(31)
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
+
     elif command == "step4":
         # generate(1)
         tradeid = args.arguments[0]

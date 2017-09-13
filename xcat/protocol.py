@@ -260,7 +260,7 @@ class Protocol():
         print(trade.buy.__dict__)
         return tradeid, trade
 
-    def seller_init(self, tradeid, trade):
+    def seller_init(self, tradeid, trade, network):
         secret = utils.generate_password()
         db.save_secret(tradeid, secret)
         print("\nGenerated a secret preimage to lock funds. This will only "

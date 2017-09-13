@@ -1,13 +1,9 @@
 #!/usr/bin/env python3
 
 import sys
-if sys.version_info.major < 3:
-    sys.stderr.write('Sorry, Python 3.x required by this example.\n')
-    sys.exit(1)
-
 import bitcoin
 import bitcoin.rpc
-from bitcoin import SelectParams
+# from bitcoin import SelectParams
 from bitcoin.core import b2x, lx, b2lx, x, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160, CTransaction
 from bitcoin.base58 import decode
 from bitcoin.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE, OP_FALSE
@@ -17,17 +13,22 @@ from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, 
 from xcat.utils import *
 import logging
 
+if sys.version_info.major < 3:
+    sys.stderr.write('Sorry, Python 3.x required by this example.\n')
+    sys.exit(1)
+
 FEE = 0.001*COIN
+
 
 class bitcoinProxy():
     def __init__(self, network='regtest', timeout=900):
         if network is not 'testnet' and network is not 'mainnet':
-            network='regtest'
+            network = 'regtest'
         logging.debug("NETWORK in proxy: {0}".format(network))
         self.network = network
         self.timeout = timeout
 
-        SelectParams(self.network)
+        bitcoin.SelectParams(self.network)
         self.bitcoind = bitcoin.rpc.Proxy(timeout=self.timeout)
 
     def validateaddress(self, addr):
@@ -41,9 +42,9 @@ class bitcoinProxy():
             print("TXINFO", decoded['vin'][0])
             if('txid' in decoded['vin'][0]):
                 sendid = decoded['vin'][0]['txid']
-                if (sendid == fundtx_input ):
+                if (sendid == fundtx_input):
                     print("Found funding tx: ", sendid)
-                    return parse_secret(lx(tx['txid']))
+                    return self.parse_secret(lx(tx['txid']))
         print("Redeem transaction with secret not found")
         return
 

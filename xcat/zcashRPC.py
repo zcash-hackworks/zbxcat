@@ -1,29 +1,30 @@
 #!/usr/bin/env python3
 
 import sys
-if sys.version_info.major < 3:
-    sys.stderr.write('Sorry, Python 3.x required by this example.\n')
-    sys.exit(1)
-
 import zcash
 import zcash.rpc
-from zcash import SelectParams
+# from zcash import SelectParams
 from zcash.core import b2x, lx, x, b2lx, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160
 from zcash.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
 from zcash.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from zcash.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2PKHBitcoinAddress
-import logging
+# import logging
 
 from xcat.utils import x2s
 
+if sys.version_info.major < 3:
+    sys.stderr.write('Sorry, Python 3.x required by this example.\n')
+    sys.exit(1)
+
 FEE = 0.001*COIN
+
 
 class zcashProxy():
     def __init__(self, network='regtest', timeout=900):
         self.network = network
         self.timeout = timeout
 
-        SelectParams(self.network)
+        zcash.SelectParams(self.network)
         self.zcashd = zcash.rpc.Proxy(timeout=self.timeout)
 
     def validateaddress(self, addr):
@@ -108,7 +109,7 @@ class zcashProxy():
             # print("TXINFO", decoded['vin'][0])
             if('txid' in decoded['vin'][0]):
                 sendid = decoded['vin'][0]['txid']
-                if (sendid == fundtx_input ):
+                if (sendid == fundtx_input):
                     print("Found funding tx: ", sendid)
                     return self.parse_secret(lx(tx['txid']))
         print("Redeem transaction with secret not found")
@@ -155,7 +156,7 @@ class zcashProxy():
     def redeem_contract(self, contract, secret):
         # How to find redeemScript and redeemblocknum from blockchain?
         p2sh = contract.p2sh
-        #checking there are funds in the address
+        # checking there are funds in the address
         amount = self.check_funds(p2sh)
         if(amount == 0):
             print("Address ", p2sh, " not funded")
@@ -184,7 +185,8 @@ class zcashProxy():
         print('redeemPubKey', redeemPubKey)
         zec_redeemScript = CScript(x(contract.redeemScript))
         txin = CMutableTxIn(fundtx['outpoint'])
-        txout = CMutableTxOut(fundtx['amount'] - FEE, redeemPubKey.to_scriptPubKey())
+        txout = CMutableTxOut(fundtx['amount'] - FEE,
+                              redeemPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
         sighash = SignatureHash(zec_redeemScript, tx, 0, SIGHASH_ALL)
@@ -193,15 +195,17 @@ class zcashProxy():
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
         print("SECRET", secret)
         preimage = secret.encode('utf-8')
-        txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, zec_redeemScript])
+        txin.scriptSig = CScript([sig, privkey.pub, preimage,
+                                  OP_TRUE, zec_redeemScript])
         txin_scriptPubKey = zec_redeemScript.to_p2sh_scriptPubKey()
         print('Raw redeem transaction hex: ', b2x(tx.serialize()))
-        VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+        VerifyScript(txin.scriptSig, txin_scriptPubKey,
+                     tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("Script verified, sending raw redeem transaction...")
         txid = self.zcashd.sendrawtransaction(tx)
-        redeem_tx =  b2x(lx(b2x(txid)))
+        redeem_tx = b2x(lx(b2x(txid)))
         fund_tx = str(fundtx['outpoint'])
-        return  {"redeem_tx": redeem_tx, "fund_tx": fund_tx}
+        return {"redeem_tx": redeem_tx, "fund_tx": fund_tx}
 
     def refund(self, contract):
         fundtx = self.find_transaction_to_address(contract.p2sh)
@@ -211,7 +215,8 @@ class zcashProxy():
 
         redeemScript = CScript(x(contract.redeemScript))
         txin = CMutableTxIn(fundtx['outpoint'])
-        txout = CMutableTxOut(fundtx['amount'] - FEE, refundPubKey.to_scriptPubKey())
+        txout = CMutableTxOut(fundtx['amount'] - FEE,
+                              refundPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
         sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
@@ -222,10 +227,11 @@ class zcashProxy():
         # txin.nSequence = 2185
         txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
         print('Raw redeem transaction hex: {0}'.format(b2x(tx.serialize())))
-        res = VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+        res = VerifyScript(txin.scriptSig, txin_scriptPubKey,
+                           tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("Script verified, sending raw transaction... (NOT)", res)
         txid = self.zcashd.sendrawtransaction(tx)
-        refund_tx =  b2x(lx(b2x(txid)))
+        refund_tx = b2x(lx(b2x(txid)))
         fund_tx = str(fundtx['outpoint'])
         return {"refund_tx": refund_tx, "fund_tx": fund_tx}
 

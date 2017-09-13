@@ -2,12 +2,12 @@
 ADDRS = {
     'regtest': {
         "initiator": {
-            "bitcoin": "mvc56qCEVj6p57xZ5URNC3v7qbatudHQ9b",
-            "zcash": "tmTF7LMLjvEsGdcepWPUsh4vgJNrKMWwEyc"
+            "bitcoin": "moAccTjGt6nRCoLKhVLrDCAkqDt7fnsAgC",
+            "zcash": "tmJBCsE4ZBcgi2LykoUyei5PDT1cQPkFxpf"
         },
         "fulfiller": {
-            "bitcoin": "moRt56gJQGDNK46Y6fYy2HbooKnQXrTGDN",
-            "zcash": "tmK3rGzHDqa78MCwEicx9VcY9ZWX9gCF2nd"
+            "bitcoin": "mxdJ47MeEeqrBDjHj7SrSLFoDuSP3G37t5",
+            "zcash": "tmBbe7hWtexP94638H1QUD9Z92BM4ZiXXgA"
         },
         "amounts": {'buy': {'currency': 'zcash', 'amount': 0.02}, 'sell': {'currency': 'bitcoin', 'amount': 0.01}}
     },

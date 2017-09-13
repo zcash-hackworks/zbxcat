@@ -1,19 +1,23 @@
 import json
 
+
 class Trade(object):
     def __init__(self, sell=None, buy=None, commitment=None):
-        '''Create a new trade with a sell contract and buy contract across two chains'''
+        '''Create a new trade with buy and sell contracts across two chains'''
         self.sell = sell
         self.buy = buy
         self.commitment = commitment
 
     def toJSON(self):
-        return json.dumps(self, default=lambda o: o.__dict__,
-            sort_keys=True, indent=4)
+        return json.dumps(
+            self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
+
 
 class Contract(object):
     def __init__(self, data):
-        allowed = ('fulfiller', 'initiator', 'currency', 'p2sh', 'amount', 'fund_tx', 'redeem_tx', 'secret', 'redeemScript', 'redeemblocknum', 'locktime')
+        allowed = ('fulfiller', 'initiator', 'currency', 'p2sh', 'amount',
+                   'fund_tx', 'redeem_tx', 'secret', 'redeemScript',
+                   'redeemblocknum', 'locktime')
         for key in data:
             if key in allowed:
                 setattr(self, key, data[key])
