@@ -21,7 +21,7 @@ if sys.version_info.major < 3:
     sys.stderr.write('Sorry, Python 3.x required by this example.\n')
     sys.exit(1)
 
-FEE = 0.001*COIN
+FEE = 0.001 * COIN
 
 
 class bitcoinProxy():
@@ -117,13 +117,13 @@ class bitcoinProxy():
         self.bitcoind.importaddress(p2sh, "", False)
         # Get amount in address
         amount = self.bitcoind.getreceivedbyaddress(p2sh, 0)
-        amount = amount/COIN
+        amount = amount / COIN
         return amount
 
     def get_fund_status(self, p2sh):
         self.bitcoind.importaddress(p2sh, "", False)
         amount = self.bitcoind.getreceivedbyaddress(p2sh, 0)
-        amount = amount/COIN
+        amount = amount / COIN
         print("Amount in bitcoin p2sh: ", amount, p2sh)
         if amount > 0:
             return 'funded'

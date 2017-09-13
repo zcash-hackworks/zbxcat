@@ -87,8 +87,8 @@ def authorize_buyer_fulfill(sell_p2sh_balance, sell_currency,
           "in {1}.".format(sell_p2sh_balance, sell_currency))
     input("You have not send funds to the contract to buy {1} "
           "(requested amount: {0}), type 'enter' to allow this program "
-          "to send the agreed upon funds on your behalf.".format(
-            buy_p2sh_balance, buy_currency))
+          "to send the agreed upon funds on your behalf"
+          ".".format(buy_p2sh_balance, buy_currency))
 
 
 def authorize_seller_redeem(buy):
