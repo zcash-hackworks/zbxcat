@@ -3,12 +3,17 @@
 import sys
 import zcash
 import zcash.rpc
-# from zcash import SelectParams
-from zcash.core import b2x, lx, x, b2lx, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160
-from zcash.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
-from zcash.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
-from zcash.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2PKHBitcoinAddress
 # import logging
+# from zcash import SelectParams
+from zcash.core import b2x, lx, x, COIN
+from zcash.core import CMutableTransaction, CMutableTxOut, CMutableTxIn
+from zcash.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF
+from zcash.core.script import OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG
+from zcash.core.script import SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP
+from zcash.core.script import OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
+from zcash.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
+from zcash.wallet import CBitcoinAddress, P2PKHBitcoinAddress
+from zcash.wallet import P2SHBitcoinAddress
 
 from xcat.utils import x2s
 
@@ -48,20 +53,31 @@ class zcashProxy():
         print("Current blocknum on Zcash: ", blocknum)
         redeemblocknum = blocknum + locktime
         print("Redeemblocknum on Zcash: ", redeemblocknum)
-        # can rm op_dup and op_hash160 if you replace addrs with pubkeys (as raw hex/bin data?), and can rm last op_equalverify (for direct pubkey comparison)
-        zec_redeemScript = CScript([OP_IF, OP_SHA256, commitment, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
-                                     redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
-                                     funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
-        # print("Redeem script for p2sh contract on Zcash blockchain: ", b2x(zec_redeemScript))
+        # can rm op_dup and op_hash160 if you replace addrs with pubkeys
+        # (as raw hex/bin data?)
+        # can rm last op_equalverify (for direct pubkey comparison)
+        zec_redeemScript = CScript([
+            OP_IF, OP_SHA256, commitment, OP_EQUALVERIFY, OP_DUP, OP_HASH160,
+            redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY,
+            OP_DROP, OP_DUP, OP_HASH160, funderAddr, OP_ENDIF, OP_EQUALVERIFY,
+            OP_CHECKSIG])
+        # print("Redeem script for p2sh contract on Zcash blockchain: ",
+        #        b2x(zec_redeemScript))
         txin_scriptPubKey = zec_redeemScript.to_p2sh_scriptPubKey()
         # Convert the P2SH scriptPubKey to a base58 Bitcoin address
-        txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
+        txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(
+            txin_scriptPubKey)
         p2sh = str(txin_p2sh_address)
         print("p2sh computed: ", p2sh)
         # Import address as soon as you create it
         self.zcashd.importaddress(p2sh, "", False)
         # Returning all this to be saved locally in p2sh.json
-        return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'redeemScript': b2x(zec_redeemScript), 'redeemer': redeemer, 'funder': funder, 'locktime': locktime}
+        return {'p2sh': p2sh,
+                'redeemblocknum': redeemblocknum,
+                'redeemScript': b2x(zec_redeemScript),
+                'redeemer': redeemer,
+                'funder': funder,
+                'locktime': locktime}
 
     def fund_htlc(self, p2sh, amount):
         send_amount = float(amount)*COIN

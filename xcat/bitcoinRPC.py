@@ -82,11 +82,11 @@ class bitcoinProxy():
         print("Current blocknum on Bitcoin: ", blocknum)
         redeemblocknum = blocknum + locktime
         print("Redeemblocknum on Bitcoin: ", redeemblocknum)
-        redeemScript = CScript(
-            [OP_IF, OP_SHA256, commitment, OP_EQUALVERIFY, OP_DUP, OP_HASH160,
-             redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY,
-             OP_DROP, OP_DUP, OP_HASH160, funderAddr, OP_ENDIF, OP_EQUALVERIFY,
-             OP_CHECKSIG])
+        redeemScript = CScript([
+            OP_IF, OP_SHA256, commitment, OP_EQUALVERIFY, OP_DUP, OP_HASH160,
+            redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY,
+            OP_DROP, OP_DUP, OP_HASH160, funderAddr, OP_ENDIF, OP_EQUALVERIFY,
+            OP_CHECKSIG])
         # print("Redeem script for p2sh contract on Bitcoin blockchain: "
         #        "{0}".format(b2x(redeemScript)))
         txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
