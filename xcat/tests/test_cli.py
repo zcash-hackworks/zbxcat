@@ -1,6 +1,6 @@
 import unittest
 import xcat.cli as cli
-import xcat.db as db
+from xcat.db import DB
 from xcat.protocol import Protocol
 from xcat.tests.utils import mktrade
 from xcat.trades import Trade  # , Contract
@@ -29,6 +29,7 @@ class CliTest(SimpleTestCase):
         self.assertTrue(isinstance(trade, Trade))
 
     def test_fundsell(self):
+        db = DB()
         protocol = Protocol()
 
         trade = db.get('new')
@@ -54,6 +55,7 @@ class CliTest(SimpleTestCase):
     #     trade = db.get('new')
     #     status = cli.buyer_check_status(trade)
     #     self.assertEqual(status, 'sellerFunded')
+
 
 if __name__ == '__main__':
     unittest.main()

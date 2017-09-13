@@ -1,6 +1,6 @@
 import unittest
 import xcat.trades as trades
-import xcat.db as db
+from xcat.db import DB
 
 
 class DatabaseTest(unittest.TestCase):
@@ -10,6 +10,7 @@ class DatabaseTest(unittest.TestCase):
         self.sell = trades.Contract(self.data['sell'])
 
     def test_create(self):
+        db = DB()
         sell = trades.Contract(self.data['sell'])
         buy = trades.Contract(self.data['buy'])
         trade = trades.Trade(sell, buy, commitment=self.data['commitment'])

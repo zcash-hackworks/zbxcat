@@ -1,11 +1,11 @@
+import logging
 import xcat.userInput as userInput
-import xcat.db as db
 import xcat.utils as utils
 from xcat.xcatconf import ADDRS
 from xcat.trades import Contract, Trade
 from xcat.bitcoinRPC import bitcoinProxy
 from xcat.zcashRPC import zcashProxy
-import logging
+from xcat.db import DB
 
 
 class Protocol():
@@ -261,6 +261,7 @@ class Protocol():
         return tradeid, trade
 
     def seller_init(self, tradeid, trade, network):
+        db = DB()
         secret = utils.generate_password()
         db.save_secret(tradeid, secret)
         print("\nGenerated a secret preimage to lock funds. This will only "

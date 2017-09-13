@@ -3,22 +3,26 @@ import textwrap
 import subprocess
 import os
 import logging
-import xcat.db as db
+from xcat.db import DB
 import xcat.userInput as userInput
 import xcat.utils as utils
 from xcat.protocol import Protocol
 
 
 def save_state(trade, tradeid):
+    db = DB()
     utils.save(trade)
     db.create(trade, tradeid)
 
 
 def checkSellStatus(tradeid):
+    db = DB()
     protocol = Protocol()
+
     trade = db.get(tradeid)
     status = seller_check_status(trade)
     print("Trade status: {0}\n".format(status))
+
     if status == 'init':
         userInput.authorize_fund_sell(trade)
         fund_tx = protocol.fund_sell_contract(trade)
@@ -91,6 +95,7 @@ def seller_check_status(trade):
 
 
 def checkBuyStatus(tradeid):
+    db = DB()
     protocol = Protocol()
     trade = db.get(tradeid)
     status = buyer_check_status(trade)
@@ -132,6 +137,7 @@ def checkBuyStatus(tradeid):
 
 # Import a trade in hex, and save to db
 def importtrade(tradeid, hexstr=''):
+    db = DB()
     protocol = Protocol()
     trade = utils.x2s(hexstr)
     trade = db.instantiate(trade)
@@ -156,6 +162,7 @@ def wormhole_importtrade():
 
 # Export a trade by its tradeid
 def exporttrade(tradeid, wormhole=False):
+    db = DB()
     trade = db.get(tradeid)
     hexstr = utils.s2x(trade.toJSON())
     if wormhole:
@@ -171,6 +178,7 @@ def exporttrade(tradeid, wormhole=False):
 
 
 def findtrade(tradeid):
+    db = DB()
     trade = db.get(tradeid)
     print(trade.toJSON())
     return trade
@@ -192,6 +200,7 @@ def find_role(contract):
 
 
 def checktrade(tradeid):
+    db = DB()
     print("In checktrade")
     trade = db.get(tradeid)
     if find_role(trade.sell) == 'test':
@@ -234,6 +243,7 @@ def newtrade(tradeid, **kwargs):
 
 
 def listtrades():
+    db = DB()
     print("Trades")
     trade_list = db.dump()
     for trade in trade_list:

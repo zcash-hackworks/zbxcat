@@ -1,4 +1,4 @@
-from xcat import db
+from xcat.db import DB
 
 test_trade = {
     "sell": {
@@ -21,7 +21,9 @@ test_trade = {
         "fulfiller": "tmTjZSg4pX2Us6V5HttiwFZwj464fD2ZgpY"},
     "commitment": "03d58daab37238604b3e57d4a8bdcffa401dc497a9c1aa4f08ffac81616c22b6"}
 
+
 def mktrade():
+    db = DB()
     db.create(test_trade, 'test')
     trade = db.get('test')
     return trade
