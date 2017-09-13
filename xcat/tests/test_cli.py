@@ -1,111 +1,59 @@
 import unittest
-import unittest.mock as mock
 import xcat.cli as cli
-# from xcat.tests.utils import test_trade
-# from xcat.trades import Trade
+import xcat.db as db
+from xcat.protocol import Protocol
+from xcat.tests.utils import mktrade
+from xcat.trades import Trade  # , Contract
 
 
-class TestCLI(unittest.TestCase):
-
-    def test_save_state(self):
-        pass
-
-    def test_checkSellStatus(self):
-        pass
-
-    def test_buyer_check_status(self):
-        pass
-
-    def test_seller_check_status(self):
-        pass
-
-    def test_checkBuyStatus(self):
-        pass
-
-    def test_importtrade(self):
-        pass
-
-    def test_wormhole_importtrade(self):
-        pass
+class SimpleTestCase(unittest.TestCase):
+    def setUp(self):
+        self.trade = mktrade()
 
     def test_exporttrade(self):
+        self.__class__.hexstr = cli.exporttrade('test')
+        self.assertTrue(int(self.hexstr, 16))
+
+    def test_importtrade(self):
+        # trade = cli.importtrade('test', self.__class__.hexstr)
         pass
 
+
+class CliTest(SimpleTestCase):
     def test_findtrade(self):
-        pass
-
-    @mock.patch('xcat.cli.Protocol')
-    def test_find_role_test(self, mock_protocol):
-        mock_protocol().is_myaddr = lambda k: k == 'me'
-
-        test_contract = mock.MagicMock()
-        test_contract.initiator = 'me'
-        test_contract.fulfiller = 'me'
-
-        res = cli.find_role(test_contract)
-
-        self.assertEqual(res, 'test')
-
-    @mock.patch('xcat.cli.Protocol')
-    def test_find_role_initiator(self, mock_protocol):
-        mock_protocol().is_myaddr = lambda k: k == 'me'
-
-        test_contract = mock.MagicMock()
-        test_contract.initiator = 'me'
-        test_contract.fulfiller = 'you'
-
-        res = cli.find_role(test_contract)
-
-        self.assertEqual(res, 'initiator')
-
-    @mock.patch('xcat.cli.Protocol')
-    def test_find_role_fulfiller(self, mock_protocol):
-        mock_protocol().is_myaddr = lambda k: k == 'me'
-
-        test_contract = mock.MagicMock()
-        test_contract.initiator = 'you'
-        test_contract.fulfiller = 'me'
-
-        res = cli.find_role(test_contract)
-
-        self.assertEqual(res, 'fulfiller')
-
-    @mock.patch('xcat.cli.Protocol')
-    def test_find_role_error(self, mock_protocol):
-        mock_protocol().is_myaddr = lambda k: k == 'me'
-
-        test_contract = mock.MagicMock()
-        test_contract.initiator = 'you'
-        test_contract.fulfiller = 'you'
-
-        with self.assertRaises(ValueError) as context:
-            cli.find_role(test_contract)
-
-        self.assertTrue(
-            'You are not a participant in this contract.'
-            in str(context.exception))
-
-    def test_checktrade(self):
+        # trade = cli.findtrade('test')
         pass
 
     def test_newtrade(self):
-        pass
-
-    def test_listtrades(self):
-        pass
+        trade = cli.newtrade('new', conf='regtest')
+        self.assertTrue(isinstance(trade, Trade))
 
     def test_fundsell(self):
-        pass
+        protocol = Protocol()
 
-    def test_fundbuy(self):
-        pass
+        trade = db.get('new')
+        status = cli.seller_check_status(trade)
+        print("Trade status: {0}\n".format(status))
+        self.assertEqual(status, 'init')
 
-    def test_seller_redeem(self):
-        pass
+        fund_tx = protocol.fund_sell_contract(trade)
+        print("Sent fund_tx", fund_tx)
 
-    def test_buyer_redeem(self):
-        pass
-
+    # def test_fundbuy(self):
+    #     trade = db.get('new')
+    #     status = cli.buyer_check_status(trade)
+    #     self.assertEqual(status, 'sellerFunded')
+    #     fund_tx = cli.fund_contract(trade.buy)
+    #
+    # def test_seller_redeem(self):
+    #     trade = db.get('new')
+    #     status = cli.seller_check_status(trade)
+    #     self.assertEqual(status, 'buyerFunded')
+    #
+    # def test_buyer_redeem(self):
+    #     trade = db.get('new')
+    #     status = cli.buyer_check_status(trade)
+    #     self.assertEqual(status, 'sellerFunded')
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,3 +1,5 @@
+from xcat import db
+
 test_trade = {
     "sell": {
         "amount": 3.5,
@@ -17,4 +19,9 @@ test_trade = {
         "initiator": "tmFRXyju7ANM7A9mg75ZjyhFW1UJEhUPwfQ",
         "p2sh": "t2HP59RpfR34nBCWH4VVD497tkc2ikzgniP",
         "fulfiller": "tmTjZSg4pX2Us6V5HttiwFZwj464fD2ZgpY"},
-        "commitment": "03d58daab37238604b3e57d4a8bdcffa401dc497a9c1aa4f08ffac81616c22b6"}
+    "commitment": "03d58daab37238604b3e57d4a8bdcffa401dc497a9c1aa4f08ffac81616c22b6"}
+
+def mktrade():
+    db.create(test_trade, 'test')
+    trade = db.get('test')
+    return trade

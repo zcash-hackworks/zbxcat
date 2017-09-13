@@ -215,14 +215,20 @@ def newtrade(tradeid, **kwargs):
     protocol = Protocol()
     print("Creating new XCAT trade...")
     utils.erase_trade()
+
+    conf = kwargs['conf'] if 'conf' in kwargs else 'regtest'
+    network = kwargs['network'] if 'network' in kwargs else 'regtest'
+
     tradeid, trade = protocol.initialize_trade(
         tradeid,
-        conf=kwargs['conf'],
-        network=kwargs['network'])
+        conf=conf,
+        network=network)
     print("New trade created: {0}".format(trade))
-    trade = protocol.seller_init(tradeid, trade, network=kwargs['network'])
+
+    trade = protocol.seller_init(tradeid, trade, network=network)
     print("\nUse 'xcat exporttrade [tradeid]' to export the trade and sent "
           "to the buyer.\n")
+
     save_state(trade, tradeid)
     return trade
 
