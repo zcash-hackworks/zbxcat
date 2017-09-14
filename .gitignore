@@ -1,4 +1,14 @@
-*.pyc
-xcat.egg-info/
+# xcat
 .tmp/
+
+# Python
+*.pyc
+*.egg-info/
+
+# Virtual environment
 venv/
+
+# Unit test / coverage reports
+.tox/
+coverage/
+.coverage

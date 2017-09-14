@@ -14,7 +14,7 @@ from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from bitcoin.wallet import CBitcoinAddress, P2SHBitcoinAddress
 from bitcoin.wallet import P2PKHBitcoinAddress
 
-import xcat.utils as utils
+# import xcat.utils as utils
 import logging
 
 if sys.version_info.major < 3:
@@ -52,15 +52,15 @@ class bitcoinProxy():
         print("Redeem transaction with secret not found")
         return
 
-    def parse_secret(self, txid):
-        raw = zcashd.gettransaction(txid, True)['hex']
-        decoded = zcashd.call('decoderawtransaction', raw)
-        scriptSig = decoded['vin'][0]['scriptSig']
-        asm = scriptSig['asm'].split(" ")
-        # pubkey = asm[1]
-        secret = utils.x2s(asm[2])
-        # redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
-        return secret
+    # def parse_secret(self, txid):
+    #     raw = zcashd.gettransaction(txid, True)['hex']
+    #     decoded = zcashd.call('decoderawtransaction', raw)
+    #     scriptSig = decoded['vin'][0]['scriptSig']
+    #     asm = scriptSig['asm'].split(" ")
+    #     # pubkey = asm[1]
+    #     secret = utils.x2s(asm[2])
+    #     # redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
+    #     return secret
 
     def get_keys(self, funder_address, redeemer_address):
         fundpubkey = CBitcoinAddress(funder_address)
@@ -131,27 +131,27 @@ class bitcoinProxy():
             return 'empty'
 
     # TODO: FIX search for p2sh in block
-    def search_p2sh(self, block, p2sh):
-        print("Fetching block...")
-        blockdata = self.bitcoind.getblock(lx(block))
-        print("done fetching block")
-        txs = blockdata.vtx
-        print("txs", txs)
-        for tx in txs:
-            txhex = b2x(tx.serialize())
-            # Using my fork of python-zcashlib to get result of decoderawtransaction
-            txhex = txhex + '00'
-            rawtx = zcashd.decoderawtransaction(txhex)
-            # print('rawtx', rawtx)
-            print(rawtx)
-            for vout in rawtx['vout']:
-                if 'addresses' in vout['scriptPubKey']:
-                    for addr in vout['scriptPubKey']['addresses']:
-                        print("Sent to address:", addr)
-                        if addr == p2sh:
-                            print("Address to p2sh found in transaction! ",
-                                  addr)
-        print("Returning from search_p2sh")
+    # def search_p2sh(self, block, p2sh):
+    #     print("Fetching block...")
+    #     blockdata = self.bitcoind.getblock(lx(block))
+    #     print("done fetching block")
+    #     txs = blockdata.vtx
+    #     print("txs", txs)
+    #     for tx in txs:
+    #         txhex = b2x(tx.serialize())
+    #         # Using my fork of python-zcashlib to get result of decoderawtransaction
+    #         txhex = txhex + '00'
+    #         rawtx = zcashd.decoderawtransaction(txhex)
+    #         # print('rawtx', rawtx)
+    #         print(rawtx)
+    #         for vout in rawtx['vout']:
+    #             if 'addresses' in vout['scriptPubKey']:
+    #                 for addr in vout['scriptPubKey']['addresses']:
+    #                     print("Sent to address:", addr)
+    #                     if addr == p2sh:
+    #                         print("Address to p2sh found in transaction! ",
+    #                               addr)
+    #     print("Returning from search_p2sh")
 
     def get_tx_details(self, txid):
         # must convert txid string to bytes x(txid)
