@@ -27,11 +27,12 @@ def checkSellStatus(tradeid):
         if 'redeem_tx' in txs:
             trade.buy.redeem_tx = txs['redeem_tx']
             print("Redeem tx: ", txs['redeem_tx'])
-        elif 'refund_tx' in txs:
+        if 'refund_tx' in txs:
             trade.buy.redeem_tx = txs['refund_tx']
-            print("Refund tx: ", txs['refund_tx'])
+            print("Buyer refund tx: ", txs['refund_tx'])
+            txs = refund_contract(trade.sell) # Refund to seller
+            print("Your refund txid: ", txs['refund_tx'])
         save_state(trade, tradeid)
-        # Remove from db? Or just from temporary file storage
         cleanup(tradeid)
     elif status == 'sellerFunded':
         print("Buyer has not yet funded the contract where you offered to buy {0}, please wait for them to complete their part.".format(trade.buy.currency))
@@ -101,6 +102,7 @@ def checkBuyStatus(tradeid):
             save_state(trade, tradeid)
             print("XCAT trade complete!")
         else:
+            # Search if tx has been refunded from p2sh
             print("Secret not found in redeemtx")
 
 # Import a trade in hex, and save to db
@@ -173,9 +175,9 @@ def checktrade(tradeid):
 def newtrade(tradeid, **kwargs):
     print("Creating new XCAT trade...")
     erase_trade()
-    tradeid, trade= initialize_trade(tradeid, conf=kwargs['conf'])
-    print("Trade", trade)
-    trade = seller_init(tradeid, trade)
+    tradeid, trade= initialize_trade(tradeid, conf=kwargs['conf'], network=kwargs['network'])
+    print("New trade created: {0}".format(trade))
+    trade = seller_init(tradeid, trade, network=kwargs['network'])
     print("\nUse 'xcat exporttrade [tradeid]' to export the trade and sent to the buyer.\n")
     save_state(trade, tradeid)
     return trade
@@ -199,11 +201,23 @@ def main():
                 '''))
     parser.add_argument("command", action="store", help="list commands")
     parser.add_argument("arguments", action="store", nargs="*", help="add arguments")
+    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode. Defaults to false")
     parser.add_argument("-w", "--wormhole", action="store_true", help="Transfer trade data through magic-wormhole")
     parser.add_argument("-c", "--conf", action="store", help="Use default trade data in conf file.")
     parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in alpha.")
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     args = parser.parse_args()
+
+    if args.debug:
+        numeric_level = getattr(logging, 'DEBUG', None)
+        logging.basicConfig(format='%(levelname)s: %(message)s', level=numeric_level)
+    else:
+        logging.basicConfig(format='%(levelname)s: %(message)s', level='INFO')
+
+    if args.network:
+        NETWORK = args.network
+    else:
+        NETWORK = 'testnet'
 
     command = args.command
     if command == 'importtrade':
@@ -234,9 +248,9 @@ def main():
         if len(args.arguments) < 1: throw("Usage: newtrade [tradeid]")
         tradeid = args.arguments[0]
         if args.conf == None:
-            newtrade(tradeid, network=args.network, conf='cli')
+            newtrade(tradeid, network=NETWORK, conf='cli')
         else:
-            newtrade(tradeid, network=args.network, conf=args.conf)
+            newtrade(tradeid, network=NETWORK, conf=args.conf)
     elif command == "daemon":
         #TODO: not implemented
         print("Run as daemon process")
@@ -248,8 +262,10 @@ def main():
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
     elif command == "step3":
+        generate(31)
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
     elif command == "step4":
+        # generate(1)
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
