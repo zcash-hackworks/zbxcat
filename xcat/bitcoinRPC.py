@@ -208,6 +208,9 @@ class bitcoinProxy():
         txout = CMutableTxOut(fundtx['amount'] - FEE, refundPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
+        # Set nSequence and nLockTime
+        txin.nSequence = 0
+        tx.nLockTime = contract.redeemblocknum
         sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
         privkey = self.bitcoind.dumpprivkey(refundPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
