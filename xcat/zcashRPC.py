@@ -26,6 +26,11 @@ FEE = 0.001 * COIN
 
 class zcashProxy():
     def __init__(self, network='regtest', timeout=900):
+        if network not in ['testnet', 'mainnet', 'regtest']:
+            raise ValueError('Allowed networks are regtest, testnet, mainnet.')
+        if not isinstance(timeout, int) or timeout < 1:
+            raise ValueError('Timeout should be a positive integer.')
+
         self.network = network
         self.timeout = timeout
 
