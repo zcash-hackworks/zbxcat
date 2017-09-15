@@ -2,13 +2,13 @@ import unittest
 import xcat.cli as cli
 from xcat.db import DB
 from xcat.protocol import Protocol
-from xcat.tests.utils import mktrade
+import xcat.tests.utils as testutils
 from xcat.trades import Trade  # , Contract
 
 
 class SimpleTestCase(unittest.TestCase):
     def setUp(self):
-        self.trade = mktrade()
+        self.trade = testutils.mktrade()
 
     def test_exporttrade(self):
         self.__class__.hexstr = cli.exporttrade('test')
@@ -20,6 +20,7 @@ class SimpleTestCase(unittest.TestCase):
 
 
 class CliTest(SimpleTestCase):
+
     def test_findtrade(self):
         # trade = cli.findtrade('test')
         pass
@@ -33,6 +34,7 @@ class CliTest(SimpleTestCase):
         protocol = Protocol()
 
         trade = db.get('new')
+
         status = cli.seller_check_status(trade)
         print("Trade status: {0}\n".format(status))
         self.assertEqual(status, 'init')

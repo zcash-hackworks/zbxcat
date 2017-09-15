@@ -7,8 +7,13 @@ import xcat.cli as cli
 
 class TestCLI(unittest.TestCase):
 
-    def test_save_state(self):
-        pass
+    @mock.patch('xcat.cli.DB')
+    @mock.patch('xcat.cli.utils')
+    def test_save_state(self, mock_utils, mock_db):
+        cli.save_state('fake_trade', 'fake_id')
+
+        mock_utils.save.assert_called_with('fake_trade')
+        mock_db.return_value.create.assert_called_with('fake_trade', 'fake_id')
 
     def test_checkSellStatus(self):
         pass
