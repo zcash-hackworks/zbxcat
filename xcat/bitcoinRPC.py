@@ -48,8 +48,8 @@ class bitcoinProxy():
         return
 
     def parse_secret(self, txid):
-        raw = zcashd.gettransaction(txid, True)['hex']
-        decoded = zcashd.call('decoderawtransaction', raw)
+        raw = self.bitcoind.call('gettransaction', txid, True)['hex']
+        decoded = self.bitcoind.call('decoderawtransaction', raw)
         scriptSig = decoded['vin'][0]['scriptSig']
         asm = scriptSig['asm'].split(" ")
         pubkey = asm[1]
@@ -125,11 +125,8 @@ class bitcoinProxy():
         print("txs", txs)
         for tx in txs:
             txhex = b2x(tx.serialize())
-            # Using my fork of python-zcashlib to get result of decoderawtransaction
             txhex = txhex + '00'
-            rawtx = zcashd.decoderawtransaction(txhex)
-            # print('rawtx', rawtx)
-            print(rawtx)
+            rawtx = self.bitcoind.call('decoderawtransaction', txhex)
             for vout in rawtx['vout']:
                 if 'addresses' in vout['scriptPubKey']:
                     for addr in vout['scriptPubKey']['addresses']:
@@ -163,7 +160,7 @@ class bitcoinProxy():
             print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
 
             blockcount = self.bitcoind.getblockcount()
-            print("\nCurrent blocknum at time of redeem on Zcash:", blockcount)
+            print("\nCurrent blocknum at time of redeem on Bitcoin:", blockcount)
             if blockcount < int(redeemblocknum):
                 return self.redeem(contract, fundtx, secret)
             else:
