@@ -204,7 +204,6 @@ def buyer_fulfill(trade):
     else:
         print("It looks like you've already funded the contract to buy {1}, the amount in escrow in the p2sh is {0}.".format(buy_p2sh_balance, buy.currency))
         print("Please wait for the seller to remove your funds from escrow to complete the trade.")
-    print_trade('buyer')
 
 def initialize_trade(tradeid, **kwargs):
     trade = Trade()
