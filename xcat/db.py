@@ -1,7 +1,7 @@
 import plyvel
 import json
 import xcat.utils as utils
-from xcat.trades import Trade, Contract
+from xcat.trades import Trade
 
 
 class DB():
@@ -63,7 +63,7 @@ class DB():
         results = []
         with self.db.iterator() as it:
             for k, v in it:
-                j = json.loads(utils.x2s(utils.b2x(v)))
+                j = json.loads(str(v, 'utf-8'))
                 results.append((str(k, 'utf-8'), j))
         return results
 

@@ -36,14 +36,21 @@ class Trade():
             self.buy.currency,
             self.buy.initiator)
 
+    def __eq__(self, other):
+        return (self.sell == other.sell
+                and self.buy == other.buy
+                and self.commitment == other.commitment)
+
 
 class Contract():
+
+    allowed = ('fulfiller', 'initiator', 'currency', 'p2sh', 'amount',
+               'fund_tx', 'redeem_tx', 'secret', 'redeemScript',
+               'redeemblocknum', 'locktime')
+
     def __init__(self, data):
-        allowed = ('fulfiller', 'initiator', 'currency', 'p2sh', 'amount',
-                   'fund_tx', 'redeem_tx', 'secret', 'redeemScript',
-                   'redeemblocknum', 'locktime')
         for key in data:
-            if key in allowed:
+            if key in Contract.allowed:
                 setattr(self, key, data[key])
 
     def get_status(self):
@@ -56,3 +63,14 @@ class Contract():
             return 'funded'
         else:
             return 'empty'
+
+    def __eq__(self, other):
+        for key in Contract.allowed:
+            if key in self.__dict__:
+                if key not in other.__dict__:
+                    return False
+                if self.__dict__[key] != other.__dict__[key]:
+                    return False
+            if key in other.__dict__ and key not in self.__dict__:
+                return False
+        return True

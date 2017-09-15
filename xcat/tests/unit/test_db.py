@@ -70,13 +70,26 @@ class TestDB(unittest.TestCase):
             in str(context.exception))
 
     def test_get(self):
-        pass
+        self.db.db.get.return_value = str.encode(utils.test_trade.toJSON())
+
+        trade = self.db.get('test')
+
+        self.assertEqual(trade, utils.test_trade)
 
     def test_save_secret(self):
-        pass
+        self.db.save_secret('my life', 'I like black liquorice')
+
+        self.db.preimageDB.put.assert_called_with(
+            str.encode('my life'),
+            str.encode('I like black liquorice'))
 
     def test_get_secret(self):
-        pass
+        self.db.preimageDB.get.return_value = str.encode(
+            'I like black liquorice')
+
+        secret = self.db.get_secret('my life')
+
+        self.assertEqual(secret, 'I like black liquorice')
 
     def test_dump(self):
         pass
