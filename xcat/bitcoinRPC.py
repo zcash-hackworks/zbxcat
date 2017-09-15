@@ -3,6 +3,7 @@
 import sys
 import bitcoin
 import bitcoin.rpc
+from xcat.utils import x2s
 # from bitcoin import SelectParams
 from bitcoin.core import b2x, lx, x, COIN, CMutableTxOut
 from bitcoin.core import CMutableTxIn, CMutableTransaction
@@ -52,15 +53,15 @@ class bitcoinProxy():
         print("Redeem transaction with secret not found")
         return
 
-    # def parse_secret(self, txid):
-    #     raw = self.bitcoind.call('gettransaction', txid, True)['hex']
-    #     decoded = self.bitcoind.call('decoderawtransaction', raw)
-    #     scriptSig = decoded['vin'][0]['scriptSig']
-    #     asm = scriptSig['asm'].split(" ")
-    #     pubkey = asm[1]
-    #     secret = utils.x2s(asm[2])
-    #     redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
-    #     return secret
+    def parse_secret(self, txid):
+        raw = self.bitcoind.call('gettransaction', txid, True)['hex']
+        decoded = self.bitcoind.call('decoderawtransaction', raw)
+        scriptSig = decoded['vin'][0]['scriptSig']
+        asm = scriptSig['asm'].split(" ")
+        # pubkey = asm[1]
+        secret = x2s(asm[2])
+        # redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
+        return secret
 
     def get_keys(self, funder_address, redeemer_address):
         fundpubkey = CBitcoinAddress(funder_address)
