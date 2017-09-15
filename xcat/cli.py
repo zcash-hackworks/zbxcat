@@ -7,6 +7,7 @@ from xcat.db import DB
 import xcat.userInput as userInput
 import xcat.utils as utils
 from xcat.protocol import Protocol
+from xcat.trades import Trade
 
 
 def save_state(trade, tradeid):
@@ -26,9 +27,11 @@ def checkSellStatus(tradeid):
     if status == 'init':
         userInput.authorize_fund_sell(trade)
         fund_tx = protocol.fund_sell_contract(trade)
+
         print("Sent fund_tx", fund_tx)
         trade.sell.fund_tx = fund_tx
         save_state(trade, tradeid)
+
     elif status == 'buyerFunded':
         secret = db.get_secret(tradeid)
         print("Retrieved secret to redeem funds for "
@@ -45,10 +48,12 @@ def checkSellStatus(tradeid):
         save_state(trade, tradeid)
         # Remove from db? Or just from temporary file storage
         utils.cleanup(tradeid)
+
     elif status == 'sellerFunded':
         print("Buyer has not yet funded the contract where you offered to "
               "buy {0}, please wait for them to complete "
               "their part.".format(trade.buy.currency))
+
     elif status == 'sellerRedeemed':
         print("You have already redeemed the p2sh on the second chain of "
               "this trade.")
@@ -137,10 +142,9 @@ def checkBuyStatus(tradeid):
 
 # Import a trade in hex, and save to db
 def importtrade(tradeid, hexstr=''):
-    db = DB()
     protocol = Protocol()
     trade = utils.x2s(hexstr)
-    trade = db.instantiate(trade)
+    trade = Trade(trade)
     protocol.import_addrs(trade)
     print(trade.toJSON())
     save_state(trade, tradeid)

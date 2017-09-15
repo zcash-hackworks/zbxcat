@@ -16,35 +16,31 @@ class DB():
 
     # Takes dict or obj, saves json str as bytes
     def create(self, trade, tradeid):
-        if type(trade) == dict:
-            trade = json.dumps(trade)
-        else:
+        if isinstance(trade, dict):
+            trade = json.dumps(trade, sort_keys=True, indent=4)
+        elif isinstance(trade, Trade):
             trade = trade.toJSON()
+        else:
+            raise ValueError('Expected dictionary or Trade object')
         self.db.put(utils.b(tradeid), utils.b(trade))
 
     #  Uses the funding txid as the key to save trade
     def createByFundtx(self, trade):
-        trade = trade.toJSON()
-        # # Save trade by initiating txid
-        jt = json.loads(trade)
-        txid = jt['sell']['fund_tx']
+        if isinstance(trade, dict):
+            txid = trade['sell']['fund_tx']
+            trade = json.dumps(trade, sort_keys=True, indent=4)
+        elif isinstance(trade, Trade):
+            txid = trade.sell.fund_tx
+            trade = trade.toJSON()
+        else:
+            raise ValueError('Expected dictionary or Trade object')
         self.db.put(utils.b(txid), utils.b(trade))
 
     def get(self, tradeid):
         rawtrade = self.db.get(utils.b(tradeid))
         tradestr = str(rawtrade, 'utf-8')
-        trade = self.instantiate(tradestr)
+        trade = Trade(fromJSON=tradestr)
         return trade
-
-    @staticmethod
-    def instantiate(trade):
-        if type(trade) == str:
-            tradestr = json.loads(trade)
-            trade = Trade(
-                buy=Contract(tradestr['buy']),
-                sell=Contract(tradestr['sell']),
-                commitment=tradestr['commitment'])
-            return trade
 
     #############################################
     ###### Preimages stored by tradeid ##########

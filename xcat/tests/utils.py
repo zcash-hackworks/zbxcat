@@ -1,6 +1,7 @@
 from xcat.db import DB
+from xcat.trades import Contract, Trade
 
-test_trade = {
+test_trade_dict = {
     "sell": {
         "amount": 3.5,
         "redeemScript": "63a82003d58daab37238604b3e57d4a8bdcffa401dc497a9c1aa4f08ffac81616c22b68876a9147788b4511a25fba1092e67b307a6dcdb6da125d967022a04b17576a914c7043e62a7391596116f54f6a64c8548e97d3fd96888ac",
@@ -20,6 +21,12 @@ test_trade = {
         "p2sh": "t2HP59RpfR34nBCWH4VVD497tkc2ikzgniP",
         "fulfiller": "tmTjZSg4pX2Us6V5HttiwFZwj464fD2ZgpY"},
     "commitment": "03d58daab37238604b3e57d4a8bdcffa401dc497a9c1aa4f08ffac81616c22b6"}
+
+test_sell_contract = Contract(test_trade_dict['sell'])
+test_buy_contract = Contract(test_trade_dict['buy'])
+test_trade = Trade(sell=test_sell_contract,
+                   buy=test_buy_contract,
+                   commitment=test_trade_dict['commitment'])
 
 
 def mktrade():

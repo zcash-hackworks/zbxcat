@@ -1,19 +1,43 @@
 import json
 
 
-class Trade(object):
-    def __init__(self, sell=None, buy=None, commitment=None):
+class Trade():
+    def __init__(self, sell=None, buy=None, commitment=None,
+                 fromJSON=None, fromDict=None):
         '''Create a new trade with buy and sell contracts across two chains'''
-        self.sell = sell
-        self.buy = buy
-        self.commitment = commitment
+
+        if fromJSON is not None and fromDict is None:
+            if isinstance(fromJSON, str):
+                fromDict = json.loads(fromJSON)
+            else:
+                raise ValueError('Expected json string')
+        if fromDict is not None:
+            self.sell = Contract(fromDict['sell'])
+            self.buy = Contract(fromDict['buy'])
+            self.commitment = fromDict['commitment']
+        else:
+            self.sell = sell
+            self.buy = buy
+            self.commitment = commitment
 
     def toJSON(self):
         return json.dumps(
             self, default=lambda o: o.__dict__, sort_keys=True, indent=4)
 
+    def __str__(self):
+        return self.toJSON()
 
-class Contract(object):
+    def __repr__(self):
+        return 'Trade:\n{0} {1} from {2}\nfor\n{3} {4} from {5}'.format(
+            self.sell.amount,
+            self.sell.currency,
+            self.sell.initiator,
+            self.buy.amount,
+            self.buy.currency,
+            self.buy.initiator)
+
+
+class Contract():
     def __init__(self, data):
         allowed = ('fulfiller', 'initiator', 'currency', 'p2sh', 'amount',
                    'fund_tx', 'redeem_tx', 'secret', 'redeemScript',

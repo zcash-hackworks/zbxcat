@@ -1,8 +1,8 @@
 import unittest
 import xcat.cli as cli
+import xcat.tests.utils as testutils
 from xcat.db import DB
 from xcat.protocol import Protocol
-import xcat.tests.utils as testutils
 from xcat.trades import Trade  # , Contract
 
 
