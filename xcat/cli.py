@@ -360,8 +360,8 @@ def main():
         checkBuyStatus(tradeid)
 
     elif command == "step3":
-        protocol = Protocol()
-        protocol.generate(31)
+        # protocol = Protocol()
+        # protocol.generate(31)
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
 

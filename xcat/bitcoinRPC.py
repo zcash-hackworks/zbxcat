@@ -53,13 +53,13 @@ class bitcoinProxy():
         return
 
     # def parse_secret(self, txid):
-    #     raw = zcashd.gettransaction(txid, True)['hex']
-    #     decoded = zcashd.call('decoderawtransaction', raw)
+    #     raw = self.bitcoind.call('gettransaction', txid, True)['hex']
+    #     decoded = self.bitcoind.call('decoderawtransaction', raw)
     #     scriptSig = decoded['vin'][0]['scriptSig']
     #     asm = scriptSig['asm'].split(" ")
-    #     # pubkey = asm[1]
+    #     pubkey = asm[1]
     #     secret = utils.x2s(asm[2])
-    #     # redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
+    #     redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
     #     return secret
 
     def get_keys(self, funder_address, redeemer_address):
@@ -131,27 +131,23 @@ class bitcoinProxy():
             return 'empty'
 
     # TODO: FIX search for p2sh in block
-    # def search_p2sh(self, block, p2sh):
-    #     print("Fetching block...")
-    #     blockdata = self.bitcoind.getblock(lx(block))
-    #     print("done fetching block")
-    #     txs = blockdata.vtx
-    #     print("txs", txs)
-    #     for tx in txs:
-    #         txhex = b2x(tx.serialize())
-    #         # Using my fork of python-zcashlib to get result of decoderawtransaction
-    #         txhex = txhex + '00'
-    #         rawtx = zcashd.decoderawtransaction(txhex)
-    #         # print('rawtx', rawtx)
-    #         print(rawtx)
-    #         for vout in rawtx['vout']:
-    #             if 'addresses' in vout['scriptPubKey']:
-    #                 for addr in vout['scriptPubKey']['addresses']:
-    #                     print("Sent to address:", addr)
-    #                     if addr == p2sh:
-    #                         print("Address to p2sh found in transaction! ",
-    #                               addr)
-    #     print("Returning from search_p2sh")
+    def search_p2sh(self, block, p2sh):
+        print("Fetching block...")
+        blockdata = self.bitcoind.getblock(lx(block))
+        print("done fetching block")
+        txs = blockdata.vtx
+        print("txs", txs)
+        for tx in txs:
+            txhex = b2x(tx.serialize())
+            txhex = txhex + '00'
+            rawtx = self.bitcoind.call('decoderawtransaction', txhex)
+            for vout in rawtx['vout']:
+                if 'addresses' in vout['scriptPubKey']:
+                    for addr in vout['scriptPubKey']['addresses']:
+                        print("Sent to address:", addr)
+                        if addr == p2sh:
+                            print("Address to p2sh found in transaction!", addr)
+        print("Returning from search_p2sh")
 
     def get_tx_details(self, txid):
         # must convert txid string to bytes x(txid)
@@ -178,7 +174,7 @@ class bitcoinProxy():
             print("Found {0} in p2sh {1}, redeeming...".format(amount, p2sh))
 
             blockcount = self.bitcoind.getblockcount()
-            print("\nCurrent blocknum at time of redeem on Zcash:", blockcount)
+            print("\nCurrent blocknum at time of redeem on Bitcoin:", blockcount)
             if blockcount < int(redeemblocknum):
                 return self.redeem(contract, fundtx, secret)
             else:
@@ -229,6 +225,9 @@ class bitcoinProxy():
 
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
+        # Set nSequence and nLockTime
+        txin.nSequence = 0
+        tx.nLockTime = contract.redeemblocknum
         sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
         privkey = self.bitcoind.dumpprivkey(refundPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])

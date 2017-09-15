@@ -235,12 +235,15 @@ class zcashProxy():
                               refundPubKey.to_scriptPubKey())
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
+        # Set nSequence and nLockTime
+        txin.nSequence = 0
+        tx.nLockTime = contract.redeemblocknum
+        # Create the unsigned raw transaction.
         sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
         privkey = self.zcashd.dumpprivkey(refundPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
         # Sign without secret
         txin.scriptSig = CScript([sig, privkey.pub, OP_FALSE, redeemScript])
-        # txin.nSequence = 2185
         txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
         print('Raw redeem transaction hex: {0}'.format(b2x(tx.serialize())))
         res = VerifyScript(txin.scriptSig, txin_scriptPubKey,
