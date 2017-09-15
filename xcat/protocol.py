@@ -157,27 +157,7 @@ def create_buy_p2sh(trade, commitment, locktime):
 
     save(trade)
 
-####  Main functions determining user flow from command line
-def buyer_redeem(trade):
-    userInput.authorize_buyer_redeem(trade)
-    if trade.sell.get_status() == 'redeemed':
-        print("You already redeemed the funds and acquired {0} {1}".format(trade.sell.amount, trade.sell.currency))
-        exit()
-    else:
-        # Buyer redeems seller's funded tx
-        p2sh = trade.sell.p2sh
-        currency = trade.sell.currency
-        # Buy contract is where seller disclosed secret in redeeming
-        if trade.buy.currency == 'bitcoin':
-            secret = bitcoinRPC.parse_secret(trade.buy.redeem_tx)
-        else:
-            secret = zcashRPC.parse_secret(trade.buy.redeem_tx)
-        print("Found secret in seller's redeem tx", secret)
-        redeem_tx = redeem_p2sh(trade.sell, secret)
-        setattr(trade.sell, 'redeem_tx', redeem_tx)
-        save(trade)
-    exit()
-
+####  Main functions related to user flow from command line
 def seller_redeem_p2sh(trade, secret):
     buy = trade.buy
     userInput.authorize_seller_redeem(buy)
@@ -189,21 +169,6 @@ def seller_redeem_p2sh(trade, secret):
         txs = redeem_p2sh(trade.buy, secret)
         print("You have redeemed {0} {1}!".format(buy.amount, buy.currency))
         return txs
-
-def buyer_fulfill(trade):
-    buy = trade.buy
-    sell = trade.sell
-    buy_p2sh_balance = check_p2sh(buy.currency, buy.p2sh)
-    sell_p2sh_balance = check_p2sh(sell.currency, sell.p2sh)
-
-    if buy_p2sh_balance == 0:
-        userInput.authorize_buyer_fulfill(sell_p2sh_balance, sell.currency, buy_p2sh_balance, buy.currency)
-        print("Buy amt:", buy.amount)
-        txid = fund_buy_contract(trade)
-        print("Fund tx txid:", txid)
-    else:
-        print("It looks like you've already funded the contract to buy {1}, the amount in escrow in the p2sh is {0}.".format(buy_p2sh_balance, buy.currency))
-        print("Please wait for the seller to remove your funds from escrow to complete the trade.")
 
 def initialize_trade(tradeid, **kwargs):
     trade = Trade()
