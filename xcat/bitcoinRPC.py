@@ -4,7 +4,6 @@ import sys
 import bitcoin
 import bitcoin.rpc
 from xcat.utils import x2s
-# from bitcoin import SelectParams
 from bitcoin.core import b2x, lx, x, COIN, CMutableTxOut
 from bitcoin.core import CMutableTxIn, CMutableTransaction
 from bitcoin.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF
@@ -14,8 +13,6 @@ from bitcoin.core.script import OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
 from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
 from bitcoin.wallet import CBitcoinAddress, P2SHBitcoinAddress
 from bitcoin.wallet import P2PKHBitcoinAddress
-
-# import xcat.utils as utils
 import logging
 
 if sys.version_info.major < 3:
@@ -27,9 +24,13 @@ FEE = 0.001 * COIN
 
 class bitcoinProxy():
     def __init__(self, network='regtest', timeout=900):
-        if network is not 'testnet' and network is not 'mainnet':
-            network = 'regtest'
+        if network not in ['testnet', 'mainnet', 'regtest']:
+            raise ValueError('Allowed networks are regtest, testnet, mainnet.')
+        if not isinstance(timeout, int) or timeout < 1:
+            raise ValueError('Timeout should be a positive integer.')
+
         logging.debug("NETWORK in proxy: {0}".format(network))
+
         self.network = network
         self.timeout = timeout
 
