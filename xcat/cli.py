@@ -228,19 +228,13 @@ def newtrade(tradeid, **kwargs):
     protocol = Protocol()
     print("Creating new XCAT trade...")
     utils.erase_trade()
-
     conf = kwargs['conf'] if 'conf' in kwargs else 'regtest'
     network = kwargs['network'] if 'network' in kwargs else 'regtest'
-
-    tradeid, trade = protocol.initialize_trade(
-        tradeid,
-        conf=conf,
-        network=network)
+    tradeid, trade = protocol.initialize_trade(tradeid, conf=conf, network=network)
     print("New trade created: {0}".format(trade))
 
     trade = protocol.seller_init(tradeid, trade, network=network)
-    print("\nUse 'xcat exporttrade [tradeid]' to export the trade and sent "
-          "to the buyer.\n")
+    print("\nUse 'xcat exporttrade [tradeid]' to export the trade and send to the buyer.\n")
 
     save_state(trade, tradeid)
     return trade
@@ -266,26 +260,15 @@ def main():
                 findtrade "tradeid" - find a trade by the tradeid
 
                 '''))
-
-    parser.add_argument(
-        "command", action="store", help="list commands")
-    parser.add_argument(
-        "arguments", action="store", nargs="*", help="add arguments")
-    parser.add_argument(
-        "-w", "--wormhole", action="store_true",
-        help="Transfer trade data through magic-wormhole")
-    parser.add_argument(
-        "-c", "--conf", action="store",
-        help="Use default trade data in conf file.")
-    parser.add_argument(
-        "-n", "--network", action="store",
-        help=("Set network to regtest or mainnet. "
-              "Defaults to testnet while in alpha."))
-    # parser.add_argument(
-    #   "--daemon", "-d", action="store_true",
-    #   help="Run as daemon process")
-
+    parser.add_argument("command", action="store", help="list commands")
+    parser.add_argument("arguments", action="store", nargs="*", help="add arguments")
+    parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode. Defaults to false")
+    parser.add_argument("-w", "--wormhole", action="store_true", help="Transfer trade data through magic-wormhole")
+    parser.add_argument("-c", "--conf", action="store", help="Use trade data in conf file ('testnet' or 'regtest'), or pass trade data in on cli as json.")
+    parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in alpha.")
+    # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     args = parser.parse_args()
+    print(args)
 
     if hasattr(args, 'debug'):
         numeric_level = getattr(logging, 'DEBUG', None)
@@ -341,31 +324,28 @@ def main():
             utils.throw("Usage: newtrade [tradeid]")
         tradeid = args.arguments[0]
         if args.conf is None:
-            newtrade(tradeid, network=NETWORK, conf='cli')
+            conf = 'cli'
         else:
-            newtrade(tradeid, network=NETWORK, conf=args.conf)
+            conf = args.conf
+        newtrade(tradeid, network=NETWORK, conf=conf)
 
     elif command == "daemon":
         # TODO: not implemented
         print("Run as daemon process")
 
     # Ad hoc testing of workflow starts here
-
     elif command == "step1":
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
-
     elif command == "step2":
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
-
     elif command == "step3":
         # protocol = Protocol()
         # protocol.generate(31)
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
-
     elif command == "step4":
-        # generate(1)
+        generate(1)
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)

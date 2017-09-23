@@ -5,6 +5,9 @@ from xcat.xcatconf import ADDRS
 from xcat.trades import Contract, Trade
 from xcat.bitcoinRPC import bitcoinProxy
 from xcat.zcashRPC import zcashProxy
+import logging
+import json
+<<<<<<< HEAD
 from xcat.db import DB
 
 
@@ -186,35 +189,6 @@ class Protocol():
                   "{0} {1}!".format(buy.amount, buy.currency))
             return txs
 
-    def initialize_trade(self, tradeid, **kwargs):
-        trade = Trade()
-        conf = kwargs['conf']
-        if conf == 'cli':
-            init_addrs = userInput.get_initiator_addresses()
-            fulfill_addrs = userInput.get_fulfiller_addresses()
-            amounts = userInput.get_trade_amounts()
-            print("AMOUNTS", amounts)
-        else:
-            init_addrs = ADDRS[conf]['initiator']
-            fulfill_addrs = ADDRS[conf]['fulfiller']
-            amounts = ADDRS[conf]['amounts']
-
-        sell = amounts['sell']
-        buy = amounts['buy']
-        sell_currency = sell['currency']
-        buy_currency = buy['currency']
-        sell['initiator'] = init_addrs[sell_currency]
-        buy['initiator'] = init_addrs[buy_currency]
-        sell['fulfiller'] = fulfill_addrs[sell_currency]
-        buy['fulfiller'] = fulfill_addrs[buy_currency]
-
-        # initializing contract classes with addresses, currencies, and amounts
-        trade.sell = Contract(sell)
-        trade.buy = Contract(buy)
-        print(trade.sell.__dict__)
-        print(trade.buy.__dict__)
-        return tradeid, trade
-
     def seller_init(self, tradeid, trade, network):
         db = DB()
         secret = utils.generate_password()
@@ -235,3 +209,39 @@ class Protocol():
         trade.commitment = utils.b2x(hash_of_secret)
         print("TRADE after seller init {0}".format(trade.toJSON()))
         return trade
+
+    def initialize_trade(self, tradeid, **kwargs):
+        trade = Trade()
+        conf = kwargs['conf']
+        if conf == 'cli':
+            init_addrs = userInput.get_initiator_addresses()
+            fulfill_addrs = userInput.get_fulfiller_addresses()
+            amounts = userInput.get_trade_amounts()
+            print("AMOUNTS", amounts)
+        else:
+            print("Conf in init trade", conf)
+            if conf == 'testnet' or conf == 'regtest':
+                # If json is not passed on cli, use ADDR obj from xcatconf.py
+                conf = ADDRS[conf]
+            else:
+                # Allow for passing in multiple trades at a time
+                conf = json.loads(conf)[0]
+            init_addrs = conf['initiator']
+            fulfill_addrs = conf['fulfiller']
+            amounts = conf['amounts']
+
+        sell = amounts['sell']
+        buy = amounts['buy']
+        sell_currency = sell['currency']
+        buy_currency = buy['currency']
+        sell['initiator'] = init_addrs[sell_currency]
+        buy['initiator'] = init_addrs[buy_currency]
+        sell['fulfiller'] = fulfill_addrs[sell_currency]
+        buy['fulfiller'] = fulfill_addrs[buy_currency]
+
+        # initializing contract classes with addresses, currencies, and amounts
+        trade.sell = Contract(sell)
+        trade.buy = Contract(buy)
+        print(trade.sell.__dict__)
+        print(trade.buy.__dict__)
+        return tradeid, trade
