@@ -3,8 +3,6 @@
 import sys
 import zcash
 import zcash.rpc
-# import logging
-# from zcash import SelectParams
 from zcash.core import b2x, lx, x, COIN
 from zcash.core import CMutableTransaction, CMutableTxOut, CMutableTxIn
 from zcash.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF
