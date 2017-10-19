@@ -10,8 +10,6 @@ from xcat.protocol import Protocol
 from xcat.trades import Trade
 
 
-MODE = {'auto': False}
-
 def save_state(trade, tradeid):
     db = DB()
     utils.save(trade)
@@ -27,31 +25,18 @@ def checkSellStatus(tradeid):
     print("Trade status: {0}\n".format(status))
 
     if status == 'init':
-<<<<<<< HEAD
         userInput.authorize_fund_sell(trade)
         fund_tx = protocol.fund_sell_contract(trade)
 
-=======
-        if MODE['auto'] == False:
-            userInput.authorize_fund_sell(trade)
-        fund_tx = fund_sell_contract(trade)
->>>>>>> Add auto mode to skip user input
         print("Sent fund_tx", fund_tx)
         trade.sell.fund_tx = fund_tx
         save_state(trade, tradeid)
 
     elif status == 'buyerFunded':
         secret = db.get_secret(tradeid)
-<<<<<<< HEAD
         print("Retrieved secret to redeem funds for "
               "{0}: {1}".format(tradeid, secret))
         txs = protocol.seller_redeem_p2sh(trade, secret)
-=======
-        print("Retrieved secret to redeem funds for {0}: {1}".format(tradeid, secret))
-        if MODE['auto'] == False:
-            userInput.authorize_seller_redeem(buy)
-        txs = seller_redeem_p2sh(trade, secret)
->>>>>>> Add auto mode to skip user input
         if 'redeem_tx' in txs:
             trade.buy.redeem_tx = txs['redeem_tx']
             print("Redeem tx: ", txs['redeem_tx'])
@@ -127,13 +112,8 @@ def checkBuyStatus(tradeid):
         print("This trade is complete, both sides redeemed.")
     elif status == 'sellerFunded':
         print("One active trade available, fulfilling buyer contract...")
-<<<<<<< HEAD
         input("Type 'enter' to allow this program to send funds on your "
               "behalf.")
-=======
-        if MODE['auto'] == False:
-            input("Type 'enter' to allow this program to send funds on your behalf.")
->>>>>>> Add auto mode to skip user input
         print("Trade commitment", trade.commitment)
         # if verify_p2sh(trade):
         fund_tx = protocol.fund_contract(trade.buy)
@@ -282,16 +262,13 @@ def main():
                 '''))
     parser.add_argument("command", action="store", help="list commands")
     parser.add_argument("arguments", action="store", nargs="*", help="add arguments")
-    parser.add_argument("-a", "--auto", action="store_true", help="Authorize automatic execution of trade sequence without user input.")
     parser.add_argument("-d", "--debug", action="store_true", help="Enable debug mode. Defaults to false")
     parser.add_argument("-w", "--wormhole", action="store_true", help="Transfer trade data through magic-wormhole")
     parser.add_argument("-c", "--conf", action="store", help="Use trade data in conf file ('testnet' or 'regtest'), or pass trade data in on cli as json.")
     parser.add_argument("-n", "--network", action="store", help="Set network to regtest or mainnet. Defaults to testnet while in alpha.")
     # parser.add_argument("--daemon", "-d", action="store_true", help="Run as daemon process")
     args = parser.parse_args()
-
-    print("State of auto input: ", args.auto)
-    MODE['auto'] = args.auto
+    print(args)
 
     if hasattr(args, 'debug'):
         numeric_level = getattr(logging, 'DEBUG', None)
@@ -358,25 +335,17 @@ def main():
 
     # Ad hoc testing of workflow starts here
     elif command == "step1":
-        MODE['auto'] = True
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
     elif command == "step2":
-        MODE['auto'] = True
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)
     elif command == "step3":
-<<<<<<< HEAD
         # protocol = Protocol()
         # protocol.generate(31)
-=======
-        MODE['auto'] = True
-        # generate(31)
->>>>>>> Add auto mode to skip user input
         tradeid = args.arguments[0]
         checkSellStatus(tradeid)
     elif command == "step4":
-        MODE['auto'] = True
-        # generate(1)
+        generate(1)
         tradeid = args.arguments[0]
         checkBuyStatus(tradeid)

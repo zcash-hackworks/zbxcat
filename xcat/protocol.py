@@ -7,7 +7,6 @@ from xcat.bitcoinRPC import bitcoinProxy
 from xcat.zcashRPC import zcashProxy
 import logging
 import json
-<<<<<<< HEAD
 from xcat.db import DB
 
 
