@@ -5,13 +5,9 @@ from xcat.xcatconf import ADDRS
 from xcat.trades import Contract, Trade
 from xcat.bitcoinRPC import bitcoinProxy
 from xcat.zcashRPC import zcashProxy
-import logging
 import json
-from xcat.db import DB
-
 
 class Protocol():
-
     def __init__(self):
         self.bitcoinRPC = bitcoinProxy()
         self.zcashRPC = zcashProxy()
@@ -189,12 +185,7 @@ class Protocol():
             return txs
 
     def seller_init(self, tradeid, trade, network):
-        db = DB()
         secret = utils.generate_password()
-        db.save_secret(tradeid, secret)
-        print("\nGenerated a secret preimage to lock funds. This will only "
-              "be stored locally: {0}".format(secret))
-
         hash_of_secret = utils.sha256(secret)
         # TODO: Implement locktimes and mock block passage of time
         sell_locktime = 20
@@ -207,7 +198,7 @@ class Protocol():
 
         trade.commitment = utils.b2x(hash_of_secret)
         print("TRADE after seller init {0}".format(trade.toJSON()))
-        return trade
+        return trade, secret
 
     def initialize_trade(self, tradeid, **kwargs):
         trade = Trade()
