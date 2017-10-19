@@ -67,8 +67,6 @@ class bitcoinProxy():
     def get_keys(self, funder_address, redeemer_address):
         fundpubkey = CBitcoinAddress(funder_address)
         redeempubkey = CBitcoinAddress(redeemer_address)
-        # fundpubkey = self.bitcoind.getnewaddress()
-        # redeempubkey = self.bitcoind.getnewaddress()
         return fundpubkey, redeempubkey
 
     def privkey(self, address):
@@ -79,7 +77,8 @@ class bitcoinProxy():
         redeemerAddr = CBitcoinAddress(redeemer)
         if type(commitment) == str:
             commitment = x(commitment)
-        # h = sha256(secret)
+        else:
+            raise ValueError("Commitment was not a string: {0}".format(commitment))
         blocknum = self.bitcoind.getblockcount()
         print("Current blocknum on Bitcoin: ", blocknum)
         redeemblocknum = blocknum + locktime
