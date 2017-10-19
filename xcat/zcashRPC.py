@@ -51,7 +51,8 @@ class zcashProxy():
         redeemerAddr = CBitcoinAddress(redeemer)
         if type(commitment) == str:
             commitment = x(commitment)
-        # h = sha256(secret)
+        else:
+            raise ValueError("Commitment was not a string: {0}".format(commitment))
         blocknum = self.zcashd.getblockcount()
         print("Current blocknum on Zcash: ", blocknum)
         redeemblocknum = blocknum + locktime
