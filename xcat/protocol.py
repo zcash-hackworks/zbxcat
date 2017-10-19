@@ -5,11 +5,9 @@ from xcat.xcatconf import ADDRS
 from xcat.trades import Contract, Trade
 from xcat.bitcoinRPC import bitcoinProxy
 from xcat.zcashRPC import zcashProxy
-from xcat.db import DB
-
+import json
 
 class Protocol():
-
     def __init__(self):
         self.bitcoinRPC = bitcoinProxy()
         self.zcashRPC = zcashProxy()
@@ -186,6 +184,22 @@ class Protocol():
                   "{0} {1}!".format(buy.amount, buy.currency))
             return txs
 
+    def seller_init(self, tradeid, trade, network):
+        secret = utils.generate_password()
+        hash_of_secret = utils.sha256(secret)
+        # TODO: Implement locktimes and mock block passage of time
+        sell_locktime = 20
+        buy_locktime = 10  # Must be more than first tx
+        print("Creating pay-to-script-hash for sell contract...")
+
+        # create the p2sh addrs
+        self.create_sell_p2sh(trade, hash_of_secret, sell_locktime)
+        self.create_buy_p2sh(trade, hash_of_secret, buy_locktime)
+
+        trade.commitment = utils.b2x(hash_of_secret)
+        print("TRADE after seller init {0}".format(trade.toJSON()))
+        return trade, secret
+
     def initialize_trade(self, tradeid, **kwargs):
         trade = Trade()
         conf = kwargs['conf']
@@ -195,9 +209,16 @@ class Protocol():
             amounts = userInput.get_trade_amounts()
             print("AMOUNTS", amounts)
         else:
-            init_addrs = ADDRS[conf]['initiator']
-            fulfill_addrs = ADDRS[conf]['fulfiller']
-            amounts = ADDRS[conf]['amounts']
+            print("Conf in init trade", conf)
+            if conf == 'testnet' or conf == 'regtest':
+                # If json is not passed on cli, use ADDR obj from xcatconf.py
+                conf = ADDRS[conf]
+            else:
+                # Allow for passing in multiple trades at a time
+                conf = json.loads(conf)[0]
+            init_addrs = conf['initiator']
+            fulfill_addrs = conf['fulfiller']
+            amounts = conf['amounts']
 
         sell = amounts['sell']
         buy = amounts['buy']
@@ -214,24 +235,3 @@ class Protocol():
         print(trade.sell.__dict__)
         print(trade.buy.__dict__)
         return tradeid, trade
-
-    def seller_init(self, tradeid, trade, network):
-        db = DB()
-        secret = utils.generate_password()
-        db.save_secret(tradeid, secret)
-        print("\nGenerated a secret preimage to lock funds. This will only "
-              "be stored locally: {0}".format(secret))
-
-        hash_of_secret = utils.sha256(secret)
-        # TODO: Implement locktimes and mock block passage of time
-        sell_locktime = 20
-        buy_locktime = 10  # Must be more than first tx
-        print("Creating pay-to-script-hash for sell contract...")
-
-        # create the p2sh addrs
-        self.create_sell_p2sh(trade, hash_of_secret, sell_locktime)
-        self.create_buy_p2sh(trade, hash_of_secret, buy_locktime)
-
-        trade.commitment = utils.b2x(hash_of_secret)
-        print("TRADE after seller init {0}".format(trade.toJSON()))
-        return trade

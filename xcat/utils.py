@@ -92,11 +92,6 @@ if not os.path.exists(tmp_dir):
 xcatjson = os.path.join(tmp_dir, 'xcat.json')
 
 
-def save_trade(trade):
-    with open(xcatjson, 'w+') as outfile:
-        json.dump(trade, outfile)
-
-
 def get_trade():
     with open(xcatjson) as data_file:
         xcatdb = json.load(data_file)
@@ -113,16 +108,19 @@ def erase_trade():
     except:
         pass
 
-
+# Dumping trade to json file for development and debugging
 def save(trade):
     # print("Saving trade")
     trade = {
-        'sell': trade.sell.__dict__,
-        'buy': trade.buy.__dict__,
-        'commitment': trade.commitment
+    'sell': trade.sell.__dict__,
+    'buy': trade.buy.__dict__,
+    'commitment': trade.commitment
     }
     save_trade(trade)
 
+def save_trade(trade):
+    with open(xcatjson, 'w+') as outfile:
+        json.dump(trade, outfile)
 
 # Remove tmp files when trade is complete
 def cleanup(tradeid):
