@@ -1,33 +1,40 @@
 #!/usr/bin/env python3
 
 import sys
+import bitcoin
+import bitcoin.rpc
+from xcat.utils import x2s
+from bitcoin.core import b2x, lx, x, COIN, CMutableTxOut
+from bitcoin.core import CMutableTxIn, CMutableTransaction
+from bitcoin.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF
+from bitcoin.core.script import OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG
+from bitcoin.core.script import SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP
+from bitcoin.core.script import OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE
+from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
+from bitcoin.wallet import CBitcoinAddress, P2SHBitcoinAddress
+from bitcoin.wallet import P2PKHBitcoinAddress
+import logging
+
 if sys.version_info.major < 3:
     sys.stderr.write('Sorry, Python 3.x required by this example.\n')
     sys.exit(1)
 
-import bitcoin
-import bitcoin.rpc
-from bitcoin import SelectParams
-from bitcoin.core import b2x, lx, b2lx, x, COIN, COutPoint, CMutableTxOut, CMutableTxIn, CMutableTransaction, Hash160, CTransaction
-from bitcoin.base58 import decode
-from bitcoin.core.script import CScript, OP_DUP, OP_IF, OP_ELSE, OP_ENDIF, OP_HASH160, OP_EQUALVERIFY, OP_CHECKSIG, SignatureHash, SIGHASH_ALL, OP_FALSE, OP_DROP, OP_CHECKLOCKTIMEVERIFY, OP_SHA256, OP_TRUE, OP_FALSE
-from bitcoin.core.scripteval import VerifyScript, SCRIPT_VERIFY_P2SH
-from bitcoin.wallet import CBitcoinAddress, CBitcoinSecret, P2SHBitcoinAddress, P2PKHBitcoinAddress
+FEE = 0.001 * COIN
 
-from xcat.utils import *
-import logging
-
-FEE = 0.001*COIN
 
 class bitcoinProxy():
     def __init__(self, network='regtest', timeout=900):
-        if network is not 'testnet' and network is not 'mainnet':
-            network='regtest'
+        if network not in ['testnet', 'mainnet', 'regtest']:
+            raise ValueError('Allowed networks are regtest, testnet, mainnet.')
+        if not isinstance(timeout, int) or timeout < 1:
+            raise ValueError('Timeout should be a positive integer.')
+
         logging.debug("NETWORK in proxy: {0}".format(network))
+
         self.network = network
         self.timeout = timeout
 
-        SelectParams(self.network)
+        bitcoin.SelectParams(self.network)
         self.bitcoind = bitcoin.rpc.Proxy(timeout=self.timeout)
 
     def validateaddress(self, addr):
@@ -41,9 +48,9 @@ class bitcoinProxy():
             print("TXINFO", decoded['vin'][0])
             if('txid' in decoded['vin'][0]):
                 sendid = decoded['vin'][0]['txid']
-                if (sendid == fundtx_input ):
+                if (sendid == fundtx_input):
                     print("Found funding tx: ", sendid)
-                    return parse_secret(lx(tx['txid']))
+                    return self.parse_secret(lx(tx['txid']))
         print("Redeem transaction with secret not found")
         return
 
@@ -52,9 +59,9 @@ class bitcoinProxy():
         decoded = self.bitcoind.call('decoderawtransaction', raw)
         scriptSig = decoded['vin'][0]['scriptSig']
         asm = scriptSig['asm'].split(" ")
-        pubkey = asm[1]
+        # pubkey = asm[1]
         secret = x2s(asm[2])
-        redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
+        # redeemPubkey = P2PKHBitcoinAddress.from_pubkey(x(pubkey))
         return secret
 
     def get_keys(self, funder_address, redeemer_address):
@@ -77,18 +84,27 @@ class bitcoinProxy():
         print("Current blocknum on Bitcoin: ", blocknum)
         redeemblocknum = blocknum + locktime
         print("Redeemblocknum on Bitcoin: ", redeemblocknum)
-        redeemScript = CScript([OP_IF, OP_SHA256, commitment, OP_EQUALVERIFY,OP_DUP, OP_HASH160,
-                                     redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY, OP_DROP, OP_DUP, OP_HASH160,
-                                     funderAddr, OP_ENDIF,OP_EQUALVERIFY, OP_CHECKSIG])
-        # print("Redeem script for p2sh contract on Bitcoin blockchain: {0}".format(b2x(redeemScript)))
+        redeemScript = CScript([
+            OP_IF, OP_SHA256, commitment, OP_EQUALVERIFY, OP_DUP, OP_HASH160,
+            redeemerAddr, OP_ELSE, redeemblocknum, OP_CHECKLOCKTIMEVERIFY,
+            OP_DROP, OP_DUP, OP_HASH160, funderAddr, OP_ENDIF, OP_EQUALVERIFY,
+            OP_CHECKSIG])
+        # print("Redeem script for p2sh contract on Bitcoin blockchain: "
+        #        "{0}".format(b2x(redeemScript)))
         txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
         # Convert the P2SH scriptPubKey to a base58 Bitcoin address
-        txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(txin_scriptPubKey)
+        txin_p2sh_address = CBitcoinAddress.from_scriptPubKey(
+            txin_scriptPubKey)
         p2sh = str(txin_p2sh_address)
         # Import address at same time you create
         self.bitcoind.importaddress(p2sh, "", False)
         print("p2sh computed", p2sh)
-        return {'p2sh': p2sh, 'redeemblocknum': redeemblocknum, 'redeemScript': b2x(redeemScript), 'redeemer': redeemer, 'funder': funder, 'locktime': locktime}
+        return {'p2sh': p2sh,
+                'redeemblocknum': redeemblocknum,
+                'redeemScript': b2x(redeemScript),
+                'redeemer': redeemer,
+                'funder': funder,
+                'locktime': locktime}
 
     def fund_htlc(self, p2sh, amount):
         send_amount = float(amount) * COIN
@@ -103,20 +119,20 @@ class bitcoinProxy():
         self.bitcoind.importaddress(p2sh, "", False)
         # Get amount in address
         amount = self.bitcoind.getreceivedbyaddress(p2sh, 0)
-        amount = amount/COIN
+        amount = amount / COIN
         return amount
 
     def get_fund_status(self, p2sh):
         self.bitcoind.importaddress(p2sh, "", False)
         amount = self.bitcoind.getreceivedbyaddress(p2sh, 0)
-        amount = amount/COIN
+        amount = amount / COIN
         print("Amount in bitcoin p2sh: ", amount, p2sh)
         if amount > 0:
             return 'funded'
         else:
             return 'empty'
 
-    ## TODO: FIX search for p2sh in block
+    # TODO: FIX search for p2sh in block
     def search_p2sh(self, block, p2sh):
         print("Fetching block...")
         blockdata = self.bitcoind.getblock(lx(block))
@@ -145,9 +161,9 @@ class bitcoinProxy():
         scriptarray = self.parse_script(contract.redeemScript)
         redeemblocknum = scriptarray[8]
         self.redeemPubKey = P2PKHBitcoinAddress.from_bytes(x(scriptarray[6]))
-        refundPubKey = P2PKHBitcoinAddress.from_bytes(x(scriptarray[13]))
+        # refundPubKey = P2PKHBitcoinAddress.from_bytes(x(scriptarray[13]))
         p2sh = contract.p2sh
-        #checking there are funds in the address
+        # checking there are funds in the address
         amount = self.check_funds(p2sh)
         if(amount == 0):
             print("address ", p2sh, " not funded")
@@ -174,7 +190,9 @@ class bitcoinProxy():
         # TODO: Compare with script on blockchain?
         redeemScript = CScript(x(contract.redeemScript))
         txin = CMutableTxIn(fundtx['outpoint'])
-        txout = CMutableTxOut(fundtx['amount'] - FEE, self.redeemPubKey.to_scriptPubKey())
+        txout = CMutableTxOut(fundtx['amount'] - FEE,
+                              self.redeemPubKey.to_scriptPubKey())
+
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
         sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
@@ -182,17 +200,19 @@ class bitcoinProxy():
         privkey = self.bitcoind.dumpprivkey(self.redeemPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
         preimage = secret.encode('utf-8')
-        txin.scriptSig = CScript([sig, privkey.pub, preimage, OP_TRUE, redeemScript])
+        txin.scriptSig = CScript([sig, privkey.pub, preimage,
+                                  OP_TRUE, redeemScript])
 
         # print("txin.scriptSig", b2x(txin.scriptSig))
         txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
         print('Raw redeem transaction hex: ', b2x(tx.serialize()))
-        VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+        VerifyScript(txin.scriptSig, txin_scriptPubKey,
+                     tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("Script verified, sending raw transaction...")
         txid = self.bitcoind.sendrawtransaction(tx)
         fund_tx = str(fundtx['outpoint'])
-        redeem_tx =  b2x(lx(b2x(txid)))
-        return  {"redeem_tx": redeem_tx, "fund_tx": fund_tx}
+        redeem_tx = b2x(lx(b2x(txid)))
+        return {"redeem_tx": redeem_tx, "fund_tx": fund_tx}
 
     def refund(self, contract):
         fundtx = self.find_transaction_to_address(contract.p2sh)
@@ -202,7 +222,9 @@ class bitcoinProxy():
 
         redeemScript = CScript(x(contract.redeemScript))
         txin = CMutableTxIn(fundtx['outpoint'])
-        txout = CMutableTxOut(fundtx['amount'] - FEE, refundPubKey.to_scriptPubKey())
+        txout = CMutableTxOut(fundtx['amount'] - FEE,
+                              refundPubKey.to_scriptPubKey())
+
         # Create the unsigned raw transaction.
         tx = CMutableTransaction([txin], [txout])
         # Set nSequence and nLockTime
@@ -211,15 +233,18 @@ class bitcoinProxy():
         sighash = SignatureHash(redeemScript, tx, 0, SIGHASH_ALL)
         privkey = self.bitcoind.dumpprivkey(refundPubKey)
         sig = privkey.sign(sighash) + bytes([SIGHASH_ALL])
+
         # Sign without secret
         txin.scriptSig = CScript([sig, privkey.pub, OP_FALSE, redeemScript])
+
         # txin.nSequence = 2185
         txin_scriptPubKey = redeemScript.to_p2sh_scriptPubKey()
         print('Raw redeem transaction hex: {0}'.format(b2x(tx.serialize())))
-        res = VerifyScript(txin.scriptSig, txin_scriptPubKey, tx, 0, (SCRIPT_VERIFY_P2SH,))
+        res = VerifyScript(txin.scriptSig, txin_scriptPubKey,
+                           tx, 0, (SCRIPT_VERIFY_P2SH,))
         print("Script verified, sending raw transaction... (NOT)", res)
         txid = self.bitcoind.sendrawtransaction(tx)
-        refund_tx =  b2x(lx(b2x(txid)))
+        refund_tx = b2x(lx(b2x(txid)))
         fund_tx = str(fundtx['outpoint'])
         return {"refund_tx": refund_tx, "fund_tx": fund_tx}
 
@@ -229,12 +254,12 @@ class bitcoinProxy():
         return scriptarray
 
     def find_redeemblocknum(self, contract):
-        scriptarray = parse_script(contract.redeemScript)
+        scriptarray = self.parse_script(contract.redeemScript)
         redeemblocknum = scriptarray[8]
         return int(redeemblocknum)
 
     def find_redeemAddr(self, contract):
-        scriptarray = parse_script(contract.redeemScript)
+        scriptarray = self.parse_script(contract.redeemScript)
         redeemer = scriptarray[6]
         redeemAddr = P2PKHBitcoinAddress.from_bytes(x(redeemer))
         return redeemAddr

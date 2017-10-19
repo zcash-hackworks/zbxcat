@@ -1,77 +1,77 @@
 import plyvel
-from xcat.utils import *
-import binascii
-import sys
 import json
-import ast
-from xcat.trades import *
+import xcat.utils as utils
+from xcat.trades import Trade
 
-db = plyvel.DB('/tmp/xcatDB', create_if_missing=True)
-preimageDB = plyvel.DB('/tmp/preimageDB', create_if_missing=True)
 
-#############################################
-######## Trades stored by tradeid ###########
-#############################################
+class DB():
 
-# Takes dict or obj, saves json str as bytes
-def create(trade, tradeid):
-    if type(trade) == dict:
-        trade = json.dumps(trade)
-    else:
-        trade = trade.toJSON()
-    db.put(b(tradeid), b(trade))
+    def __init__(self):
+        self.db = plyvel.DB('/tmp/xcatDB', create_if_missing=True)
+        self.preimageDB = plyvel.DB('/tmp/preimageDB', create_if_missing=True)
 
-#  Uses the funding txid as the key to save trade
-def createByFundtx(trade):
-    trade = trade.toJSON()
-    # # Save trade by initiating txid
-    jt = json.loads(trade)
-    txid = jt['sell']['fund_tx']
-    db.put(b(txid), b(trade))
+    #############################################
+    ######## Trades stored by tradeid ###########
+    #############################################
 
-def get(tradeid):
-    rawtrade = db.get(b(tradeid))
-    tradestr = str(rawtrade, 'utf-8')
-    trade = instantiate(tradestr)
-    return trade
+    # Takes dict or obj, saves json str as bytes
+    def create(self, trade, tradeid):
+        if isinstance(trade, dict):
+            trade = json.dumps(trade, sort_keys=True, indent=4)
+        elif isinstance(trade, Trade):
+            trade = trade.toJSON()
+        else:
+            raise ValueError('Expected dictionary or Trade object')
+        self.db.put(utils.b(tradeid), utils.b(trade))
 
-def instantiate(trade):
-    if type(trade) == str:
-        tradestr = json.loads(trade)
-        trade = Trade(buy=Contract(tradestr['buy']), sell=Contract(tradestr['sell']), commitment=tradestr['commitment'])
+    #  Uses the funding txid as the key to save trade
+    def createByFundtx(self, trade):
+        if isinstance(trade, dict):
+            txid = trade['sell']['fund_tx']
+            trade = json.dumps(trade, sort_keys=True, indent=4)
+        elif isinstance(trade, Trade):
+            txid = trade.sell.fund_tx
+            trade = trade.toJSON()
+        else:
+            raise ValueError('Expected dictionary or Trade object')
+        self.db.put(utils.b(txid), utils.b(trade))
+
+    def get(self, tradeid):
+        rawtrade = self.db.get(utils.b(tradeid))
+        tradestr = str(rawtrade, 'utf-8')
+        trade = Trade(fromJSON=tradestr)
         return trade
 
-#############################################
-###### Preimages stored by tradeid ##########
-#############################################
+    #############################################
+    ###### Preimages stored by tradeid ##########
+    #############################################
 
-# Stores secret locally in key/value store by tradeid
-def save_secret(tradeid, secret):
-    res = preimageDB.put(b(tradeid), b(secret))
+    # Stores secret locally in key/value store by tradeid
+    def save_secret(self, tradeid, secret):
+        self.preimageDB.put(utils.b(tradeid), utils.b(secret))
 
-def get_secret(tradeid):
-    secret = preimageDB.get(b(tradeid))
-    secret = str(secret, 'utf-8')
-    return secret
+    def get_secret(self, tradeid):
+        secret = self.preimageDB.get(utils.b(tradeid))
+        secret = str(secret, 'utf-8')
+        return secret
 
+    #############################################
+    ########## Dump or view db entries ##########
+    #############################################
 
-#############################################
-########## Dump or view db entries ##########
-#############################################
+    def dump(self):
+        results = []
+        with self.db.iterator() as it:
+            for k, v in it:
+                j = json.loads(str(v, 'utf-8'))
+                results.append((str(k, 'utf-8'), j))
+        return results
 
-def dump():
-    results = []
-    with db.iterator() as it:
-        for k, v in it:
-            j = json.loads(x2s(b2x(v)))
-            results.append((str(k, 'utf-8'), j))
-    return results
-
-def print_entries():
-    it = db.iterator()
-    with db.iterator() as it:
-        for k, v in it:
-            j = json.loads(x2s(b2x(v)))
-            print("Key:", k)
-            print('val: ', j)
-            # print('sell: ', j['sell'])
+    def print_entries(self):
+        it = self.db.iterator()
+        with self.db.iterator() as it:
+            for k, v in it:
+                j = json.loads(utils.x2s(utils.b2x(v)))
+                print("Key:", k)
+                print('val: ', j)
+                # print('sell: ', j['sell'])
